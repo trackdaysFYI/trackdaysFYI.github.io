@@ -459,7 +459,7 @@
     Object.keys(tracks).forEach(function(key, index) {
       track = tracks[key];
       mapMarkers[key] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8}).addTo(map);
-      mapMarkers[key].bindPopup("", {maxHeight: 250, closeButton: true});  // text updated on click
+      mapMarkers[key].bindPopup("", {maxHeight: 250, closeButton: false});  // text updated on click
       mapMarkers[key].on("mousedown", function (e) {
         lastOpenedTrack = e.target.options.title.toUpperCase();
         updateLastPopupContent();
