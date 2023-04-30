@@ -231,10 +231,10 @@
         if (filterTrackday(td.date, td.price, tracks[td.track].dist)) {
           let priceStr = (td.price === -1 ? "?" : "$" + td.price);
           let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
-          let noteStr = (td.note ? " - " + td.note : "");
+          let noteStr = (td.note ? " (" + td.note + ")" : "");
           let calendarStr = (document.getElementById("calendarToggle").value === "organizer" ?
-            `<a href=${td.url} title="${priceStr}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname} - ${td.org}</a>` :
-            `<a href=${td.url} title="${td.org}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname} - ${priceStr}</a>`
+            `<a href=${td.url} title="${priceStr}${subtrackStr}">• ${tracks[td.track].nickname} - ${td.org}${noteStr}</a>` :
+            `<a href=${td.url} title="${td.org}${subtrackStr}">• ${tracks[td.track].nickname} - ${priceStr}${noteStr}</a>`
           );
           calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
         }
