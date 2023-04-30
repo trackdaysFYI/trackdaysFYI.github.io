@@ -32,7 +32,7 @@
     b {font-weight: bolder;}  /* lighter bold */
     svg {vertical-align: middle;}
 
-    .container {max-width: 65em; padding: 1rem;}
+    .container {max-width: 67em; padding: 1rem;}
     .lead {font-size: 1.25rem; font-weight: 300;}
     .center {margin-left: auto; margin-right: auto; text-align: center;}
     .gray {color: rgb(176, 176, 176)}
@@ -42,9 +42,9 @@
     .filter table, .filter td {white-space: nowrap; padding: 2px;}  /* border: 1px solid; border-collapse: collapse; */
     .leaflet-container {font-family: unset}
     .leaflet-popup-content-wrapper, .leaflet-popup-tip {background: rgb(240, 240, 240);}
-    .leaflet-popup-content {text-align: center; padding-right:5px; margin: 8px 5px 8px 5px;}
+    .leaflet-popup-content {text-align: center; padding-right: 5px; margin: 8px 5px 8px 5px;}
     .dragMe .leaflet-popup-content-wrapper {border-radius: 3px; background: rgba(255, 0, 0, 0.7); color: white; font-size: 0.5rem;}
-    .dragMe .leaflet-popup-content {padding-right:0px; margin: 0px 0px 0px 0px;}
+    .dragMe .leaflet-popup-content {padding-right: 0px; margin: 0px 0px 0px 0px;}
     .dragMe .leaflet-popup-tip {width: 0px; height: 0px;}
 
     .cld-day::-webkit-scrollbar-thumb, .leaflet-popup-scrolled::-webkit-scrollbar-thumb {background-color: rgb(176, 176, 176);}  /* slider color */
@@ -459,7 +459,7 @@
     Object.keys(tracks).forEach(function(key, index) {
       track = tracks[key];
       mapMarkers[key] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8}).addTo(map);
-      mapMarkers[key].bindPopup("", {maxHeight: 220, closeButton: true});  // text updated on click
+      mapMarkers[key].bindPopup("", {maxHeight: 250, closeButton: true});  // text updated on click
       mapMarkers[key].on("mousedown", function (e) {
         lastOpenedTrack = e.target.options.title.toUpperCase();
         updateLastPopupContent();
