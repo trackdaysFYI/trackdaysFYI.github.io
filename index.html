@@ -109,7 +109,7 @@
       if (typeof homeMarker !== "undefined") {map.removeLayer(homeMarker);}
       homeMarker = L.marker([userLat, userLon], {icon: homeIcon, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
       L.popup([userLat, userLon], {"content": "<b>Drag Me</b>", "className": "dragMe", "autoPan": false, "closeButton": false, "offset": [0, 50]}).openOn(map);
-	  
+      
       if (typeof searchCircle !== "undefined") {map.removeLayer(searchCircle);}
       searchCircle = L.circle([userLat, userLon], {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
       updateTrackDistances();
@@ -230,8 +230,8 @@
       trackdays.forEach(function (td) {
         if (filterTrackday(td.date, td.price, tracks[td.track].dist)) {
           calendarEvents.push({Date: td.date.toDate(), Title: `
-		  • ${tracks[td.track].nickname} - ${document.getElementById("calendarToggle").value === "organizer" ? td.org : (td.price === -1 ? "?" : "$" + td.price)}
-		  `, Link: td.url});
+          • ${tracks[td.track].nickname} - ${document.getElementById("calendarToggle").value === "organizer" ? td.org : (td.price === -1 ? "?" : "$" + td.price)}
+          `, Link: td.url});
         }
       });
       calendar = document.querySelector("#calendar")
@@ -283,35 +283,35 @@
       selectedMonth = undefined;  // updateCalendar updates to current month
       updateCalendar();
     }
-	
-	let showSyncInfo = false;
-	function toggleSyncInfo() {
-	  if (showSyncInfo) {
-		document.getElementById("syncInfo").innerHTML = "";
-		showSyncInfo = false;
-	  } else {
-		let tbody = orgs.map(org => {return `
+    
+    let showSyncInfo = false;
+    function toggleSyncInfo() {
+      if (showSyncInfo) {
+        document.getElementById("syncInfo").innerHTML = "";
+        showSyncInfo = false;
+      } else {
+        let tbody = orgs.map(org => {return `
           <tr>
             <td><a href="${org.url}" target="_blank" style="color:inherit;">${org.org}</a></td>
-			<td>${org.numEvents}</td>
+            <td>${org.numEvents}</td>
             <td>${dayjs().to(org.syncTimeUTC)}</td>
           </tr>
         `}).join("");
         let tbl = `
-		  <div style="column-width: 18rem;">
-		    <table class="center gray" style="font-size: 0.8rem;">
+          <div style="column-width: 18rem;">
+            <table class="center gray" style="font-size: 0.8rem;">
               <thead style="break-inside: avoid;"><tr>
                 <th>Organizer</th>
                 <th>Events</th>
-				<th>Last Sync</th>
+                <th>Last Sync</th>
               </tr></thead>
               <tbody>${tbody}</tbody>
             </table>
-		  </div>`;
-		document.getElementById("syncInfo").innerHTML = "<hr>" + tbl;
-		showSyncInfo = true;
-	  }
-	}
+          </div>`;
+        document.getElementById("syncInfo").innerHTML = "<hr>" + tbl;
+        showSyncInfo = true;
+      }
+    }
   </script>
 </head>
 
@@ -330,11 +330,11 @@
   <main>
     <div class="lead">
       <span>Tracking <span id="numTrackdays"></span> events from <span id="numOrgs"></span> organizers.</span>
-	  <br>
-	  <span>Last sync was <b><a id="lastSyncMessage" onclick="toggleSyncInfo();" href="javascript:void(0);" style="color:inherit; text-decoration-thickness: 1px;"></a></b>.</span>
+      <br>
+      <span>Last sync was <b><a id="lastSyncMessage" onclick="toggleSyncInfo();" href="javascript:void(0);" style="color:inherit; text-decoration-thickness: 1px;"></a></b>.</span>
     </div>
-	
-	<p id="syncInfo"></p>
+    
+    <p id="syncInfo"></p>
 
     <hr>
     <div id="map"></div>
@@ -385,13 +385,13 @@
 
     <hr>
     <div id="calendar"></div>
-	<div class="gray" style="font-size: 0.8rem;">
-	  <label for="calendarToggle">Calendar Info: </label>
+    <div class="gray" style="font-size: 0.8rem;">
+      <label for="calendarToggle">Calendar Info: </label>
       <select name="calendarToggle" id="calendarToggle">
-	    <option value="price">Price</option>
-	    <option value="organizer">Organizer</option>
+        <option value="price">Price</option>
+        <option value="organizer">Organizer</option>
       </select>
-	</div>
+    </div>
     <hr>
   </main>
   
@@ -424,11 +424,11 @@
 
     tracks = tracks.reduce(function(obj, v) {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
     trackdays = trackdays.map(td => ({...td, date: dayjs(td.date, "YYYY-MM-DD")}));  // convert date string to dayjs
-	
-	orgs = orgs.map(org => ({...org, syncTimeUTC: dayjs.utc(org.syncTimeUTC)}));  // convert datetime string to dayjs
-	orgs.sort((a, b) => (a.org > b.org ? 1 : -1));  // sort by name TODO remove
-	
-	let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
+    
+    orgs = orgs.map(org => ({...org, syncTimeUTC: dayjs.utc(org.syncTimeUTC)}));  // convert datetime string to dayjs
+    orgs.sort((a, b) => (a.org > b.org ? 1 : -1));  // sort by name TODO remove
+    
+    let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
     document.querySelector("#lastSyncMessage").innerText = dayjs().to(lastSync);
     document.querySelector("#numTrackdays").innerText = trackdays.length;
     document.querySelector("#numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
