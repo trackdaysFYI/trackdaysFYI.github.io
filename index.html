@@ -61,12 +61,12 @@
     .cld-rwd {float: left;}
     .cld-fwd {float: right;}
     .cld-labels, .cld-days {padding-left: 0;}
-    .cld-label, .cld-day {box-sizing: border-box; display: inline-block; width: 14.286%; text-align: center;}
-    .cld-day {display: block; float: left; position: relative; margin: 0; padding: 3px; height: 65px; border: 1px solid rgb(220, 220, 220); overflow-y: auto;}
+    .cld-label, .cld-day {box-sizing: border-box; display: inline-block; width: calc(100%/7); text-align: center;}
+    .cld-day {display: block; float: left; position: relative; margin: 0; padding: 3px; height: 68px; border: 1px solid rgb(220, 220, 220); overflow-y: auto;}
     .cld-day.today {border: 1px solid rgb(255, 0, 0);}
     .cld-day.nextMonth, .cld-day.prevMonth {opacity: 0;}
-    .cld-number {font-size: 12px; margin: 0; text-align: left;}
-    .cld-title {font-size: 10.5px; margin: 0; display: block; font-weight: normal;}
+    .cld-number {font-size: 12.5px; margin: 0; text-align: left;}
+    .cld-title {font-size: 11px; margin: 0; display: block; font-weight: normal;}
     .cld-day:hover {background: rgb(45, 51, 57);}
     .cld-number.eventday {font-weight: bold;}
     .cld-number.eventday:hover {background: rgb(45, 51, 57);}
