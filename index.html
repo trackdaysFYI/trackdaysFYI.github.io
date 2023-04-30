@@ -408,7 +408,7 @@
   </footer>
 
   <script>
-    var map = L.map("map", {doubleClickZoom: false, boxZoom: false, minZoom: 4, maxZoom: 15});
+    var map = L.map("map", {doubleClickZoom: false, boxZoom: false, minZoom: 4, maxZoom: 15, worldCopyJump: true});
     let tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", 
       {attribution: `<a style="font-size:10px" href="http://www.openstreetmap.org/copyright">&copy; OpenStreetMap</a>`}
     ).addTo(map);
