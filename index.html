@@ -229,9 +229,14 @@
       let calendarEvents = [];
       trackdays.forEach(function (td) {
         if (filterTrackday(td.date, td.price, tracks[td.track].dist)) {
-          calendarEvents.push({Date: td.date.toDate(), Title: `
-          • ${tracks[td.track].nickname} - ${document.getElementById("calendarToggle").value === "organizer" ? td.org : (td.price === -1 ? "?" : "$" + td.price)}
-          `, Link: td.url});
+          let priceStr = (td.price === -1 ? "?" : "$" + td.price);
+          let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
+          let noteStr = (td.note ? " - " + td.note : "");
+          let calendarStr = (document.getElementById("calendarToggle").value === "organizer" ?
+            `<a href=${td.url} title="${priceStr}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname} - ${td.org}</a>` :
+            `<a href=${td.url} title="${td.org}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname} - ${priceStr}</a>`
+          );
+          calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
         }
       });
       calendar = document.querySelector("#calendar")
