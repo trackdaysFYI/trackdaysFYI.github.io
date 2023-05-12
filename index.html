@@ -435,10 +435,15 @@
     maxDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
 
     tracks = tracks.reduce(function(obj, v) {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
+    orgs = orgs.map(org => ({...org, numEvents: org.events.length}));  // add # events
+    orgs = orgs.map(org => ({...org, events: org.events.map(v => ({...v, org: org.orgNickname}))}));  // add org key to events
+    trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
     trackdays = trackdays.map(td => ({...td, date: dayjs(td.date, "YYYY-MM-DD")}));  // convert date string to dayjs
+    trackdays.sort((a, b) => (a.date > b.date ? 1 : -1));  // sort by date
     
+    orgs = orgs.map(({events, ...item}) => item);  // drop events key
     orgs = orgs.map(org => ({...org, syncTimeUTC: dayjs.utc(org.syncTimeUTC)}));  // convert datetime string to dayjs
-    orgs.sort((a, b) => (a.org > b.org ? 1 : -1));  // sort by name TODO remove
+    orgs.sort((a, b) => (a.org > b.org ? 1 : -1));  // sort by name
     
     let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
     document.querySelector("#lastSyncMessage").innerText = dayjs().to(lastSync);
