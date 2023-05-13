@@ -96,7 +96,7 @@
     function setGPSLocation(position) {
       gpsLat = position.coords.latitude;
       gpsLon = position.coords.longitude;
-      setDefaults();
+      if (typeof tracks !== "undefined") {setDefaults();}
     }
 
     function updateHome(lat, lon) {
