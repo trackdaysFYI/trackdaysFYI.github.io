@@ -19,8 +19,6 @@
   <script>dayjs.extend(window.dayjs_plugin_customParseFormat)</script>
   <script src="caleandar.min.js" type="text/javascript"></script>
 
-  <script src="data.js" type="text/javascript"></script>
-
   <style>
     * {box-sizing: border-box;}
     :root {font-family: "Noto Sans"; line-height: 1.2; color:rgb(255, 255, 255); background-color: rgb(34,38,42);}
@@ -84,10 +82,10 @@
   </style>
 
   <script>
-    var userLat, userLon, gpsLat, gpsLon;
-    var homeMarker, searchCircle;
-    var searchRadius, minDate, maxDate;
-    var lastOpenedTrack, selectedMonth;
+    let userLat, userLon, gpsLat, gpsLon;
+    let homeMarker, searchCircle;
+    let searchRadius, minDate, maxDate;
+    let lastOpenedTrack, selectedMonth;
     const infiniteRadius = 0;
     const radiusValues = [50, 100, 150, 200, 250, 300, 400, 500, 750, infiniteRadius];
 
@@ -429,34 +427,10 @@
     let resetElement = document.querySelector("#resetFilters");
     let calendarToggleElement = document.querySelector("#calendarToggle");
 
-    minDateElement.min = dayjs().subtract(1, "y").format("YYYY-MM-DD");
+    minDateElement.min = dayjs().subtract(1, "d").format("YYYY-MM-DD");
     minDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
-    maxDateElement.min = dayjs().subtract(1, "y").format("YYYY-MM-DD");
+    maxDateElement.min = dayjs().subtract(1, "d").format("YYYY-MM-DD");
     maxDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
-
-    tracks = tracks.reduce(function(obj, v) {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
-    orgs = orgs.map(org => ({...org, numEvents: org.events.length}));  // add # events
-    orgs = orgs.map(org => ({...org, events: org.events.map(v => ({...v, org: org.orgNickname}))}));  // add org key to events
-    trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
-    trackdays = trackdays.map(td => ({...td, date: dayjs(td.date, "YYYY-MM-DD")}));  // convert date string to dayjs
-    trackdays.sort((a, b) => (a.date > b.date ? 1 : -1));  // sort by date
-    
-    orgs = orgs.map(({events, ...item}) => item);  // drop events key
-    orgs = orgs.map(org => ({...org, syncTimeUTC: dayjs.utc(org.syncTimeUTC)}));  // convert datetime string to dayjs
-    orgs.sort((a, b) => (a.org > b.org ? 1 : -1));  // sort by name
-    
-    let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
-    document.querySelector("#lastSyncMessage").innerText = dayjs().to(lastSync);
-    document.querySelector("#numTrackdays").innerText = trackdays.length;
-    document.querySelector("#numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
-    
-    // update price slider limits
-    let minObservedPrice = Math.min(...trackdays.map(td => td.price));
-    let maxObservedPrice = Math.max(...trackdays.map(td => td.price));
-    minObservedPrice = Math.ceil(minObservedPrice / 10) * 10;  // round up 10
-    maxObservedPrice = Math.ceil(maxObservedPrice / 10) * 10;  // round up 10
-    priceSliderElement.min = minObservedPrice;
-    priceSliderElement.max = maxObservedPrice;
 
     let checkeredFlagImg = `<svg xmlns="http://www.w3.org/2000/svg" fill="#000000" viewBox="0 0 24 24"><path d="M4 2v18H3v2h4v-2H6v-5h13a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H6V2H4zm4 3v2h2V5h2v2h2V5h2v2h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H8v-2H6V9h2V7H6V5h2z"/><path d="M8 9h2v2H8zm4 0h2v2h-2zm-2-2h2v2h-2zm4 0h2v2h-2z"/></svg>`;
     let directionImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m2.3 12.7 9 9c.4.4 1 .4 1.4 0l9-9a1 1 0 0 0 0-1.4l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4zM9 10h5V8l3 3-3 3v-2h-3v4H9v-6z"/></svg>`;
@@ -466,60 +440,99 @@
     let trackIconCheckered = L.divIcon({html: checkeredFlagImg, className: "", iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -12]});
     let trackIconRed = L.divIcon({html: checkeredFlagImg.replace("#000000", "#ff0000"), className: "", iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -12]});
 
-    // create track markers
-    var mapMarkers = new Object();
-    Object.keys(tracks).forEach(function(key, index) {
-      track = tracks[key];
-      mapMarkers[key] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8}).addTo(map);
-      mapMarkers[key].bindPopup("", {maxHeight: 250, closeButton: false});  // text updated on click
-      mapMarkers[key].on("mousedown", function (e) {
-        lastOpenedTrack = e.target.options.title.toUpperCase();
-        updateLastPopupContent();
-      })
-    });
+    let orgs, trackdays;
+    let minObservedPrice, maxObservedPrice;
+    let mapMarkers = new Object();
+    async function visualizeData() {
+      try {
+        const res = await fetch("https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays");
+        const data = await res.json();
+        orgs = data["orgs"];
+        tracks = data["tracks"];
+        
+        tracks = tracks.reduce(function(obj, v) {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
+        orgs = orgs.map(org => ({...org, numEvents: org.events.length}));  // add # events
+        orgs = orgs.map(org => ({...org, events: org.events.map(v => ({...v, org: org.orgNickname}))}));  // add org key to events
+        trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
+        trackdays = trackdays.map(td => ({...td, date: dayjs(td.date, "YYYY-MM-DD")}));  // convert date string to dayjs
+        trackdays.sort((a, b) => (a.date > b.date ? 1 : -1));  // sort by date
+        
+        orgs = orgs.map(({events, ...item}) => item);  // drop events key
+        orgs = orgs.map(org => ({...org, syncTimeUTC: dayjs.utc(org.syncTimeUTC)}));  // convert datetime string to dayjs
+        orgs.sort((a, b) => (a.org > b.org ? 1 : -1));  // sort by name
+        
+        let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
+        document.querySelector("#lastSyncMessage").innerText = dayjs().to(lastSync);
+        document.querySelector("#numTrackdays").innerText = trackdays.length;
+        document.querySelector("#numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
+        
+        // update price slider limits
+        minObservedPrice = Math.min(...trackdays.map(td => td.price));
+        maxObservedPrice = Math.max(...trackdays.map(td => td.price));
+        minObservedPrice = Math.ceil(minObservedPrice / 10) * 10;  // round up 10
+        maxObservedPrice = Math.ceil(maxObservedPrice / 10) * 10;  // round up 10
+        priceSliderElement.min = minObservedPrice;
+        priceSliderElement.max = maxObservedPrice;
 
-    setDefaults();
+        // add track markers
+        Object.keys(tracks).forEach(function(key, index) {
+          track = tracks[key];
+          mapMarkers[key] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8}).addTo(map);
+          mapMarkers[key].bindPopup("", {maxHeight: 250, closeButton: false});  // text updated on click
+          mapMarkers[key].on("mousedown", function (e) {
+            lastOpenedTrack = e.target.options.title.toUpperCase();
+            updateLastPopupContent();
+          })
+        });
 
-    // input is on event movement - change waits for event finish
-    radiusSliderElement.addEventListener("input", function() {
-      updateSearchRadius(radiusValues[this.value]);
-      updateTrackIcons();
-    });
+        setDefaults();
 
-    radiusSliderElement.addEventListener("change", function() {
-      updateLastPopupContent();
-      updateCalendar();
-    });
+        // input is on event movement - change waits for event finish
+        radiusSliderElement.addEventListener("input", function() {
+          updateSearchRadius(radiusValues[this.value]);
+          updateTrackIcons();
+        });
 
-    priceSliderElement.addEventListener("input", function() {
-      syncDisplayedPrice();
-    });
+        radiusSliderElement.addEventListener("change", function() {
+          updateLastPopupContent();
+          updateCalendar();
+        });
 
-    priceSliderElement.addEventListener("change", function() {
-      updateLastPopupContent();
-      updateCalendar();
-    });
+        priceSliderElement.addEventListener("input", function() {
+          syncDisplayedPrice();
+        });
 
-    minDateElement.addEventListener("change", function() {
-      updateMinDate();
-      updateLastPopupContent();
-      updateCalendar();
-    });
+        priceSliderElement.addEventListener("change", function() {
+          updateLastPopupContent();
+          updateCalendar();
+        });
 
-    maxDateElement.addEventListener("change", function() {
-      updateMaxDate();
-      updateLastPopupContent();
-      updateCalendar();
-    });
+        minDateElement.addEventListener("change", function() {
+          updateMinDate();
+          updateLastPopupContent();
+          updateCalendar();
+        });
 
-    weekendToggleElement.addEventListener("change", function() {
-      updateLastPopupContent();
-      updateCalendar();
-    });
+        maxDateElement.addEventListener("change", function() {
+          updateMaxDate();
+          updateLastPopupContent();
+          updateCalendar();
+        });
 
-    resetElement.addEventListener("click", setDefaults);
-    calendarToggleElement.addEventListener("change", updateCalendar);
-    map.on("mousedown", function() {map.closePopup();});
+        weekendToggleElement.addEventListener("change", function() {
+          updateLastPopupContent();
+          updateCalendar();
+        });
+
+        resetElement.addEventListener("click", setDefaults);
+        calendarToggleElement.addEventListener("change", updateCalendar);
+        map.on("mousedown", function() {map.closePopup();});
+        
+      } catch (error) {
+        alert("Error: unable to retrieve data");
+      }
+    };
+    visualizeData();
   </script>
 </div>
 
