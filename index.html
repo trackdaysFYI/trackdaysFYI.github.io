@@ -339,9 +339,16 @@
 
   <main>
     <div class="lead">
-      <span>Tracking <span id="numTrackdays"></span> events from <span id="numOrgs"></span> organizers.</span>
-      <br>
-      <span>Last sync was <b><a id="lastSyncMessage" onclick="toggleSyncInfo();" href="javascript:void(0);" style="color:inherit; text-decoration-thickness: 1px;"></a></b>.</span>
+      <div id="eventInfoText" style="display:none">
+        <span>Tracking <span id="numTrackdays"></span> events from <span id="numOrgs"></span> organizers.</span>
+        <br>
+        <span>Last sync was <b><a id="lastSyncMessage" onclick="toggleSyncInfo();" href="javascript:void(0);" style="color:inherit; text-decoration-thickness: 1px;"></a></b>.</span>
+      </div>
+      <div id="eventInfoSpinner" style="display:block">
+        <span>Loading events...</span>
+        <br>
+        <img src="loading.gif">
+      </div>
     </div>
     
     <p id="syncInfo"></p>
@@ -449,6 +456,8 @@
         const data = await res.json();
         orgs = data["orgs"];
         tracks = data["tracks"];
+        document.getElementById("eventInfoText").style.display = "block";
+        document.getElementById("eventInfoSpinner").style.display = "none";
         
         tracks = tracks.reduce(function(obj, v) {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
         orgs = orgs.map(org => ({...org, numEvents: org.events.length}));  // add # events
