@@ -35,7 +35,7 @@
     .center {margin-left: auto; margin-right: auto; text-align: center;}
     .gray {color: rgb(176, 176, 176)}
 
-    #map {position: relative; width: 100%; height: 0; padding-bottom: 55%; border: 3px solid rgb(100, 100, 100);}
+    #map {position: relative; width: 100%; height: 55vh; border: 3px solid rgb(100, 100, 100);}
     .popup table, .popup th, .popup td {font-size: 12.5px; border: 1px solid rgb(176, 176, 176); border-collapse: collapse; white-space: nowrap; margin: auto; padding: 2px;}
     .filter table, .filter td {white-space: nowrap; padding: 2px;}  /* border: 1px solid; border-collapse: collapse; */
     .leaflet-container {font-family: unset}
@@ -76,9 +76,8 @@
     input[type=checkbox] {accent-color: rgb(57, 115, 172);}
     input[type=date] {background-color: rgb(220, 220, 220); font-family: "Noto Sans";}
 
-    @media only screen and (max-width: 48em) {
-      .mobileSqueeze > tbody > tr > td {display: block;}
-    }
+    @media (max-width: 51em) {.mobileSqueeze > tbody > tr > td {display: block;}}
+    @media (orientation:landscape) and (max-width: 800px) {#map {height: 80vh;}}
   </style>
 
   <script>
