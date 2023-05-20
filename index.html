@@ -466,7 +466,7 @@
         trackdays.sort((a, b) => (a.date > b.date ? 1 : -1));  // sort by date
         
         const idx = trackdays.findIndex(td => td.date >= dayjs().startOf("day"));  // remove trackdays prior to current day
-        if (idx >= 1) {trackdays = trackdays.slice(idx);};
+        trackdays = trackdays.slice(idx);
         
         orgs = orgs.map(({events, ...item}) => item);  // drop events key
         orgs = orgs.map(org => ({...org, syncTimeUTC: dayjs.utc(org.syncTimeUTC)}));  // convert datetime string to dayjs
