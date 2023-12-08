@@ -120,6 +120,7 @@
         userLat = latlng.lat;
         userLon = latlng.lng;
         updateTrackDistances();
+        updateTrackdaysVisibilityProperty();
         updateTrackIcons();
         updateCalendar();
       });
@@ -144,14 +145,25 @@
     }
 
     function updateTrackIcons() {
-      Object.keys(tracks).forEach(function(key, index) {
-        let distCheck = (searchRadius === infiniteRadius || tracks[key].dist <= searchRadius);
-        if (distCheck) {
-          mapMarkers[key].setIcon(trackIconCheckered);
-          mapMarkers[key].setOpacity(0.8);
+      let allTracks = Object.keys(tracks);
+      let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityMap).map(td => td.track));
+      
+      let showAllTracksToggleElementChecked = true  // showAllTracksToggleElement.checked
+      if (!showAllTracksToggleElementChecked) {  // update track visibility
+        let tracksWithoutEvents = allTracks.filter((track) => !tracksWithEvents.has(track));
+        tracksWithEvents.forEach(function (track) {mapMarkers[track].addTo(map);});
+        tracksWithoutEvents.forEach(function (track) {mapMarkers[track].remove();});
+      }
+      
+      allTracks.forEach(function(track) { // update track color and opacity
+        let withinRadius = (searchRadius === infiniteRadius || tracks[track].dist <= searchRadius);
+        opacityMultiplier = tracksWithEvents.has(track) ? 1.0 : 0.33
+        if (withinRadius) {
+          mapMarkers[track].setIcon(trackIconCheckered);
+          mapMarkers[track].setOpacity(0.8 * opacityMultiplier);
         } else {
-          mapMarkers[key].setIcon(trackIconRed);
-          mapMarkers[key].setOpacity(0.6);
+          mapMarkers[track].setIcon(trackIconRed);
+          mapMarkers[track].setOpacity(0.6 * opacityMultiplier);
         }
       });
     }
@@ -162,31 +174,35 @@
       document.querySelector("#displayedRadius").innerText = (searchRadius === infiniteRadius ? `∞` : `${searchRadius}`);
     }
 
-    function filterTrackday(date, price, dist) {
-      // date is daysj type, price is float, dist is float
+    function updateTrackdaysVisibilityProperty() {
       let maxPrice = priceSliderElement.value;
-      let onlyWeekend=weekendToggleElement.checked;
-      let weekday = dayjs(date).format("ddd");
-      
-      let distCheck = (searchRadius === infiniteRadius || dist <= searchRadius);
-      if (!distCheck) {return false;}  // early termination for efficiency, comment out when debugging
-      let dateCheck = ((!minDate.isValid() && !maxDate.isValid()) || 
-                       (!minDate.isValid() && date.isBefore(maxDate)) || 
-                       (date.isAfter(minDate) && !maxDate.isValid()) || 
-                       (date.isAfter(minDate) && date.isBefore(maxDate)));
-      let priceCheck = (isNaN(maxPrice) || (price <= maxPrice));
-      let weekendCheck = (!onlyWeekend || weekday === "Sat" || weekday === "Sun");
-      return (dateCheck && priceCheck && weekendCheck && distCheck)
+      let onlyWeekend = weekendToggleElement.checked;
+      trackdays.forEach(function (td) {
+        let withinRadius = (searchRadius === infiniteRadius || tracks[td.track].dist <= searchRadius);
+        if (withinRadius) {
+          let weekday = dayjs(td.date).format("ddd");
+          let dateCheck = ((!minDate.isValid() && !maxDate.isValid()) || 
+                           (!minDate.isValid() && td.date.isBefore(maxDate)) || 
+                           (td.date.isAfter(minDate) && !maxDate.isValid()) || 
+                           (td.date.isAfter(minDate) && td.date.isBefore(maxDate)));
+          let priceCheck = (isNaN(maxPrice) || (td.price <= maxPrice));
+          let weekendCheck = (!onlyWeekend || weekday === "Sat" || weekday === "Sun");
+          td.visibilityMap = (dateCheck && priceCheck && weekendCheck);
+          td.visibilityCalendar = td.visibilityMap;
+        } else {  // early termination
+          td.visibilityMap = true;
+          td.visibilityCalendar = false;
+        }
+      });
     }
 
-    function updateLastPopupContent() {
+    function updateTrackPopup() {
       if (lastOpenedTrack === undefined) {return;}
       let track = tracks[lastOpenedTrack];
       let trackdaysFiltered = trackdays.filter(td => td.track === lastOpenedTrack);
-      let numTracksBeforeFilter = trackdaysFiltered.length;
-      trackdaysFiltered = trackdaysFiltered.filter(td => filterTrackday(td.date, td.price, 0));
-      // don't bother distance filtering anything on the map (otherwise use track.dist)
-      let numTracksHidden = numTracksBeforeFilter - trackdaysFiltered.length;
+      let numTrackdaysBeforeFilter = trackdaysFiltered.length;
+      trackdaysFiltered = trackdaysFiltered.filter(td => td.visibilityMap);
+      let numTrackdaysHidden = numTrackdaysBeforeFilter - trackdaysFiltered.length;
       let hasSubtracks = trackdaysFiltered.some(td => td.subtrack);
       let hasNotes = trackdaysFiltered.some(td => td.note);
       let tbody = trackdaysFiltered.map(td => {return `
@@ -217,7 +233,7 @@
         <a href="https://www.google.com/maps?q=directions+${track.name}" target="_blank" title="Directions">${directionImg}</a>
         <a href="https://www.google.com/search?q=weather+${track.name}" target="_blank" title="Weather">${weatherImg}</a>
         <a href="https://www.youtube.com/results?search_query=${track.name}+motorcycle&sp=CAISAhAB" target="_blank" title="Videos">${videoImg}</a>
-        <br>${tbl}${numTracksHidden ? `(+${numTracksHidden} Filtered Events)` : ""}
+        <br>${tbl}${numTrackdaysHidden ? `(+${numTrackdaysHidden} Filtered Events)` : ""}
         </div>`);
     }
 
@@ -225,7 +241,7 @@
       // trackdays should be sorted by distance before this
       let calendarEvents = [];
       trackdays.forEach(function (td) {
-        if (filterTrackday(td.date, td.price, tracks[td.track].dist)) {
+        if (td.visibilityCalendar) {
           let priceStr = (td.price === -1 ? "?" : "$" + td.price);
           let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
           let noteStr = (td.note ? " (" + td.note + ")" : "");
@@ -279,8 +295,9 @@
       }
 
       updateSearchRadius(radiusValues[radiusSliderElement.value]);
+      updateTrackdaysVisibilityProperty();
       updateTrackIcons();
-      updateLastPopupContent();
+      updateTrackPopup();
       selectedMonth = undefined;  // updateCalendar updates to current month
       updateCalendar();
     }
@@ -485,15 +502,19 @@
         priceSliderElement.min = minObservedPrice;
         priceSliderElement.max = maxObservedPrice;
 
-        // add track markers
-        Object.keys(tracks).forEach(function(key, index) {
-          track = tracks[key];
-          mapMarkers[key] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8}).addTo(map);
-          mapMarkers[key].bindPopup("", {maxHeight: 250, closeButton: false});  // text updated on click
-          mapMarkers[key].on("mousedown", function (e) {
+        // create track markers
+        Object.keys(tracks).forEach(function(trackName) {
+          track = tracks[trackName];
+          mapMarkers[trackName] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
+          mapMarkers[trackName].bindPopup("", {maxHeight: 250, closeButton: false});  // popup content updated on click
+          mapMarkers[trackName].on("mousedown", function (e) {
             lastOpenedTrack = e.target.options.title.toUpperCase();
-            updateLastPopupContent();
+            updateTrackPopup();
           })
+          mapMarkers[trackName].getPopup().on("remove", function() {
+            lastOpenedTrack = undefined;  // don't update popup once closed
+          });
+          mapMarkers[trackName].addTo(map);
         });
 
         setDefaults();
@@ -505,7 +526,7 @@
         });
 
         radiusSliderElement.addEventListener("change", function() {
-          updateLastPopupContent();
+          updateTrackdaysVisibilityProperty();
           updateCalendar();
         });
 
@@ -514,24 +535,32 @@
         });
 
         priceSliderElement.addEventListener("change", function() {
-          updateLastPopupContent();
+          updateTrackdaysVisibilityProperty();
+          updateTrackIcons();
+          updateTrackPopup();
           updateCalendar();
         });
 
         minDateElement.addEventListener("change", function() {
           updateMinDate();
-          updateLastPopupContent();
+          updateTrackdaysVisibilityProperty();
+          updateTrackIcons();
+          updateTrackPopup();
           updateCalendar();
         });
 
         maxDateElement.addEventListener("change", function() {
           updateMaxDate();
-          updateLastPopupContent();
+          updateTrackdaysVisibilityProperty();
+          updateTrackIcons();
+          updateTrackPopup();
           updateCalendar();
         });
 
         weekendToggleElement.addEventListener("change", function() {
-          updateLastPopupContent();
+          updateTrackdaysVisibilityProperty();
+          updateTrackIcons();
+          updateTrackPopup();
           updateCalendar();
         });
 
