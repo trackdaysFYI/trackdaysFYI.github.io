@@ -88,7 +88,7 @@
     const infiniteRadius = 0;
     const radiusValues = [50, 100, 150, 200, 250, 300, 400, 500, 750, infiniteRadius];
 
-    function getLocation() { 
+    function getLocation() {
       navigator.geolocation?.getCurrentPosition(setGPSLocation);
     }
 
@@ -138,8 +138,8 @@
         let d = 2 * r * Math.asin(Math.sqrt(a));
         return d * 0.621371;
       }
-      Object.keys(tracks).forEach(function(key, index) {
-        tracks[key]["dist"] = milesBetween(userLat, userLon, tracks[key].lat, tracks[key].lon);
+      Object.keys(tracks).forEach(function(track) {
+        tracks[track]["dist"] = milesBetween(userLat, userLon, tracks[track].lat, tracks[track].lon);
       });
       trackdays.sort((a, b) => tracks[a.track].dist - tracks[b.track].dist);  // keep sorted for calendar order
     }
@@ -257,7 +257,7 @@
         selectedMonth = dayjs().toDate();
       } else {
         let monthStr = calendar.getElementsByClassName("cld-datetime")[0].innerText  // get selected month from calendar html before deletion - super hacky, oh well
-        selectedMonth = dayjs(monthStr, "MMMM YYYY").toDate()
+        selectedMonth = dayjs(monthStr, "MMMM YYYY").toDate();
       }
       calendar.innerHTML = "";  // delete old calendar
       calendarObj = caleandar(calendar, calendarEvents, {Color: "#999999", LinkColor: "#ffffff", NavShow: true, DateTimeShow: true}, selectedMonth);
@@ -386,7 +386,7 @@
               </tr>
               <tr>
                 <td>Price</td>
-                <td><input id="priceSlider" type ="range" min="100" max="500" step="10" value="500" style="vertical-align: middle;"/></td>
+                <td><input id="priceSlider" type ="range" min="100" max="500" step="20" value="500" style="vertical-align: middle;"/></td>
                 <td>≤</td>
                 <td>$<span id="displayedPrice" style="display: inline-block; width: 3ch; text-align: center;"></td>
               </tr>
@@ -497,8 +497,8 @@
         // update price slider limits
         minObservedPrice = Math.min(...trackdays.map(td => td.price));
         maxObservedPrice = Math.max(...trackdays.map(td => td.price));
-        minObservedPrice = Math.ceil(minObservedPrice / 10) * 10;  // round up 10
-        maxObservedPrice = Math.ceil(maxObservedPrice / 10) * 10;  // round up 10
+        minObservedPrice = Math.ceil(minObservedPrice / 20) * 20;  // round up 20
+        maxObservedPrice = Math.ceil(maxObservedPrice / 20) * 20;  // round up 20
         priceSliderElement.min = minObservedPrice;
         priceSliderElement.max = maxObservedPrice;
 
