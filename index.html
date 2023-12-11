@@ -129,11 +129,11 @@
       searchCircle = L.circle([userLat, userLon], {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
       updateTrackDistances();
 
-      homeMarker.on("drag", function(e) {
+      homeMarker.on("drag", (e) =>{
         searchCircle.setLatLng(e.latlng);
       });
       
-      homeMarker.on("dragend", function(e) {
+      homeMarker.on("dragend", (e) => {
         let latlng = e.target.getLatLng();
         userLat = latlng.lat;
         userLon = latlng.lng;
@@ -156,7 +156,7 @@
         let d = 2 * r * Math.asin(Math.sqrt(a));
         return d * 0.621371;
       }
-      Object.keys(tracks).forEach(function(track) {
+      Object.keys(tracks).forEach((track) => {
         tracks[track]["dist"] = milesBetween(userLat, userLon, tracks[track].lat, tracks[track].lon);
       });
       trackdays.sort((a, b) => tracks[a.track].dist - tracks[b.track].dist);  // keep sorted for calendar order
@@ -168,11 +168,11 @@
       
       if (hideTracksWithoutEvents.checked) {
         let tracksWithoutEvents = allTracks.filter((track) => !tracksWithEvents.has(track));
-        tracksWithEvents.forEach(function (track) {mapMarkers[track].addTo(map);});
-        tracksWithoutEvents.forEach(function (track) {mapMarkers[track].remove();});
+        tracksWithEvents.forEach((track) => {mapMarkers[track].addTo(map);});
+        tracksWithoutEvents.forEach((track) => {mapMarkers[track].remove();});
       }
       
-      allTracks.forEach(function(track) { // update track color and opacity
+      allTracks.forEach((track) => {
         let withinRadius = (searchRadius === infiniteRadius || tracks[track].dist <= searchRadius);
         opacityMultiplier = tracksWithEvents.has(track) ? 1.0 : 0.35;
         if (withinRadius) {
@@ -188,13 +188,13 @@
     function updateSearchRadius(radiusMiles) {
       searchRadius = radiusMiles;
       searchCircle.setRadius(searchRadius * 1609.34);
-      document.querySelector("#displayedRadius").innerText = (searchRadius === infiniteRadius ? `∞` : `${searchRadius}`);
+      document.getElementById("displayedRadius").innerText = (searchRadius === infiniteRadius ? `∞` : `${searchRadius}`);
     }
 
     function updateTrackdaysVisibilityProperty() {
       let maxPrice = priceSliderElement.value;
       let onlyWeekend = weekendToggleElement.checked;
-      trackdays.forEach(function (td) {
+      trackdays.forEach((td) => {
         let withinRadius = (searchRadius === infiniteRadius || tracks[td.track].dist <= searchRadius);
         let weekday = dayjs(td.date).format("ddd");
         let dateCheck = ((!minDate.isValid() && !maxDate.isValid()) || 
@@ -257,7 +257,7 @@
     function updateCalendar() {
       // trackdays should be sorted by distance before this
       let calendarEvents = [];
-      trackdays.forEach(function (td) {
+      trackdays.forEach((td) => {
         if (td.visibilityCalendar) {
           let priceStr = (td.price === -1 ? "?" : "$" + td.price);
           let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
@@ -269,7 +269,7 @@
           calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
         }
       });
-      calendar = document.querySelector("#calendar")
+      calendar = document.getElementById("calendar")
       if (selectedMonth === undefined) {
         selectedMonth = dayjs().toDate();
       } else {
@@ -278,7 +278,7 @@
       }
       calendar.innerHTML = "";  // delete old calendar
       calendarObj = caleandar(calendar, calendarEvents, {Color: "#999999", LinkColor: "#ffffff", NavShow: true, DateTimeShow: true}, selectedMonth);
-      document.querySelector("#numTrackdaysMatching").innerText = `${calendarEvents.length} matching events`
+      document.getElementById("numTrackdaysMatching").innerText = `${calendarEvents.length} matching events`
     }
 
     function updateMinDate() {
@@ -289,7 +289,7 @@
     }
 
     function syncDisplayedPrice() {
-      document.querySelector("#displayedPrice").innerText = priceSliderElement.value;
+      document.getElementById("displayedPrice").innerText = priceSliderElement.value;
     }
 
     function setDefaults() {
@@ -496,13 +496,13 @@
     maxDateElement.min = dayjs().subtract(1, "d").format("YYYY-MM-DD");
     maxDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
 
-    let checkeredFlagImg = `<svg xmlns="http://www.w3.org/2000/svg" fill="#000000" viewBox="0 0 24 24"><path d="M4 2v18H3v2h4v-2H6v-5h13a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H6V2H4zm4 3v2h2V5h2v2h2V5h2v2h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H8v-2H6V9h2V7H6V5h2z"/><path d="M8 9h2v2H8zm4 0h2v2h-2zm-2-2h2v2h-2zm4 0h2v2h-2z"/></svg>`;
-    let directionImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m2.3 12.7 9 9c.4.4 1 .4 1.4 0l9-9a1 1 0 0 0 0-1.4l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4zM9 10h5V8l3 3-3 3v-2h-3v4H9v-6z"/></svg>`;
-    let weatherImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="M7 12a5 5 0 1 0 10 0 5 5 0 0 0-10 0zm4 7h2v3h-2zm0-17h2v3h-2zm-9 9h3v2H2zm17 0h3v2h-3zM5.6 19.8l-1.4-1.4 2.1-2.2 1.5 1.5zM16.2 6.3l2.2-2 1.4 1.3-2.1 2.2zM6.3 7.8l-2-2.2 1.3-1.4 2.2 2.1zm13.5 10.6-1.4 1.4-2.2-2.1 1.5-1.5z"/></svg>`;
-    let videoImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m18 7-2-2H4L2 7v10l2 2h12l2-2v-3l4 3V7l-4 3V7z"/></svg>`;
+    const checkeredFlagImg = `<svg xmlns="http://www.w3.org/2000/svg" fill="#000000" viewBox="0 0 24 24"><path d="M4 2v18H3v2h4v-2H6v-5h13a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H6V2H4zm4 3v2h2V5h2v2h2V5h2v2h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H8v-2H6V9h2V7H6V5h2z"/><path d="M8 9h2v2H8zm4 0h2v2h-2zm-2-2h2v2h-2zm4 0h2v2h-2z"/></svg>`;
+    const directionImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m2.3 12.7 9 9c.4.4 1 .4 1.4 0l9-9a1 1 0 0 0 0-1.4l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4zM9 10h5V8l3 3-3 3v-2h-3v4H9v-6z"/></svg>`;
+    const weatherImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="M7 12a5 5 0 1 0 10 0 5 5 0 0 0-10 0zm4 7h2v3h-2zm0-17h2v3h-2zm-9 9h3v2H2zm17 0h3v2h-3zM5.6 19.8l-1.4-1.4 2.1-2.2 1.5 1.5zM16.2 6.3l2.2-2 1.4 1.3-2.1 2.2zM6.3 7.8l-2-2.2 1.3-1.4 2.2 2.1zm13.5 10.6-1.4 1.4-2.2-2.1 1.5-1.5z"/></svg>`;
+    const videoImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m18 7-2-2H4L2 7v10l2 2h12l2-2v-3l4 3V7l-4 3V7z"/></svg>`;
 
-    let trackIconCheckered = L.divIcon({html: checkeredFlagImg, className: "", iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -12]});
-    let trackIconRed = L.divIcon({html: checkeredFlagImg.replace("#000000", "#ff0000"), className: "", iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -12]});
+    const trackIconCheckered = L.divIcon({html: checkeredFlagImg, className: "", iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -12]});
+    const trackIconRed = L.divIcon({html: checkeredFlagImg.replace("#000000", "#ff0000"), className: "", iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -12]});
 
     let orgs, trackdays;
     let selectedOrgs = [];
@@ -518,7 +518,7 @@
         document.getElementById("eventInfoText").style.display = "block";
         document.getElementById("eventInfoSpinner").style.display = "none";
         
-        tracks = tracks.reduce(function(obj, v) {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
+        tracks = tracks.reduce((obj, v) => {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
         orgs = orgs.map(org => ({...org, numEvents: org.events.length}));  // add # events
         orgs = orgs.map(org => ({...org, events: org.events.map(v => ({...v, org: org.orgNickname}))}));  // add org key to events
         trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
@@ -533,9 +533,9 @@
         orgs.sort((a, b) => (a.org > b.org ? 1 : -1));  // sort by name
         
         let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
-        document.querySelector("#lastSyncMessage").innerText = dayjs().to(lastSync);
-        document.querySelector("#numTrackdays").innerText = trackdays.length;
-        document.querySelector("#numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
+        document.getElementById("lastSyncMessage").innerText = dayjs().to(lastSync);
+        document.getElementById("numTrackdays").innerText = trackdays.length;
+        document.getElementById("numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
         
         // update price slider limits
         minObservedPrice = Math.min(...trackdays.map(td => td.price));
@@ -546,11 +546,11 @@
         priceSliderElement.max = maxObservedPrice;
 
         // create track markers
-        Object.keys(tracks).forEach(function(trackName) {
+        Object.keys(tracks).forEach((trackName) => {
           track = tracks[trackName];
           mapMarkers[trackName] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
-          mapMarkers[trackName].on("mousedown", function (e) {
           mapMarkers[trackName].bindPopup("", {maxHeight: 260, maxWidth: 350, closeButton: false});  // popup content updated on click
+          mapMarkers[trackName].on("mousedown", (e) => {
             lastOpenedTrack = e.target.options.title.toUpperCase();
             updateTrackPopup();
           })
@@ -573,17 +573,17 @@
         setDefaults();
 
         // input is on event movement - change waits for event finish
-        radiusSliderElement.addEventListener("input", function() {
-          updateSearchRadius(radiusValues[this.value]);
+        radiusSliderElement.addEventListener("input", () => {
+          updateSearchRadius(radiusValues[radiusSliderElement.value]);
           updateTrackIcons();
         });
 
-        radiusSliderElement.addEventListener("change", function() {
+        radiusSliderElement.addEventListener("change", () => {
           updateTrackdaysVisibilityProperty();
           updateCalendar();
         });
 
-        priceSliderElement.addEventListener("input", function() {
+        priceSliderElement.addEventListener("input", () => {
           syncDisplayedPrice();
         });
 
@@ -636,7 +636,7 @@
 
         resetElement.addEventListener("click", setDefaults);
         calendarToggleElement.addEventListener("change", updateCalendar);
-        map.on("mousedown", function() {map.closePopup();});
+        map.on("mousedown", () => {map.closePopup();});
         
       } catch (error) {
         alert("Error: unable to retrieve data");
