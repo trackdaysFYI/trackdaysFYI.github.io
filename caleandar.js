@@ -136,7 +136,7 @@ function createCalendar(calendar, element, adjuster){
       }
       var today = document.createElement('div');
       today.className += ' today';
-      today.innerHTML = months[calendar.Selected.Month] + ", " + calendar.Selected.Year;
+      today.innerHTML = months[calendar.Selected.Month] + " " + calendar.Selected.Year;
       datetime.appendChild(today);
       if(calendar.Options.NavShow && !calendar.Options.NavVertical){
         var fwd = document.createElement('div');
@@ -239,7 +239,7 @@ function createCalendar(calendar, element, adjuster){
             }
             title.appendChild(a);
           }else{
-            title.innerHTML += '<a href="' + calendar.Model[n].Link + '">' + calendar.Model[n].Title + '</a>';
+            title.innerHTML += '<a target="_blank" href="' + calendar.Model[n].Link + '">' + calendar.Model[n].Title + '</a>';
           }
           number.appendChild(title);
         }
@@ -293,7 +293,7 @@ function createCalendar(calendar, element, adjuster){
   AddDays();
 }
 
-function caleandar(el, data, settings){
-  var obj = new Calendar(data, settings);
+function caleandar(el, data, settings, viewDate){
+  var obj = new Calendar(data, settings, viewDate);
   createCalendar(obj, el);
 }
