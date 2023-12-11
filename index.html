@@ -21,7 +21,17 @@
   <script src="multiselect-dropdown.js" ></script>
 
   <style>
-    * {box-sizing: border-box;}
+    * {
+      box-sizing: border-box;
+        -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* Explorer, Edge */
+                user-select: none; /* Chrome, Edge, Opera, Firefox */
+     }
+    .allowSelect {
+        -webkit-user-select: text;
+            -ms-user-select: text;
+                user-select: text;
+    }
     :root {font-family: "Noto Sans"; line-height: 1.2; color:rgb(255, 255, 255); background-color: rgb(34,38,42);}
     body {margin: 0;}  /* no remove top/bottom page margin */
     hr {margin: 1rem 0; border: 0; border-top: 1px solid; opacity:0.25;}  /* divider */
@@ -236,7 +246,7 @@
         </table>`);
       mapMarkers[lastOpenedTrack].getPopup().setContent(
         `<div class="popup">
-        <b>${track.name}${track.showNickname ? " (" + track.nickname + ")" : ""}</b><br>
+        <b class="allowSelect">${track.name}${track.showNickname ? " (" + track.nickname + ")" : ""}</b><br>
         <a href="https://www.google.com/maps?q=directions+${track.name}" target="_blank" title="Directions">${directionImg}</a>
         <a href="https://www.google.com/search?q=weather+${track.name}" target="_blank" title="Weather">${weatherImg}</a>
         <a href="https://www.youtube.com/results?search_query=${track.name}+track&sp=CAISAhAB" target="_blank" title="Videos">${videoImg}</a>
@@ -457,8 +467,8 @@
   <footer class="gray" style="margin: 0; font-size: 0.7rem;">
     <p>No guarantee of event availability, pricing accuracy, or completeness. Contact organizers for up-to-date information.</p>
     <p>Posted pricing is assumed to be guest pricing with early registration discounts.</p>
-    <p>To report inaccuracies or bugs: <b>trackdaysFYI@gmail.com</b></p>
-    <p>© 2023 Trackdays.fyi</p>
+    <p>To report inaccuracies or bugs: <b class="allowSelect">trackdaysFYI@gmail.com</b></p>
+    <p>© 2023-2024 Trackdays.fyi</p>
   </footer>
 
   <script>
