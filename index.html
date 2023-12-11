@@ -293,7 +293,13 @@
     }
 
     function setDefaults() {
-      selectedOrgs = true;  // true if all orgs selected
+      // select all orgs by default
+      if (selectedOrgs != true && selectedOrgs.length != orgSelectElement.options.length) {
+        orgSelect.parentNode.getElementsByClassName("multiselect-dropdown-all-selector")[0].click();  // dropdown select all
+        document.getElementById("eventInfoSpinner").click();  // click outside to close dropdown
+      }
+      selectedOrgs = true;  // means all orgs selected
+      
       selectedEventTypes = new Set("MSC");
       showMotoEventsToggleElement.checked = true;
       showSumoEventsToggleElement.checked = true;
@@ -565,8 +571,6 @@
         });
         orgSelect.style.display = "block";
         MultiselectDropdown();
-        orgSelect.parentNode.getElementsByClassName("multiselect-dropdown-all-selector")[0].click();  // select all by default
-        document.getElementById("eventInfoSpinner").click();  // close dropdown
         
         setDefaults();
 
