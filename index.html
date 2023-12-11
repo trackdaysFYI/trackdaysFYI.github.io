@@ -555,9 +555,6 @@
             lastOpenedTrack = e.target.options.title.toUpperCase();
             updateTrackPopup();
           })
-          mapMarkers[trackName].getPopup().on("remove", function() {
-            lastOpenedTrack = undefined;  // don't update popup once closed
-          });
           mapMarkers[trackName].addTo(map);
         });
 
