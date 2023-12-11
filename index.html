@@ -94,7 +94,7 @@
     .fullSizeButton {color: rgb(100, 100, 100); text-align: center;}
     .fullSizeButton input {display: none;}
     .fullSizeButton span {border: 1px solid rgb(100, 100, 100); transition: 0.3s; display: block;}
-    .fullSizeButton input:checked + span {color: rgb(255, 255, 255); background-color: rgba(57, 115, 172, 0.5); border: 1px solid rgb(150, 150, 150);}
+    .fullSizeButton input:checked + span {color: rgb(255, 255, 255); background-color: rgba(57, 115, 172, 0.5);}
   </style>
 
   <script>
@@ -295,7 +295,7 @@
     function setDefaults() {
       // select all orgs by default
       if (selectedOrgs != true && selectedOrgs.length != orgSelectElement.options.length) {
-        orgSelect.parentNode.getElementsByClassName("multiselect-dropdown-all-selector")[0].click();  // dropdown select all
+        orgSelectElement.parentNode.getElementsByClassName("multiselect-dropdown-all-selector")[0].click();  // dropdown select all
         document.getElementById("eventInfoSpinner").click();  // click outside to close dropdown
       }
       selectedOrgs = true;  // means all orgs selected
@@ -415,7 +415,7 @@
           <td style="padding: 0 20px 0 0;">
             <table class="center">
               <tr>
-                <td colspan="4"><select id="orgSelect" multiple multiselect-search="true" multiselect-select-all="true" style="display: none; width: 20em;"></select></td>
+                <td colspan="4"><select id="orgSelect" multiple multiselect-search="true" multiselect-select-all="true" style="width: 20em; display: none;"></select></td>
               </tr>
               <tr>
                 <td>Travel</td>
@@ -447,7 +447,7 @@
           <td style="padding: 0 0 0 20px;">
             <table class="center">
               <tr>
-                <td id="numTrackdaysMatching" style="border: 1px solid rgb(60, 60, 60); min-width: 19ch; display: inline-block"></td>
+                <td id="numTrackdaysMatching" style="min-width: 19ch; display: inline-block"></td>
               </tr>
               <tr>
                 <td><button id="resetFilters" type="button">Reset</button></td>
@@ -472,7 +472,6 @@
   
   <footer class="gray" style="margin: 0; font-size: 0.7rem;">
     <p>No guarantee of event availability, pricing accuracy, or completeness. Contact hosts for up-to-date information.</p>
-    <p>Posted pricing is assumed to be guest pricing with early registration discounts.</p>
     <p>To report inaccuracies or bugs: <b class="allowSelect">trackdaysFYI@gmail.com</b></p>
     <p>© 2023-2024 Trackdays.fyi</p>
   </footer>
@@ -563,13 +562,12 @@
           })
           mapMarkers[trackName].addTo(map);
         });
-
-        // org dropdown
-        let orgSelect = document.getElementById("orgSelect");
+        
+        // populate org dropdown
         orgs.filter(org => org.numEvents).forEach((org) => {
-          orgSelect.add(new Option(org.org, org.orgNickname));  // text, value
+          orgSelectElement.add(new Option(org.org, org.orgNickname));  // text, value
         });
-        orgSelect.style.display = "block";
+        orgSelectElement.style.display = "block";
         MultiselectDropdown();
         
         setDefaults();
