@@ -315,7 +315,7 @@
         radiusSliderElement.value = "9";
       } else {
         updateHome(gpsLat, gpsLon);
-        map.setView(homeMarker.getLatLng(), 6);
+        map.flyTo(homeMarker.getLatLng(), 6);
         radiusSliderElement.value = "3";
       }
 
