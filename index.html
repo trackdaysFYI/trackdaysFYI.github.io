@@ -223,6 +223,7 @@
       let numTrackdaysHidden = numTrackdaysBeforeFilter - trackdaysFiltered.length;
       let hasSubtracks = trackdaysFiltered.some(td => td.subtrack);
       let multipleEventTypes = (selectedEventTypes.size > 1);
+      let hasPrices = trackdaysFiltered.some(td => td.price !== -1);
       let hasNotes = trackdaysFiltered.some(td => td.note);
       let tbody = trackdaysFiltered.map(td => {return `
         <tr>
@@ -232,7 +233,7 @@
           ${hasSubtracks ? `<td>${td.subtrack ? td.subtrack : "-"}</td>` : ""}
           ${multipleEventTypes ? `<td>${[...td.type].map(c => typeMap[c]).join("/")}</td>` : ""}
           ${hasNotes ? `<td>${td.note ? td.note : "-"}</td>` : ""}
-          <td>${td.price >= 0 ? '$' + td.price : "-"}</td>
+          ${hasPrices ? `<td>${td.price >= 0 ? '$' + td.price : "-"}</td>` : ""}
         </tr>
       `}).join("");
       let tbl = (trackdaysFiltered.length === 0 ? `No Events Found<br>` :
@@ -244,7 +245,7 @@
           ${hasSubtracks ? "<th>Circuit</th>" : ""}
           ${multipleEventTypes ? "<th>Type</th>" : ""}
           ${hasNotes ? "<th>Note</th>" : ""}
-          <th>Price</th>
+          ${hasPrices ? "<th>Price</th>" : ""}
           </tr></thead>
           <tbody>${tbody}</tbody>
         </table>`);
