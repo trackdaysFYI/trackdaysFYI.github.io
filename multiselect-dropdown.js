@@ -14,7 +14,6 @@ style.innerHTML = `
 }
 .multiselect-dropdown span.optext{
   background-color:rgba(57, 115, 172, 0.5);
-  padding:1px 0.75em;
 }
 .multiselect-dropdown-list-wrapper{
   box-shadow: gray 0 0 3px;
@@ -67,9 +66,10 @@ document.head.appendChild(style);
 function MultiselectDropdown(options){
   var config={
     search:true,
-    height:'21rem',
-    placeholder:'No Hosts Selected',
-    txtSelected:'hosts selected',
+    height:'16rem',
+    txtNothingSelected:'No Hosts Selected',
+    txtNothingAvailable:'No Hosts Found',
+    txtSelectedSuffix:'hosts selected',
     txtAll:'Select All',
     txtSearch:'Search Hosts',
     ...options
@@ -159,12 +159,15 @@ function MultiselectDropdown(options){
         var sels=Array.from(el.selectedOptions);
         if(sels.length){
           let txt="";
-          if(sels.length==el.options.length){txt='All '+config.txtSelected;}
-          else if(sels.length==1){txt='1'+'/'+el.options.length+" "+config.txtSelected;}
-          else{txt=sels.length+'/'+el.options.length+' '+config.txtSelected;}
+          if(sels.length==el.options.length){txt='All '+config.txtSelectedSuffix;}
+          else{txt=sels.length+'/'+el.options.length+' '+config.txtSelectedSuffix;}
           div.appendChild(newEl('span',{class:['optext','maxselected'],text:txt}));          
         }
-        if(0==el.selectedOptions.length) div.appendChild(newEl('span',{class:'placeholder',text:el.attributes['placeholder']?.value??config.placeholder}));
+        else if (el.options.length==0) {
+          div.appendChild(newEl('span',{class:'placeholder',text:el.attributes['placeholder']?.value??config.txtNothingAvailable}));
+        } else {
+          div.appendChild(newEl('span',{class:'placeholder',text:el.attributes['placeholder']?.value??config.txtNothingSelected}));
+        }
       };
       div.refresh();
     }

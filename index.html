@@ -141,6 +141,7 @@
         updateTrackdaysVisibilityProperty();
         updateTrackIcons();
         updateCalendar();
+        updateDropdown();
       });
     }
 
@@ -204,7 +205,8 @@
         let priceCheck = (isNaN(maxPrice) || (td.price <= maxPrice));
         let weekendCheck = (!onlyWeekend || weekday === "Sat" || weekday === "Sun");
         let typeCheck = [...td.type].some(t => selectedEventTypes.has(t));
-        let orgSelectCheck = (selectedOrgs === true || selectedOrgs.includes(td.org))
+        let orgSelectCheck = orgs[td.org].dropdownSelected;
+        td.visibilityDropdown = (typeCheck && withinRadius);
         td.visibilityMap = (dateCheck && priceCheck && weekendCheck && typeCheck && orgSelectCheck);
         td.visibilityCalendar = (td.visibilityMap && withinRadius);
       });
@@ -281,6 +283,19 @@
       document.getElementById("numTrackdaysMatching").innerText = `${calendarEvents.length} matching events`
     }
 
+    function updateDropdown() {
+      let visibleOrgs = new Set(trackdays.filter(td => td.visibilityDropdown).map(td => td.org));
+      // delete and recreate options so orgs are alphabetical
+      orgSelectElement.options.length = 0;
+      Object.values(orgs).filter(org => org.numEvents > 0).forEach((org) => {
+        if (visibleOrgs.has(org.orgNickname)) {
+          org.dropdownOption.selected = org.dropdownSelected;
+          orgSelectElement.add(org.dropdownOption);
+        }
+      });
+      orgSelectElement.loadOptions();
+    }
+
     function updateMinDate() {
       minDate = dayjs(minDateElement.value + " 00:00").subtract(1, "s");
     } // str addition to avoid use of CustomParseFormat, add/subtract second for dayjs comparison
@@ -293,17 +308,11 @@
     }
 
     function setDefaults() {
-      // select all orgs by default
-      if (selectedOrgs != true && selectedOrgs.length != orgSelectElement.options.length) {
-        orgSelectElement.parentNode.getElementsByClassName("multiselect-dropdown-all-selector")[0].click();  // dropdown select all
-        document.getElementById("eventInfoSpinner").click();  // click outside to close dropdown
-      }
-      selectedOrgs = true;  // means all orgs selected
-      
-      selectedEventTypes = new Set("MSC");
       showMotoEventsToggleElement.checked = true;
       showSumoEventsToggleElement.checked = true;
       showCarEventsToggleElement.checked = true;
+      selectedEventTypes = new Set("MSC");
+      Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
       hideTracksWithoutEvents.checked = false;
       Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});  // todo remove if no hide tracks option
       
@@ -331,6 +340,7 @@
       updateTrackPopup();
       selectedMonth = undefined;  // updateCalendar updates to current month
       updateCalendar();
+      updateDropdown();
     }
     
     let showSyncInfo = false;
@@ -339,7 +349,7 @@
         document.getElementById("syncInfo").innerHTML = "";
         showSyncInfo = false;
       } else {
-        let tbody = orgs.map(org => {return `
+        let tbody = Object.values(orgs).map(org => {return `
           <tr>
             <td><a href="${org.url}" target="_blank" style="color:inherit;">${org.org}</a></td>
             <td>${org.numEvents}</td>
@@ -496,6 +506,11 @@
     let resetElement = document.getElementById("resetFilters");
     let calendarToggleElement = document.getElementById("calendarToggle");
 
+    orgSelectElement.style.display = "block";
+    MultiselectDropdown();
+    let orgSelectAllOption = orgSelectElement.parentNode.getElementsByClassName("multiselect-dropdown-all-selector")[0];
+    let orgSelectAllOptionInput = orgSelectAllOption.querySelector("input");
+
     minDateElement.min = dayjs().subtract(1, "d").format("YYYY-MM-DD");
     minDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
     maxDateElement.min = dayjs().subtract(1, "d").format("YYYY-MM-DD");
@@ -510,7 +525,6 @@
     const trackIconRed = L.divIcon({html: checkeredFlagImg.replace("#000000", "#ff0000"), className: "", iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -12]});
 
     let orgs, trackdays;
-    let selectedOrgs = [];
     let selectedEventTypes = new Set();
     let minObservedPrice, maxObservedPrice;
     let mapMarkers = new Object();
@@ -542,7 +556,12 @@
         document.getElementById("lastSyncMessage").innerText = dayjs().to(lastSync);
         document.getElementById("numTrackdays").innerText = trackdays.length;
         document.getElementById("numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
-        
+
+        orgs = orgs.reduce((result, org) => {  // map org nickname -> org
+          result[org.orgNickname] = org;
+          return result;
+        }, {});
+
         // update price slider limits
         minObservedPrice = Math.min(...trackdays.map(td => td.price));
         maxObservedPrice = Math.max(...trackdays.map(td => td.price));
@@ -562,14 +581,7 @@
           })
           mapMarkers[trackName].addTo(map);
         });
-        
-        // populate org dropdown
-        orgs.filter(org => org.numEvents).forEach((org) => {
-          orgSelectElement.add(new Option(org.org, org.orgNickname));  // text, value
-        });
-        orgSelectElement.style.display = "block";
-        MultiselectDropdown();
-        
+
         setDefaults();
 
         // input is on event movement - change waits for event finish
@@ -581,6 +593,7 @@
         radiusSliderElement.addEventListener("change", () => {
           updateTrackdaysVisibilityProperty();
           updateCalendar();
+          updateDropdown();
         });
 
         priceSliderElement.addEventListener("input", () => {
@@ -596,8 +609,9 @@
         });
         
         orgSelectElement.addEventListener("change", () => {
-          selectedOrgs = Array.from(orgSelectElement.selectedOptions).map(opt => opt.value);
-          if (selectedOrgs.length == orgSelectElement.options.length) selectedOrgs = true;
+          Array.from(orgSelectElement.options).forEach((opt) => {
+            orgs[opt.value].dropdownSelected = opt.selected;
+          });
           updateTrackdaysVisibilityProperty();
           updateTrackIcons();
           updateTrackPopup();
@@ -614,6 +628,7 @@
             updateTrackIcons();
             updateTrackPopup();
             updateCalendar();
+            updateDropdown();
           });
         }
 
