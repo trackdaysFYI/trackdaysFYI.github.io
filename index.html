@@ -86,11 +86,11 @@
     input[type=range]:focus::-webkit-slider-thumb {box-shadow: 0 0 0 1px rgb(255, 255, 255), 0 0 0 0.2rem rgba(13, 110, 253, 0.2);}
     input[type=checkbox] {accent-color: rgb(57, 115, 172);}
     input[type=date] {background-color: rgb(220, 220, 220); font-family: "Noto Sans";}
-    
+
     @media (max-width: 26em) {.mobileSqueeze > tbody > tr > td {display: block;}}
     @media (max-width: 48em) {.mobileSqueeze2 > tbody > tr > td {display: block;}}
     @media (orientation:landscape) and (max-width: 800px) {#map {height: 80vh;}}
-    
+
     .fullSizeButton {color: rgb(100, 100, 100); text-align: center;}
     .fullSizeButton input {display: none;}
     .fullSizeButton span {border: 1px solid rgb(100, 100, 100); transition: 0.3s; display: block;}
@@ -124,7 +124,7 @@
       if (typeof homeMarker !== "undefined") {map.removeLayer(homeMarker);}
       homeMarker = L.marker([userLat, userLon], {icon: homeIcon, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
       L.popup([userLat, userLon], {"content": "<b>Drag Me</b>", "className": "dragMe", "autoPan": false, "closeButton": false, "offset": [0, 50]}).openOn(map);
-      
+
       if (typeof searchCircle !== "undefined") {map.removeLayer(searchCircle);}
       searchCircle = L.circle([userLat, userLon], {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
       updateTrackDistances();
@@ -132,7 +132,7 @@
       homeMarker.on("drag", (e) =>{
         searchCircle.setLatLng(e.latlng);
       });
-      
+
       homeMarker.on("dragend", (e) => {
         let latlng = e.target.getLatLng();
         userLat = latlng.lat;
@@ -172,7 +172,7 @@
         tracksWithEvents.forEach((track) => {mapMarkers[track].addTo(map);});
         tracksWithoutEvents.forEach((track) => {mapMarkers[track].remove();});
       }
-      
+
       allTracks.forEach((track) => {
         let withinRadius = (searchRadius === infiniteRadius || tracks[track].dist <= searchRadius);
         opacityMultiplier = tracksWithEvents.has(track) ? 1.0 : 0.35;
@@ -271,7 +271,7 @@
           calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
         }
       });
-      calendar = document.getElementById("calendar")
+      calendar = document.getElementById("calendar");
       if (selectedMonth === undefined) {
         selectedMonth = dayjs().toDate();
       } else {
@@ -314,8 +314,8 @@
       selectedEventTypes = new Set("MSC");
       Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
       hideTracksWithoutEvents.checked = false;
-      Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});  // todo remove if no hide tracks option
-      
+      Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
+
       priceSliderElement.value = maxObservedPrice;
       syncDisplayedPrice();
       minDateElement.value = dayjs().format("YYYY-MM-DD");
@@ -342,7 +342,7 @@
       updateCalendar();
       updateDropdown();
     }
-    
+
     let showSyncInfo = false;
     function toggleSyncInfo() {
       if (showSyncInfo) {
@@ -407,18 +407,18 @@
         <img src="loading.gif">
       </div>
     </div>
-    
+
     <p id="syncInfo"></p>
     <hr style="margin: 0rem;">
-    
+
     <table class="center filter mobileSqueeze" style="font-size: 0.95rem; font-weight: 300;">
       <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showCarEvents" checked="true"><span>Car</span></label></div></td>
       <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showMotoEvents" checked="true"><span>Motorcycle</span></label></div></td>
       <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showSumoEvents" checked="true"><span>Supermoto</span></label></div></td>
     </table>
-    
+
     <div id="map"></div>
-    
+
     <div>
       <table class="center filter mobileSqueeze2" style="font-size: 0.95rem; font-weight: 300;">
         <tr>
@@ -479,7 +479,7 @@
     </div>
     <hr>
   </main>
-  
+
   <footer class="gray" style="margin: 0; font-size: 0.7rem;">
     <p>No guarantee of event availability, pricing accuracy, or completeness. Contact hosts for up-to-date information.</p>
     <p>To report inaccuracies or bugs: <b class="allowSelect">trackdaysFYI@gmail.com</b></p>
@@ -528,26 +528,27 @@
     let selectedEventTypes = new Set();
     let minObservedPrice, maxObservedPrice;
     let mapMarkers = new Object();
-    
+
     async function visualizeData() {
       try {
         const res = await fetch("https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays");
         const data = await res.json();
         orgs = data["orgs"];
         tracks = data["tracks"];
+
         document.getElementById("eventInfoText").style.display = "block";
         document.getElementById("eventInfoSpinner").style.display = "none";
-        
+
         tracks = tracks.reduce((obj, v) => {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
         orgs = orgs.map(org => ({...org, numEvents: org.events.length}));  // add # events
         orgs = orgs.map(org => ({...org, events: org.events.map(v => ({...v, org: org.orgNickname}))}));  // add org key to events
         trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
         trackdays = trackdays.map(td => ({...td, date: dayjs(td.date, "YYYY-MM-DD")}));  // convert date string to dayjs
         trackdays.sort((a, b) => (a.date > b.date ? 1 : -1));  // sort by date
-        
+
         const idx = trackdays.findIndex(td => td.date >= dayjs().startOf("day"));  // remove trackdays prior to current day
         trackdays = trackdays.slice(idx);
-        
+
         orgs = orgs.map(({events, ...item}) => item);  // drop events key
         orgs = orgs.map(org => ({...org,
           syncTimeUTC: dayjs.utc(org.syncTimeUTC),
@@ -555,7 +556,7 @@
           dropdownSelected: null
         }));
         orgs.sort((a, b) => (a.org > b.org ? 1 : -1));  // sort by name
-        
+
         let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
         document.getElementById("lastSyncMessage").innerText = dayjs().to(lastSync);
         document.getElementById("numTrackdays").innerText = trackdays.length;
@@ -582,7 +583,7 @@
           mapMarkers[trackName].on("mousedown", (e) => {
             lastOpenedTrack = e.target.options.title.toUpperCase();
             updateTrackPopup();
-          })
+          });
           mapMarkers[trackName].addTo(map);
         });
 
@@ -611,7 +612,7 @@
         maxDateElement.addEventListener("input", () => {
           updateMaxDate();
         });
-        
+
         orgSelectElement.addEventListener("change", () => {
           Array.from(orgSelectElement.options).forEach((opt) => {
             orgs[opt.value].dropdownSelected = opt.selected;
@@ -656,7 +657,7 @@
         resetElement.addEventListener("click", setDefaults);
         calendarToggleElement.addEventListener("change", updateCalendar);
         map.on("mousedown", () => {map.closePopup();});
-        
+
       } catch (error) {
         alert("Error: unable to retrieve data");
       }
