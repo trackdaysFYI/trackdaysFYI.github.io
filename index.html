@@ -17,21 +17,10 @@
   <script>dayjs.extend(window.dayjs_plugin_relativeTime)</script>
   <script>dayjs.extend(window.dayjs_plugin_utc)</script>
   <script>dayjs.extend(window.dayjs_plugin_customParseFormat)</script>
-  <script src="js/caleandar.min.js" type="text/javascript"></script>
-  <script src="js/multiselect-dropdown.min.js" type="text/javascript"></script>
+  <script src="caleandar.min.js" type="text/javascript"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-        -webkit-user-select: none; /* Safari */
-            -ms-user-select: none; /* Explorer, Edge */
-                user-select: none; /* Chrome, Edge, Opera, Firefox */
-     }
-    .allowSelect {
-        -webkit-user-select: text;
-            -ms-user-select: text;
-                user-select: text;
-    }
+    * {box-sizing: border-box;}
     :root {font-family: "Noto Sans"; line-height: 1.2; color:rgb(255, 255, 255); background-color: rgb(34,38,42);}
     body {margin: 0;}  /* no remove top/bottom page margin */
     hr {margin: 1rem 0; border: 0; border-top: 1px solid; opacity:0.25;}  /* divider */
@@ -87,14 +76,8 @@
     input[type=checkbox] {accent-color: rgb(57, 115, 172);}
     input[type=date] {background-color: rgb(220, 220, 220); font-family: "Noto Sans";}
 
-    @media (max-width: 26em) {.mobileSqueeze > tbody > tr > td {display: block;}}
-    @media (max-width: 50.5em) {.mobileSqueeze2 > tbody > tr > td {display: block;}}
+    @media (max-width: 51em) {.mobileSqueeze > tbody > tr > td {display: block;}}
     @media (orientation:landscape) and (max-width: 800px) {#map {height: 80vh;}}
-
-    .fullSizeButton {color: rgb(100, 100, 100); text-align: center;}
-    .fullSizeButton input {display: none;}
-    .fullSizeButton span {border: 1px solid rgb(100, 100, 100); transition: 0.3s; display: block;}
-    .fullSizeButton input:checked + span {color: rgb(255, 255, 255); background-color: rgba(57, 115, 172, 0.5);}
   </style>
 
   <script>
@@ -104,13 +87,8 @@
     let lastOpenedTrack, selectedMonth;
     const infiniteRadius = 0;
     const radiusValues = [50, 100, 150, 200, 250, 300, 400, 500, 750, infiniteRadius];
-    const typeMap = {"M": "Moto", "S": "Sumo", "C": "Car"}
-    const homeImgMoto = `<svg xmlns="http://www.w3.org/2000/svg" fill="#ff0000" viewBox="0 0 64 64"><path d="M53 44a9 9 0 0 0-7 3l-1-1h1v-1l13-6a4 4 0 0 0-1-2c2-2 2-5 2-5v-2h-2l-6 1-3 1-1-3s-6-6-12-8c2-1 2-3 2-7 0-6-5-12-12-12a12 12 0 0 0-13 14c-1 0 1 6 3 6 2 5 4 6 6 6l4-1v4l-2 1-1-2h-1c-5 0-9 2-12 6l-2 4 1 2 2 1a10 10 0 0 0-6 2h1a9 9 0 0 0 5 17c4 0 8-3 9-6a3 3 0 0 0 3 3l19-3h1v-2a9 9 0 0 0 0-1 15 15 0 0 1 0-1 9 9 0 0 0 0 1c0 5 4 9 10 9s9-4 9-9-4-9-9-9m-8-5c4-3 1-5 8-7h5s0 4-3 5c-7 4-12 4-12 4l2-2m-7 5a4 4 0 0 1 1 2l-2 2 1-4M25 25l-3 1c-2 0-3-2-4-4l10-6 2-2-2-2-2 1-11 2a8 8 0 0 1 0-1c0-5 5-10 11-10s10 5 10 10 0 5-7 9a255 255 0 0 0-4 2m-1 12 1-1 6-2a2 2 0 0 0 0-2v-2l4 4h-1l-4 1-2 1-2 2v1a70 70 0 0 0-2-1v-1m10-1-1 4h-2a45 45 0 0 0-3-1v-1l1-1 5-1m-14-3a1 1 0 0 1 2 0v2c1 2 1 2-2 3h-1l-1-1c-1-2 0-3 1-3l1-1m-4 20h2a6 6 0 0 1-1 3l-1-1a5 5 0 0 1-1 1h2a7 7 0 0 1-2 2l-1-2a5 5 0 0 1-1 1l1 2a7 7 0 0 1-2 0v-2h-1v2a7 7 0 0 1-2 0l1-2a5 5 0 0 1-1-1l-1 2a7 7 0 0 1-2-2h2a5 5 0 0 1-1-1l-2 1a6 6 0 0 1 0-3h2v-1H5a6 6 0 0 1 0-2l2 1 1-1-2-1a7 7 0 0 1 2-2l1 2a5 5 0 0 1 1 0l-1-2a7 7 0 0 1 2-1v2h1v-2a7 7 0 0 1 2 1l-2 3a3 3 0 0 0-1 0c-1 0-2 1-2 3s1 3 2 3c2 0 3-2 3-3l-1-2 2-3 2 1-2 1 1 1 1-1 1 2h-2v1m25 1v1l-18 2-1-1-1-8-3-2-8-6 1-3a12 12 0 0 1 7-5v1l-2 2-1 1c0 1-2 2 0 2l2 1a3 3 0 0 0 2 1l2-1a56 56 0 0 1 11 3l-1 6h-1a4 4 0 0 0-1 0l-1-1-6-4h-1l1 1 4 3 2 1-2 2 8 2c1 1 2 0 2-1v-1c3 0 2-2 4-2h2l-1 6m0-9-1-1 4-1a25 25 0 0 0 3-1l-2 1-4 2m8 2v1h-1l1-1m8 6h2a6 6 0 0 1 0 3l-2-1a5 5 0 0 1-1 1h2a7 7 0 0 1-2 2l-1-2-1 1 2 2a7 7 0 0 1-3 0v-2h-1v2a7 7 0 0 1-2 0l1-2a5 5 0 0 1-1-1l-1 2a7 7 0 0 1-2-2h2a5 5 0 0 1-1-1l-1 1a6 6 0 0 1-1-3h1l4 2a3 3 0 0 0 2 1l2-3c0-2-1-3-2-3l-3-1h1l-1-2a7 7 0 0 1 2-1v2h1c1 0 0 0 0 0v-2a7 7 0 0 1 2 1l-1 2h1l1-2a7 7 0 0 1 2 2l-2 1 1 1 2-1v2h-2v1"/></svg>`
-    const homeImgCar = `<svg xmlns="http://www.w3.org/2000/svg" fill="#ff0000" viewBox="0 0 64 64"><path d="M62 45.3 60 41l-5 3-.2-.2 4.8-2.9c1.6-1.2 1.6-4.3-.2-7-1.7-2.7-4.5-3.9-6.1-2.7L48.9 34l-.4.2c-.7.6-.9 1.9-.7 3.2l-.1-.1v-3.8l-4.4-7-2.6-1.6.5-.3c2-1.4 1.8-5-.2-8-2-3.2-5.2-4.6-7-3.2l-9 5.3.2 1.1-.7.4L19 18v-1.2l7.7-4-4-3.7L2 16.8l6.1 5.6 6.9-3.6v1.8l3.6 2.7-1.7 1-2.4-.6-3.6 2.1v.6l-5.4 3.2-.5.3c-2 1.4-1 6.5.7 9 1.7 2.6 3.9 4.2 5.8 4.2a3 3 0 0 0 1.8-.6l5.7-3.3a3 3 0 0 0 .4-.3 3.3 3.3 0 0 0 .9-1l5 3.8 6.5 1.5-.3.1c-1.8 1.3-.8 5.8.6 8 1.5 2.3 3.4 3.7 5.1 3.7a3 3 0 0 0 1.6-.5l4.7-2.8L49 54l13-8.7m-3.4-3 1.7 3.6-1 .8-2-3.7 1.3-.7M21.1 10l3.5 3.4-1.4.6-3.8-3.4 1.7-.6M10.9 20.5 5.2 16l2.4-.9 5 4.5-1.7.9M49.1 35a1.5 1.5 0 0 1 1-.3c1 0 2.5.8 3.8 2.7 1.5 2.3 1.4 4.8.4 5.6l-.3.2-1.5-1.4a1.2 1.2 0 0 0 .9-.2c.9-.7.8-2.3-.1-3.8-1-1.4-2.4-2-3.3-1.4-.6.5-.6 1.4-.2 2.4l1.4-.8c1-.5 2.1.8 1.5 1.7l-1.5.9-2.1-2c-.5-1.6-.5-3.2 0-3.6M49 47.7l-4 2.4c.6-1.2.6-2.8 0-4.5l3.9 2.1m-4-3.5-.3.2a10.4 10.4 0 0 0-.7-1.2 10.7 10.7 0 0 0-.5-.7c1-.5 2.1.7 1.5 1.7m-16.6-27 14.3 9.5 4.4 7-1.2.7-4.4-7-14.3-9.5 1.2-.7m9 13.6.4-.2c-.5 1.7-1.6 2.6-3.8 2.6-2.8 0-6.4-1.5-6.4-4.5s2.3-5.4 5.2-5.4a5 5 0 0 1 5 4.3c0-.2-.2-.2-.3-.2-2.9.2-6.7.1-6.8 1.2-.1 1.1 2.2 2.5 6.8 2.2M16 19.8v-1.6l2-1v1.4l11.5 4.5-3.4 1.6-10-4.8m-1.7 6c-.7-.3-1.5-.3-2.2-.2l1.1-.6 1.1.8m-3 16.2c-1.5 0-3.4-1.4-5-3.7-1.4-2.3-2.2-6.7-1-7.7.5-.2 1-.4 1.4-.4 1.8 0 3.9 1.5 5.3 3.7 2 3 2.2 6.5.5 7.7a2 2 0 0 1-1.2.4m13.7-6.3-4.7-3.3a11.5 11.5 0 0 0-2.6-4.3l9.6 6.4 11 4.4-1.7 1-11.6-4.2m12 18.2c-1.3 0-3-1.3-4.2-3.3-1.5-2.1-2-5.8-1-6.6l1.2-.3c1.5 0 3.3 1.3 4.5 3.2 1.7 2.6 2 5.6.5 6.7-.3.2-.6.3-1 .3m10-4.8 4.1 2.8-1 .8-4.4-2.8 1.4-.8"/><path d="M7 32.9c-1.2.8-.7 3 .5 4.8 1.2 1.9 2.7 2.7 3.8 1.9 1.2-.8 1.1-3 0-4.9C10 33 8 32 6.8 33m26.4 13c-1 .7-.6 2.6.5 4.2 1 1.7 2.4 2.4 3.4 1.7s1-2.7-.1-4.3c-1.1-1.6-2.8-2.4-3.8-1.7"/></svg>`
-    const homeIconMoto = L.divIcon({html: homeImgMoto, className: "", iconSize: [36, 36], iconAnchor: [18, 18]});
-    const homeIconCar = L.divIcon({html: homeImgCar, className: "", iconSize: [50, 50], iconAnchor: [25, 25]});
 
-    function getLocation() {
+    function getLocation() { 
       navigator.geolocation?.getCurrentPosition(setGPSLocation);
     }
 
@@ -123,27 +101,27 @@
     function updateHome(lat, lon) {
       userLat = lat;
       userLon = lon;
+      let homeImg = `<svg xmlns="http://www.w3.org/2000/svg" fill="#ff0000" fill-opacity="0.9" viewBox="0 0 64 64"><path d="M53 44a9 9 0 0 0-7 3l-1-1h1v-1l13-6a4 4 0 0 0-1-2c2-2 2-5 2-5v-2h-2l-6 1-3 1-1-3s-6-6-12-8c2-1 2-3 2-7 0-6-5-12-12-12a12 12 0 0 0-13 14c-1 0 1 6 3 6 2 5 4 6 6 6l4-1v4l-2 1-1-2h-1c-5 0-9 2-12 6l-2 4 1 2 2 1a10 10 0 0 0-6 2h1a9 9 0 0 0 5 17c4 0 8-3 9-6a3 3 0 0 0 3 3l19-3h1v-2a9 9 0 0 0 0-1 15 15 0 0 1 0-1 9 9 0 0 0 0 1c0 5 4 9 10 9s9-4 9-9-4-9-9-9m-8-5c4-3 1-5 8-7h5s0 4-3 5c-7 4-12 4-12 4l2-2m-7 5a4 4 0 0 1 1 2l-2 2 1-4M25 25l-3 1c-2 0-3-2-4-4l10-6 2-2-2-2-2 1-11 2a8 8 0 0 1 0-1c0-5 5-10 11-10s10 5 10 10 0 5-7 9a255 255 0 0 0-4 2m-1 12 1-1 6-2a2 2 0 0 0 0-2v-2l4 4h-1l-4 1-2 1-2 2v1a70 70 0 0 0-2-1v-1m10-1-1 4h-2a45 45 0 0 0-3-1v-1l1-1 5-1m-14-3a1 1 0 0 1 2 0v2c1 2 1 2-2 3h-1l-1-1c-1-2 0-3 1-3l1-1m-4 20h2a6 6 0 0 1-1 3l-1-1a5 5 0 0 1-1 1h2a7 7 0 0 1-2 2l-1-2a5 5 0 0 1-1 1l1 2a7 7 0 0 1-2 0v-2h-1v2a7 7 0 0 1-2 0l1-2a5 5 0 0 1-1-1l-1 2a7 7 0 0 1-2-2h2a5 5 0 0 1-1-1l-2 1a6 6 0 0 1 0-3h2v-1H5a6 6 0 0 1 0-2l2 1 1-1-2-1a7 7 0 0 1 2-2l1 2a5 5 0 0 1 1 0l-1-2a7 7 0 0 1 2-1v2h1v-2a7 7 0 0 1 2 1l-2 3a3 3 0 0 0-1 0c-1 0-2 1-2 3s1 3 2 3c2 0 3-2 3-3l-1-2 2-3 2 1-2 1 1 1 1-1 1 2h-2v1m25 1v1l-18 2-1-1-1-8-3-2-8-6 1-3a12 12 0 0 1 7-5v1l-2 2-1 1c0 1-2 2 0 2l2 1a3 3 0 0 0 2 1l2-1a56 56 0 0 1 11 3l-1 6h-1a4 4 0 0 0-1 0l-1-1-6-4h-1l1 1 4 3 2 1-2 2 8 2c1 1 2 0 2-1v-1c3 0 2-2 4-2h2l-1 6m0-9-1-1 4-1a25 25 0 0 0 3-1l-2 1-4 2m8 2v1h-1l1-1m8 6h2a6 6 0 0 1 0 3l-2-1a5 5 0 0 1-1 1h2a7 7 0 0 1-2 2l-1-2-1 1 2 2a7 7 0 0 1-3 0v-2h-1v2a7 7 0 0 1-2 0l1-2a5 5 0 0 1-1-1l-1 2a7 7 0 0 1-2-2h2a5 5 0 0 1-1-1l-1 1a6 6 0 0 1-1-3h1l4 2a3 3 0 0 0 2 1l2-3c0-2-1-3-2-3l-3-1h1l-1-2a7 7 0 0 1 2-1v2h1c1 0 0 0 0 0v-2a7 7 0 0 1 2 1l-1 2h1l1-2a7 7 0 0 1 2 2l-2 1 1 1 2-1v2h-2v1"/></svg>`
+      let homeIcon = L.divIcon({html: homeImg, className: "", iconSize: [36, 36], iconAnchor: [18, 18]});
       if (typeof homeMarker !== "undefined") {map.removeLayer(homeMarker);}
-      homeMarker = L.marker([userLat, userLon], {icon: homeIconMoto, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
+      homeMarker = L.marker([userLat, userLon], {icon: homeIcon, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
       L.popup([userLat, userLon], {"content": "<b>Drag Me</b>", "className": "dragMe", "autoPan": false, "closeButton": false, "offset": [0, 50]}).openOn(map);
-
+      
       if (typeof searchCircle !== "undefined") {map.removeLayer(searchCircle);}
       searchCircle = L.circle([userLat, userLon], {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
       updateTrackDistances();
 
-      homeMarker.on("drag", (e) =>{
+      homeMarker.on("drag", function(e) {
         searchCircle.setLatLng(e.latlng);
       });
-
-      homeMarker.on("dragend", (e) => {
+      
+      homeMarker.on("dragend", function(e) {
         let latlng = e.target.getLatLng();
         userLat = latlng.lat;
         userLon = latlng.lng;
         updateTrackDistances();
-        updateTrackdaysVisibilityProperty();
         updateTrackIcons();
         updateCalendar();
-        updateDropdown();
       });
     }
 
@@ -159,31 +137,21 @@
         let d = 2 * r * Math.asin(Math.sqrt(a));
         return d * 0.621371;
       }
-      Object.keys(tracks).forEach((track) => {
-        tracks[track]["dist"] = milesBetween(userLat, userLon, tracks[track].lat, tracks[track].lon);
+      Object.keys(tracks).forEach(function(key, index) {
+        tracks[key]["dist"] = milesBetween(userLat, userLon, tracks[key].lat, tracks[key].lon);
       });
       trackdays.sort((a, b) => tracks[a.track].dist - tracks[b.track].dist);  // keep sorted for calendar order
     }
 
     function updateTrackIcons() {
-      let allTracks = Object.keys(tracks);
-      let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityMap).map(td => td.track));
-      
-      if (hideTracksWithoutEvents.checked) {
-        let tracksWithoutEvents = allTracks.filter((track) => !tracksWithEvents.has(track));
-        tracksWithEvents.forEach((track) => {mapMarkers[track].addTo(map);});
-        tracksWithoutEvents.forEach((track) => {mapMarkers[track].remove();});
-      }
-
-      allTracks.forEach((track) => {
-        let withinRadius = (searchRadius === infiniteRadius || tracks[track].dist <= searchRadius);
-        opacityMultiplier = tracksWithEvents.has(track) ? 1.0 : 0.35;
-        if (withinRadius) {
-          mapMarkers[track].setIcon(trackIconCheckered);
-          mapMarkers[track].setOpacity(0.8 * opacityMultiplier);
+      Object.keys(tracks).forEach(function(key, index) {
+        let distCheck = (searchRadius === infiniteRadius || tracks[key].dist <= searchRadius);
+        if (distCheck) {
+          mapMarkers[key].setIcon(trackIconCheckered);
+          mapMarkers[key].setOpacity(0.8);
         } else {
-          mapMarkers[track].setIcon(trackIconRed);
-          mapMarkers[track].setOpacity(0.6 * opacityMultiplier);
+          mapMarkers[key].setIcon(trackIconRed);
+          mapMarkers[key].setOpacity(0.6);
         }
       });
     }
@@ -191,39 +159,35 @@
     function updateSearchRadius(radiusMiles) {
       searchRadius = radiusMiles;
       searchCircle.setRadius(searchRadius * 1609.34);
-      document.getElementById("displayedRadius").innerText = (searchRadius === infiniteRadius ? `∞` : `${searchRadius}`);
+      document.querySelector("#displayedRadius").innerText = (searchRadius === infiniteRadius ? `∞` : `${searchRadius}`);
     }
 
-    function updateTrackdaysVisibilityProperty() {
+    function filterTrackday(date, price, dist) {
+      // date is daysj type, price is float, dist is float
       let maxPrice = priceSliderElement.value;
-      let onlyWeekend = weekendToggleElement.checked;
-      trackdays.forEach((td) => {
-        let withinRadius = (searchRadius === infiniteRadius || tracks[td.track].dist <= searchRadius);
-        let weekday = dayjs(td.date).format("ddd");
-        let dateCheck = ((!minDate.isValid() && !maxDate.isValid()) || 
-                         (!minDate.isValid() && td.date.isBefore(maxDate)) || 
-                         (td.date.isAfter(minDate) && !maxDate.isValid()) || 
-                         (td.date.isAfter(minDate) && td.date.isBefore(maxDate)));
-        let priceCheck = (isNaN(maxPrice) || (td.price <= maxPrice));
-        let weekendCheck = (!onlyWeekend || weekday === "Sat" || weekday === "Sun");
-        let typeCheck = [...td.type].some(t => selectedEventTypes.has(t));
-        let orgSelectCheck = orgs[td.org].dropdownSelected;
-        td.visibilityDropdown = (typeCheck && withinRadius);
-        td.visibilityMap = (dateCheck && priceCheck && weekendCheck && typeCheck && orgSelectCheck);
-        td.visibilityCalendar = (td.visibilityMap && withinRadius);
-      });
+      let onlyWeekend=weekendToggleElement.checked;
+      let weekday = dayjs(date).format("ddd");
+      
+      let distCheck = (searchRadius === infiniteRadius || dist <= searchRadius);
+      if (!distCheck) {return false;}  // early termination for efficiency, comment out when debugging
+      let dateCheck = ((!minDate.isValid() && !maxDate.isValid()) || 
+                       (!minDate.isValid() && date.isBefore(maxDate)) || 
+                       (date.isAfter(minDate) && !maxDate.isValid()) || 
+                       (date.isAfter(minDate) && date.isBefore(maxDate)));
+      let priceCheck = (isNaN(maxPrice) || (price <= maxPrice));
+      let weekendCheck = (!onlyWeekend || weekday === "Sat" || weekday === "Sun");
+      return (dateCheck && priceCheck && weekendCheck && distCheck)
     }
 
-    function updateTrackPopup() {
+    function updateLastPopupContent() {
       if (lastOpenedTrack === undefined) {return;}
       let track = tracks[lastOpenedTrack];
       let trackdaysFiltered = trackdays.filter(td => td.track === lastOpenedTrack);
-      let numTrackdaysBeforeFilter = trackdaysFiltered.length;
-      trackdaysFiltered = trackdaysFiltered.filter(td => td.visibilityMap);
-      let numTrackdaysHidden = numTrackdaysBeforeFilter - trackdaysFiltered.length;
+      let numTracksBeforeFilter = trackdaysFiltered.length;
+      trackdaysFiltered = trackdaysFiltered.filter(td => filterTrackday(td.date, td.price, 0));
+      // don't bother distance filtering anything on the map (otherwise use track.dist)
+      let numTracksHidden = numTracksBeforeFilter - trackdaysFiltered.length;
       let hasSubtracks = trackdaysFiltered.some(td => td.subtrack);
-      let multipleEventTypes = (selectedEventTypes.size > 1);
-      let hasPrices = trackdaysFiltered.some(td => td.price !== -1);
       let hasNotes = trackdaysFiltered.some(td => td.note);
       let tbody = trackdaysFiltered.map(td => {return `
         <tr>
@@ -231,9 +195,8 @@
           <td>${td.date.format("ddd")}</td>
           <td>${td.org}</td>
           ${hasSubtracks ? `<td>${td.subtrack ? td.subtrack : "-"}</td>` : ""}
-          ${multipleEventTypes ? `<td>${[...td.type].map(c => typeMap[c]).join("/")}</td>` : ""}
           ${hasNotes ? `<td>${td.note ? td.note : "-"}</td>` : ""}
-          ${hasPrices ? `<td>${td.price >= 0 ? '$' + td.price : "-"}</td>` : ""}
+          <td>${td.price >= 0 ? '$' + td.price : "-"}</td>
         </tr>
       `}).join("");
       let tbl = (trackdaysFiltered.length === 0 ? `No Events Found<br>` :
@@ -243,61 +206,46 @@
           <th>Day</th>
           <th>Host</th>
           ${hasSubtracks ? "<th>Circuit</th>" : ""}
-          ${multipleEventTypes ? "<th>Type</th>" : ""}
           ${hasNotes ? "<th>Note</th>" : ""}
-          ${hasPrices ? "<th>Price</th>" : ""}
+          <th>Price</th>
           </tr></thead>
           <tbody>${tbody}</tbody>
         </table>`);
       mapMarkers[lastOpenedTrack].getPopup().setContent(
         `<div class="popup">
-        <b class="allowSelect">${track.name}${track.showNickname ? " (" + track.nickname + ")" : ""}</b><br>
+        <b>${track.name}${track.showNickname ? " (" + track.nickname + ")" : ""}</b><br>
         <a href="https://www.google.com/maps?q=directions+${track.name}" target="_blank" title="Directions">${directionImg}</a>
         <a href="https://www.google.com/search?q=weather+${track.name}" target="_blank" title="Weather">${weatherImg}</a>
-        <a href="https://www.youtube.com/results?search_query=${track.name}+track&sp=CAISAhAB" target="_blank" title="Videos">${videoImg}</a>
-        <br>${tbl}${numTrackdaysHidden ? `<span style="font-size: 10px">Excluding ${numTrackdaysHidden} Filtered Events</span>` : ""}
+        <a href="https://www.youtube.com/results?search_query=${track.name}+motorcycle&sp=CAISAhAB" target="_blank" title="Videos">${videoImg}</a>
+        <br>${tbl}${numTracksHidden ? `(+${numTracksHidden} Filtered Events)` : ""}
         </div>`);
     }
 
     function updateCalendar() {
       // trackdays should be sorted by distance before this
       let calendarEvents = [];
-      trackdays.forEach((td) => {
-        if (td.visibilityCalendar) {
-          let priceStr = (td.price === -1 ? "" : " - $" + td.price);
-          let orgStr = " - " + td.org;
+      trackdays.forEach(function (td) {
+        if (filterTrackday(td.date, td.price, tracks[td.track].dist)) {
+          let priceStr = (td.price === -1 ? "?" : "$" + td.price);
           let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
           let noteStr = (td.note ? " (" + td.note + ")" : "");
-          let calendarStr = (document.getElementById("calendarToggle").value === "host" ?
-            `<a href=${td.url} target="_blank" title="${priceStr}${subtrackStr}">• ${tracks[td.track].nickname}${orgStr}${noteStr}</a>` :
-            `<a href=${td.url} target="_blank" title="${td.org}${subtrackStr}">• ${tracks[td.track].nickname}${priceStr}${noteStr}</a>`
+          let calendarStr = (document.getElementById("calendarToggle").value === "organizer" ?
+            `<a href=${td.url} target="_blank" title="${priceStr}${subtrackStr}">• ${tracks[td.track].nickname} - ${td.org}${noteStr}</a>` :
+            `<a href=${td.url} target="_blank" title="${td.org}${subtrackStr}">• ${tracks[td.track].nickname} - ${priceStr}${noteStr}</a>`
           );
           calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
         }
       });
-      calendar = document.getElementById("calendar");
+      calendar = document.querySelector("#calendar")
       if (selectedMonth === undefined) {
         selectedMonth = dayjs().toDate();
       } else {
         let monthStr = calendar.getElementsByClassName("cld-datetime")[0].innerText  // get selected month from calendar html before deletion - super hacky, oh well
-        selectedMonth = dayjs(monthStr, "MMMM YYYY").toDate();
+        selectedMonth = dayjs(monthStr, "MMMM YYYY").toDate()
       }
       calendar.innerHTML = "";  // delete old calendar
       calendarObj = caleandar(calendar, calendarEvents, {Color: "#999999", LinkColor: "#ffffff", NavShow: true, DateTimeShow: true}, selectedMonth);
-      document.getElementById("numTrackdaysMatching").innerText = `${calendarEvents.length} matching events`
-    }
-
-    function updateDropdown() {
-      let visibleOrgs = new Set(trackdays.filter(td => td.visibilityDropdown).map(td => td.org));
-      // delete and recreate options so orgs are alphabetical
-      orgSelectElement.options.length = 0;
-      Object.values(orgs).filter(org => org.numEvents > 0).forEach((org) => {
-        if (visibleOrgs.has(org.orgNickname)) {
-          org.dropdownOption.selected = org.dropdownSelected;
-          orgSelectElement.add(org.dropdownOption);
-        }
-      });
-      orgSelectElement.loadOptions();
+      document.querySelector("#numTrackdaysMatching").innerText = `${calendarEvents.length} matching events`
     }
 
     function updateMinDate() {
@@ -308,18 +256,10 @@
     }
 
     function syncDisplayedPrice() {
-      document.getElementById("displayedPrice").innerText = priceSliderElement.value;
+      document.querySelector("#displayedPrice").innerText = priceSliderElement.value;
     }
 
     function setDefaults() {
-      showMotoEventsToggleElement.checked = true;
-      showSumoEventsToggleElement.checked = true;
-      showCarEventsToggleElement.checked = true;
-      selectedEventTypes = new Set("MSC");
-      Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
-      hideTracksWithoutEvents.checked = false;
-      Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
-
       priceSliderElement.value = maxObservedPrice;
       syncDisplayedPrice();
       minDateElement.value = dayjs().format("YYYY-MM-DD");
@@ -334,26 +274,24 @@
         radiusSliderElement.value = "9";
       } else {
         updateHome(gpsLat, gpsLon);
-        map.flyTo(homeMarker.getLatLng(), 6);
+        map.setView(homeMarker.getLatLng(), 6);
         radiusSliderElement.value = "3";
       }
 
       updateSearchRadius(radiusValues[radiusSliderElement.value]);
-      updateTrackdaysVisibilityProperty();
       updateTrackIcons();
-      updateTrackPopup();
+      updateLastPopupContent();
       selectedMonth = undefined;  // updateCalendar updates to current month
       updateCalendar();
-      updateDropdown();
     }
-
+    
     let showSyncInfo = false;
     function toggleSyncInfo() {
       if (showSyncInfo) {
         document.getElementById("syncInfo").innerHTML = "";
         showSyncInfo = false;
       } else {
-        let tbody = Object.values(orgs).map(org => {return `
+        let tbody = orgs.map(org => {return `
           <tr>
             <td><a href="${org.url}" target="_blank" style="color:inherit;">${org.org}</a></td>
             <td>${org.numEvents}</td>
@@ -364,7 +302,7 @@
           <div style="column-width: 20rem;">
             <table class="center gray" style="font-size: 0.8rem;">
               <thead style="break-inside: avoid;"><tr>
-                <th>Host</th>
+                <th>Organizer</th>
                 <th>Events</th>
                 <th>Last Sync</th>
               </tr></thead>
@@ -411,26 +349,18 @@
         <img src="loading.gif">
       </div>
     </div>
-
+    
     <p id="syncInfo"></p>
-    <hr style="margin: 0rem;">
 
-    <table class="center filter mobileSqueeze" style="font-size: 0.95rem; font-weight: 300;">
-      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showCarEvents" checked="true"><span>Car</span></label></div></td>
-      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showMotoEvents" checked="true"><span>Motorcycle</span></label></div></td>
-      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showSumoEvents" checked="true"><span>Supermoto</span></label></div></td>
-    </table>
-
+    <hr>
     <div id="map"></div>
-
+    <hr>
+    
     <div>
-      <table class="center filter mobileSqueeze2" style="font-size: 0.95rem; font-weight: 300;">
+      <table class="center filter mobileSqueeze" style="font-size: 0.95rem; font-weight: 300;">
         <tr>
           <td style="padding: 0 20px;">
             <table class="center">
-              <tr>
-                <td colspan="4"><select id="orgSelect" multiple multiselect-search="true" multiselect-select-all="true" style="width: 20em; display: none;"></select></td>
-              </tr>
               <tr>
                 <td>Travel</td>
                 <td><input id="radiusSlider" type="range" min="0" value="9" max="9" step="1" style="vertical-align: middle;"></td>
@@ -439,7 +369,7 @@
               </tr>
               <tr>
                 <td>Price</td>
-                <td><input id="priceSlider" type ="range" min="100" max="500" step="20" value="500" style="vertical-align: middle;"/></td>
+                <td><input id="priceSlider" type ="range" min="100" max="500" step="10" value="500" style="vertical-align: middle;"/></td>
                 <td>≤</td>
                 <td>$<span id="displayedPrice" style="display: inline-block; width: 3ch; text-align: center;"></td>
               </tr>
@@ -451,17 +381,14 @@
                 <td><input id="minDateSearch" type="date" value="" min="" max=""> - <input id="maxDateSearch" type="date" value="" min="" max=""></td>
               </tr>
               <tr>
-                <td><div class="fullSizeButton"><label><input type="checkbox" id="weekendOnly"><span>Weekend Only (Sat/Sun)</span></label></div></td>
-              </tr>
-              <tr>
-                <td><div class="fullSizeButton"><label><input type="checkbox" id="hideTracksWithoutEvents"><span>Hide Tracks Without Events</span></label></div></td>
+                <td>Weekend Only (Sat/Sun) <input type="checkbox" id="weekendOnly"></td>
               </tr>
             </table>
           </td>
           <td style="padding: 0 20px;">
             <table class="center">
               <tr>
-                <td id="numTrackdaysMatching" style="min-width: 19ch; display: inline-block"></td>
+                <td id="numTrackdaysMatching" style="border: 1px solid rgb(176, 176, 176); min-width: 19ch; display: inline-block"></td>
               </tr>
               <tr>
                 <td><button id="resetFilters" type="button">Reset</button></td>
@@ -475,19 +402,20 @@
     <hr>
     <div id="calendar"></div>
     <div class="gray" style="font-size: 0.75rem;">
-      <label for="calendarToggle">Calendar Detail: </label>
+      <label for="calendarToggle">Calendar Info: </label>
       <select name="calendarToggle" id="calendarToggle">
         <option value="price">Price</option>
-        <option value="host">Host</option>
+        <option value="organizer">Organizer</option>
       </select>
     </div>
     <hr>
   </main>
-
+  
   <footer class="gray" style="margin: 0; font-size: 0.7rem;">
-    <p>No guarantee of event availability, pricing accuracy, or completeness. Contact hosts for up-to-date information.</p>
-    <p>To report inaccuracies or bugs: <b class="allowSelect">trackdaysFYI@gmail.com</b></p>
-    <p>© 2023-2024 Trackdays.fyi</p>
+    <p>No guarantee of event availability, pricing accuracy, or completeness. Contact organizers for up-to-date information.</p>
+    <p>Posted pricing is assumed to be guest pricing with early registration discounts.</p>
+    <p>To report inaccuracies or bugs: <b>trackdaysFYI@gmail.com</b></p>
+    <p>© 2023 Trackdays.fyi</p>
   </footer>
 
   <script>
@@ -497,174 +425,120 @@
     ).addTo(map);
     map.attributionControl.setPrefix("");
 
-    let orgSelectElement = document.getElementById("orgSelect");
-    let showMotoEventsToggleElement = document.getElementById("showMotoEvents");
-    let showSumoEventsToggleElement = document.getElementById("showSumoEvents");
-    let showCarEventsToggleElement = document.getElementById("showCarEvents");
-    let hideTracksWithoutEvents = document.getElementById("hideTracksWithoutEvents");
-    let radiusSliderElement = document.getElementById("radiusSlider");
-    let priceSliderElement = document.getElementById("priceSlider");
-    let minDateElement = document.getElementById("minDateSearch");
-    let maxDateElement = document.getElementById("maxDateSearch");
-    let weekendToggleElement = document.getElementById("weekendOnly");
-    let resetElement = document.getElementById("resetFilters");
-    let calendarToggleElement = document.getElementById("calendarToggle");
-
-    orgSelectElement.style.display = "block";
-    MultiselectDropdown();
-    let orgSelectAllOption = orgSelectElement.parentNode.getElementsByClassName("multiselect-dropdown-all-selector")[0];
-    let orgSelectAllOptionInput = orgSelectAllOption.querySelector("input");
+    let radiusSliderElement = document.querySelector("#radiusSlider");
+    let priceSliderElement = document.querySelector("#priceSlider");
+    let minDateElement = document.querySelector("#minDateSearch");
+    let maxDateElement = document.querySelector("#maxDateSearch");
+    let weekendToggleElement = document.querySelector("#weekendOnly");
+    let resetElement = document.querySelector("#resetFilters");
+    let calendarToggleElement = document.querySelector("#calendarToggle");
 
     minDateElement.min = dayjs().subtract(1, "d").format("YYYY-MM-DD");
     minDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
     maxDateElement.min = dayjs().subtract(1, "d").format("YYYY-MM-DD");
     maxDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
 
-    const checkeredFlagImg = `<svg xmlns="http://www.w3.org/2000/svg" fill="#000000" viewBox="0 0 24 24"><path d="M4 2v18H3v2h4v-2H6v-5h13a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H6V2H4zm4 3v2h2V5h2v2h2V5h2v2h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H8v-2H6V9h2V7H6V5h2z"/><path d="M8 9h2v2H8zm4 0h2v2h-2zm-2-2h2v2h-2zm4 0h2v2h-2z"/></svg>`;
-    const directionImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m2.3 12.7 9 9c.4.4 1 .4 1.4 0l9-9a1 1 0 0 0 0-1.4l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4zM9 10h5V8l3 3-3 3v-2h-3v4H9v-6z"/></svg>`;
-    const weatherImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="M7 12a5 5 0 1 0 10 0 5 5 0 0 0-10 0zm4 7h2v3h-2zm0-17h2v3h-2zm-9 9h3v2H2zm17 0h3v2h-3zM5.6 19.8l-1.4-1.4 2.1-2.2 1.5 1.5zM16.2 6.3l2.2-2 1.4 1.3-2.1 2.2zM6.3 7.8l-2-2.2 1.3-1.4 2.2 2.1zm13.5 10.6-1.4 1.4-2.2-2.1 1.5-1.5z"/></svg>`;
-    const videoImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m18 7-2-2H4L2 7v10l2 2h12l2-2v-3l4 3V7l-4 3V7z"/></svg>`;
+    let checkeredFlagImg = `<svg xmlns="http://www.w3.org/2000/svg" fill="#000000" viewBox="0 0 24 24"><path d="M4 2v18H3v2h4v-2H6v-5h13a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H6V2H4zm4 3v2h2V5h2v2h2V5h2v2h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H8v-2H6V9h2V7H6V5h2z"/><path d="M8 9h2v2H8zm4 0h2v2h-2zm-2-2h2v2h-2zm4 0h2v2h-2z"/></svg>`;
+    let directionImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m2.3 12.7 9 9c.4.4 1 .4 1.4 0l9-9a1 1 0 0 0 0-1.4l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4zM9 10h5V8l3 3-3 3v-2h-3v4H9v-6z"/></svg>`;
+    let weatherImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="M7 12a5 5 0 1 0 10 0 5 5 0 0 0-10 0zm4 7h2v3h-2zm0-17h2v3h-2zm-9 9h3v2H2zm17 0h3v2h-3zM5.6 19.8l-1.4-1.4 2.1-2.2 1.5 1.5zM16.2 6.3l2.2-2 1.4 1.3-2.1 2.2zM6.3 7.8l-2-2.2 1.3-1.4 2.2 2.1zm13.5 10.6-1.4 1.4-2.2-2.1 1.5-1.5z"/></svg>`;
+    let videoImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m18 7-2-2H4L2 7v10l2 2h12l2-2v-3l4 3V7l-4 3V7z"/></svg>`;
 
-    const trackIconCheckered = L.divIcon({html: checkeredFlagImg, className: "", iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -12]});
-    const trackIconRed = L.divIcon({html: checkeredFlagImg.replace("#000000", "#ff0000"), className: "", iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -12]});
+    let trackIconCheckered = L.divIcon({html: checkeredFlagImg, className: "", iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -12]});
+    let trackIconRed = L.divIcon({html: checkeredFlagImg.replace("#000000", "#ff0000"), className: "", iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -12]});
 
     let orgs, trackdays;
-    let selectedEventTypes = new Set();
     let minObservedPrice, maxObservedPrice;
     let mapMarkers = new Object();
-
     async function visualizeData() {
       try {
-        const res = await fetch("https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays?eventType=MSC");
+        const res = await fetch("https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays");
         const data = await res.json();
         orgs = data["orgs"];
         tracks = data["tracks"];
-
         document.getElementById("eventInfoText").style.display = "block";
         document.getElementById("eventInfoSpinner").style.display = "none";
-
-        tracks = tracks.reduce((obj, v) => {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
+        
+        tracks = tracks.reduce(function(obj, v) {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
         orgs = orgs.map(org => ({...org, numEvents: org.events.length}));  // add # events
         orgs = orgs.map(org => ({...org, events: org.events.map(v => ({...v, org: org.orgNickname}))}));  // add org key to events
         trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
         trackdays = trackdays.map(td => ({...td, date: dayjs(td.date, "YYYY-MM-DD")}));  // convert date string to dayjs
         trackdays.sort((a, b) => (a.date > b.date ? 1 : -1));  // sort by date
-
+        
         const idx = trackdays.findIndex(td => td.date >= dayjs().startOf("day"));  // remove trackdays prior to current day
         trackdays = trackdays.slice(idx);
-
+        
         orgs = orgs.map(({events, ...item}) => item);  // drop events key
-        orgs = orgs.map(org => ({...org,
-          syncTimeUTC: dayjs.utc(org.syncTimeUTC),
-          dropdownOption: new Option(org.org, org.orgNickname),
-          dropdownSelected: null
-        }));
+        orgs = orgs.map(org => ({...org, syncTimeUTC: dayjs.utc(org.syncTimeUTC)}));  // convert datetime string to dayjs
         orgs.sort((a, b) => (a.org > b.org ? 1 : -1));  // sort by name
-
+        
         let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
-        document.getElementById("lastSyncMessage").innerText = dayjs().to(lastSync);
-        document.getElementById("numTrackdays").innerText = trackdays.length;
-        document.getElementById("numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
-
-        orgs = orgs.reduce((result, org) => {  // map org nickname -> org
-          result[org.orgNickname] = org;
-          return result;
-        }, {});
-
+        document.querySelector("#lastSyncMessage").innerText = dayjs().to(lastSync);
+        document.querySelector("#numTrackdays").innerText = trackdays.length;
+        document.querySelector("#numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
+        
         // update price slider limits
         minObservedPrice = Math.min(...trackdays.map(td => td.price));
         maxObservedPrice = Math.max(...trackdays.map(td => td.price));
-        minObservedPrice = Math.ceil(minObservedPrice / 20) * 20;  // round up 20
-        maxObservedPrice = Math.ceil(maxObservedPrice / 20) * 20;  // round up 20
+        minObservedPrice = Math.ceil(minObservedPrice / 10) * 10;  // round up 10
+        maxObservedPrice = Math.ceil(maxObservedPrice / 10) * 10;  // round up 10
         priceSliderElement.min = minObservedPrice;
         priceSliderElement.max = maxObservedPrice;
 
-        // create track markers
-        Object.keys(tracks).forEach((trackName) => {
-          track = tracks[trackName];
-          mapMarkers[trackName] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
-          mapMarkers[trackName].bindPopup("", {maxHeight: 260, maxWidth: 350, closeButton: false});  // popup content updated on click
-          mapMarkers[trackName].on("mousedown", (e) => {
+        // add track markers
+        Object.keys(tracks).forEach(function(key, index) {
+          track = tracks[key];
+          mapMarkers[key] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8}).addTo(map);
+          mapMarkers[key].bindPopup("", {maxHeight: 250, closeButton: false});  // text updated on click
+          mapMarkers[key].on("mousedown", function (e) {
             lastOpenedTrack = e.target.options.title.toUpperCase();
-            updateTrackPopup();
-          });
-          mapMarkers[trackName].addTo(map);
+            updateLastPopupContent();
+          })
         });
 
         setDefaults();
 
         // input is on event movement - change waits for event finish
-        radiusSliderElement.addEventListener("input", () => {
-          updateSearchRadius(radiusValues[radiusSliderElement.value]);
+        radiusSliderElement.addEventListener("input", function() {
+          updateSearchRadius(radiusValues[this.value]);
           updateTrackIcons();
         });
 
-        radiusSliderElement.addEventListener("change", () => {
-          updateTrackdaysVisibilityProperty();
+        radiusSliderElement.addEventListener("change", function() {
+          updateLastPopupContent();
           updateCalendar();
-          updateDropdown();
         });
 
-        priceSliderElement.addEventListener("input", () => {
+        priceSliderElement.addEventListener("input", function() {
           syncDisplayedPrice();
         });
 
-        minDateElement.addEventListener("input", () => {
-          updateMinDate();
-        });
-
-        maxDateElement.addEventListener("input", () => {
-          updateMaxDate();
-        });
-
-        orgSelectElement.addEventListener("change", () => {
-          Array.from(orgSelectElement.options).forEach((opt) => {
-            orgs[opt.value].dropdownSelected = opt.selected;
-          });
-          updateTrackdaysVisibilityProperty();
-          updateTrackIcons();
-          updateTrackPopup();
+        priceSliderElement.addEventListener("change", function() {
+          updateLastPopupContent();
           updateCalendar();
         });
 
-        for (const [toggleElement, eventType] of [
-          [showMotoEventsToggleElement, "M"],
-          [showSumoEventsToggleElement, "S"],
-          [showCarEventsToggleElement, "C"]]) {
-          toggleElement.addEventListener("change", () => {
-            toggleElement.checked ? selectedEventTypes.add(eventType) : selectedEventTypes.delete(eventType);
-            if (selectedEventTypes.size > 0) {
-              homeMarker.setIcon(selectedEventTypes.size == 1 && selectedEventTypes.has("C") ? homeIconCar : homeIconMoto);
-            }
-            updateTrackdaysVisibilityProperty();
-            updateTrackIcons();
-            updateTrackPopup();
-            updateCalendar();
-            updateDropdown();
-          });
-        }
+        minDateElement.addEventListener("change", function() {
+          updateMinDate();
+          updateLastPopupContent();
+          updateCalendar();
+        });
 
-        [priceSliderElement, minDateElement, maxDateElement, weekendToggleElement].forEach(elem => 
-          elem.addEventListener("change", () => {
-            updateTrackdaysVisibilityProperty();
-            updateTrackIcons();
-            updateTrackPopup();
-            updateCalendar();
-          })
-        );
+        maxDateElement.addEventListener("change", function() {
+          updateMaxDate();
+          updateLastPopupContent();
+          updateCalendar();
+        });
 
-        hideTracksWithoutEvents.addEventListener("change", () => {
-          if (hideTracksWithoutEvents.checked) {
-            updateTrackIcons();
-          } else {
-            Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
-          }
+        weekendToggleElement.addEventListener("change", function() {
+          updateLastPopupContent();
+          updateCalendar();
         });
 
         resetElement.addEventListener("click", setDefaults);
         calendarToggleElement.addEventListener("change", updateCalendar);
-        map.on("mousedown", () => {map.closePopup();});
-
+        map.on("mousedown", function() {map.closePopup();});
+        
       } catch (error) {
         alert("Error: unable to retrieve data");
       }
