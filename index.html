@@ -535,7 +535,7 @@
 
     async function visualizeData() {
       try {
-        const res = await fetch("https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays");
+        const res = await fetch("https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays?eventType=MSC");
         const data = await res.json();
         orgs = data["orgs"];
         tracks = data["tracks"];
