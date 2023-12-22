@@ -259,13 +259,14 @@
       let calendarEvents = [];
       trackdays.forEach((td) => {
         if (td.visibilityCalendar) {
-          let priceStr = (td.price === -1 ? "" : " - $" + td.price);
-          let orgStr = " - " + td.org;
+          let price = (td.price === -1 ? "" : "$" + td.price);
+          let priceStr = (price ? " - " + price : "");
+          let orgStr = (tracks[td.track].nickname === td.org ? "" : " - " + td.org)
           let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
           let noteStr = (td.note ? " (" + td.note + ")" : "");
-          let calendarStr = (document.getElementById("calendarToggle").value === "host" ?
-            `<a href=${td.url} target="_blank" title="${priceStr}${subtrackStr}">• ${tracks[td.track].nickname}${orgStr}${noteStr}</a>` :
-            `<a href=${td.url} target="_blank" title="${td.org}${subtrackStr}">• ${tracks[td.track].nickname}${priceStr}${noteStr}</a>`
+          let calendarStr = (calendarToggleElement.value === "host" ?
+            `<a href=${td.url} target="_blank" title="${price}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${orgStr}</a>` :
+            `<a href=${td.url} target="_blank" title="${td.org}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${priceStr}</a>`
           );
           calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
         }
@@ -433,8 +434,8 @@
     <div class="gray" style="font-size: 0.75rem;">
       <label for="calendarToggle">Calendar Detail: </label>
       <select name="calendarToggle" id="calendarToggle">
-        <option value="price">Price</option>
         <option value="host">Host</option>
+        <option value="price">Price</option>
       </select>
     </div>
     <hr>
