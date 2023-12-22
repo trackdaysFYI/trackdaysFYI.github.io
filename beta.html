@@ -129,7 +129,7 @@
       updateTrackDistances();
       updateSearchRadius(radiusValues[radiusSliderElement.value]);
       updateTrackdaysVisibilityProperty();
-      updateTrackIcons();
+      updateTrackIcons(true);
       updateTrackPopup();
       selectedMonth = undefined;  // updateCalendar updates to current month
       updateCalendar();
@@ -155,14 +155,19 @@
       trackdays.sort((a, b) => tracks[a.track].dist - tracks[b.track].dist);  // keep sorted for calendar order
     }
 
-    function updateTrackIcons() {
+    function updateTrackIcons(updateTrackVisibility) {
       let allTracks = Object.keys(tracks);
       let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityMap).map(td => td.track));
 
-      if (hideTracksWithoutEvents.checked) {
-        let tracksWithoutEvents = allTracks.filter((track) => !tracksWithEvents.has(track));
-        tracksWithEvents.forEach((track) => {mapMarkers[track].addTo(map);});
-        tracksWithoutEvents.forEach((track) => {mapMarkers[track].remove();});
+      if (updateTrackVisibility) {
+        allTracks.forEach(track => {  // track visibility based on event type
+          [...tracks[track].type].some(t => selectedEventTypes.has(t)) ? mapMarkers[track].addTo(map) : mapMarkers[track].remove();
+        });
+        if (hideTracksWithoutEvents.checked) {  // trackday visibility based on event type
+          let tracksWithoutEvents = allTracks.filter((track) => !tracksWithEvents.has(track));
+          tracksWithEvents.forEach((track) => {mapMarkers[track].addTo(map);});
+          tracksWithoutEvents.forEach((track) => {mapMarkers[track].remove();});
+        }
       }
 
       allTracks.forEach((track) => {
@@ -547,7 +552,6 @@
             lastOpenedTrack = e.target.options.title.toUpperCase();
             updateTrackPopup();
           });
-          mapMarkers[trackName].addTo(map);
         });
 
         homeMarker.on("drag", (e) =>{
@@ -557,15 +561,14 @@
         homeMarker.on("dragend", () => {
           updateTrackDistances();
           updateTrackdaysVisibilityProperty();
-          updateTrackIcons();
+          updateTrackIcons(false);
           updateCalendar();
           updateDropdown();
         });
 
-        // input is on event movement - change waits for event finish
         radiusSliderElement.addEventListener("input", () => {
           updateSearchRadius(radiusValues[radiusSliderElement.value]);
-          updateTrackIcons();
+          updateTrackIcons(false);
         });
 
         radiusSliderElement.addEventListener("change", () => {
@@ -591,7 +594,7 @@
             orgs[opt.value].dropdownSelected = opt.selected;
           });
           updateTrackdaysVisibilityProperty();
-          updateTrackIcons();
+          updateTrackIcons(true);
           updateTrackPopup();
           updateCalendar();
         });
@@ -603,6 +606,7 @@
             let eventTypeSet = localStorage.getItem(eventType);
             toggleElement.checked = eventTypeSet ? (eventTypeSet === "true") : true;
             if (toggleElement.checked) {selectedEventTypes.add(eventType);}
+
             toggleElement.addEventListener("change", () => {
               localStorage.setItem(eventType, toggleElement.checked);
               toggleElement.checked ? selectedEventTypes.add(eventType) : selectedEventTypes.delete(eventType);
@@ -610,7 +614,7 @@
                 homeMarker.setIcon(selectedEventTypes.size == 1 && selectedEventTypes.has("C") ? homeIconCar : homeIconMoto);
               }
               updateTrackdaysVisibilityProperty();
-              updateTrackIcons();
+              updateTrackIcons(true);
               updateTrackPopup();
               updateCalendar();
               updateDropdown();
@@ -623,7 +627,7 @@
         [priceSliderElement, minDateElement, maxDateElement, weekendToggleElement].forEach(elem => 
           elem.addEventListener("change", () => {
             updateTrackdaysVisibilityProperty();
-            updateTrackIcons();
+            updateTrackIcons(true);
             updateTrackPopup();
             updateCalendar();
           })
@@ -631,7 +635,7 @@
 
         hideTracksWithoutEvents.addEventListener("change", () => {
           if (hideTracksWithoutEvents.checked) {
-            updateTrackIcons();
+            updateTrackIcons(true);
           } else {
             Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
           }
@@ -642,6 +646,9 @@
           showSumoEventsToggleElement.checked = true;
           showCarEventsToggleElement.checked = true;
           selectedEventTypes = new Set("MSC");
+          localStorage.setItem("M", true);
+          localStorage.setItem("S", true);
+          localStorage.setItem("C", true);
           Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
           hideTracksWithoutEvents.checked = false;
           Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
