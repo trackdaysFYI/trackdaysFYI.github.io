@@ -114,7 +114,7 @@
       function setGPSLocation(position) {
         locationDefault = [position.coords.latitude, position.coords.longitude];
         isGPSLocation = true;
-        resetHome();
+        if (typeof tracks !== "undefined") {resetHome();}
       }
       navigator.geolocation?.getCurrentPosition(setGPSLocation);
     }
