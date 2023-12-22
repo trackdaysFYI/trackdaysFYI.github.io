@@ -290,35 +290,12 @@
       orgSelectElement.loadOptions();
     }
 
-    function updateMinDate() {
+    function updateMinDateVar() {
       minDate = dayjs(minDateElement.value + " 00:00").subtract(1, "s");
     } // str addition to avoid use of CustomParseFormat, add/subtract second for dayjs comparison
-    function updateMaxDate() {
+
+    function updateMaxDateVar() {
       maxDate = dayjs(maxDateElement.value + " 00:01");
-    }
-
-    function syncDisplayedPrice() {
-      document.getElementById("displayedPrice").innerText = priceSliderElement.value;
-    }
-
-    function setDefaults() {
-      showMotoEventsToggleElement.checked = true;
-      showSumoEventsToggleElement.checked = true;
-      showCarEventsToggleElement.checked = true;
-      selectedEventTypes = new Set("MSC");
-      Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
-      hideTracksWithoutEvents.checked = false;
-      Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
-
-      priceSliderElement.value = maxObservedPrice;
-      syncDisplayedPrice();
-      minDateElement.value = dayjs().format("YYYY-MM-DD");
-      maxDateElement.value = "";
-      updateMinDate();
-      updateMaxDate();
-      weekendToggleElement.checked = false;
-
-      resetHome();
     }
 
     let showSyncInfo = false;
@@ -390,9 +367,9 @@
     <hr style="margin: 0rem;">
 
     <table class="center filter mobileSqueeze" style="font-size: 0.95rem; font-weight: 300;">
-      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showCarEvents" checked="true"><span>Car</span></label></div></td>
-      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showMotoEvents" checked="true"><span>Motorcycle</span></label></div></td>
-      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showSumoEvents" checked="true"><span>Supermoto</span></label></div></td>
+      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showCarEvents"><span>Car</span></label></div></td>
+      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showMotoEvents"><span>Motorcycle</span></label></div></td>
+      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showSumoEvents"><span>Supermoto</span></label></div></td>
     </table>
 
     <div id="map"></div>
@@ -481,6 +458,7 @@
     let hideTracksWithoutEvents = document.getElementById("hideTracksWithoutEvents");
     let radiusSliderElement = document.getElementById("radiusSlider");
     let priceSliderElement = document.getElementById("priceSlider");
+    let displayedPriceElement = document.getElementById("displayedPrice");
     let minDateElement = document.getElementById("minDateSearch");
     let maxDateElement = document.getElementById("maxDateSearch");
     let weekendToggleElement = document.getElementById("weekendOnly");
@@ -496,6 +474,10 @@
     minDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
     maxDateElement.min = dayjs().subtract(1, "d").format("YYYY-MM-DD");
     maxDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
+    minDateElement.value = dayjs().format("YYYY-MM-DD");
+    maxDateElement.value = "";
+    updateMinDateVar();
+    updateMaxDateVar();
 
     const checkeredFlagImg = `<svg xmlns="http://www.w3.org/2000/svg" fill="#000000" viewBox="0 0 24 24"><path d="M4 2v18H3v2h4v-2H6v-5h13a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H6V2H4zm4 3v2h2V5h2v2h2V5h2v2h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H8v-2H6V9h2V7H6V5h2z"/><path d="M8 9h2v2H8zm4 0h2v2h-2zm-2-2h2v2h-2zm4 0h2v2h-2z"/></svg>`;
     const directionImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m2.3 12.7 9 9c.4.4 1 .4 1.4 0l9-9a1 1 0 0 0 0-1.4l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4zM9 10h5V8l3 3-3 3v-2h-3v4H9v-6z"/></svg>`;
@@ -534,7 +516,7 @@
         orgs = orgs.map(org => ({...org,
           syncTimeUTC: dayjs.utc(org.syncTimeUTC),
           dropdownOption: new Option(org.org, org.orgNickname),
-          dropdownSelected: null
+          dropdownSelected: (org.numEvents > 0),
         }));
         orgs.sort((a, b) => (a.org > b.org ? 1 : -1));  // sort by name
 
@@ -554,7 +536,7 @@
         minObservedPrice = Math.ceil(minObservedPrice / 20) * 20;  // round up 20
         maxObservedPrice = Math.ceil(maxObservedPrice / 20) * 20;  // round up 20
         priceSliderElement.min = minObservedPrice;
-        priceSliderElement.max = maxObservedPrice;
+        priceSliderElement.value = priceSliderElement.max = displayedPriceElement.innerText = maxObservedPrice;
 
         // create track markers
         Object.keys(tracks).forEach((trackName) => {
@@ -567,8 +549,6 @@
           });
           mapMarkers[trackName].addTo(map);
         });
-
-        setDefaults();
 
         homeMarker.on("drag", (e) =>{
           searchCircle.setLatLng(e.latlng);
@@ -595,15 +575,15 @@
         });
 
         priceSliderElement.addEventListener("input", () => {
-          syncDisplayedPrice();
+          displayedPriceElement.innerText = priceSliderElement.value;
         });
 
         minDateElement.addEventListener("input", () => {
-          updateMinDate();
+          updateMinDateVar();
         });
 
         maxDateElement.addEventListener("input", () => {
-          updateMaxDate();
+          updateMaxDateVar();
         });
 
         orgSelectElement.addEventListener("change", () => {
@@ -617,20 +597,27 @@
         });
 
         for (const [toggleElement, eventType] of [
+          [showCarEventsToggleElement, "C"],
           [showMotoEventsToggleElement, "M"],
-          [showSumoEventsToggleElement, "S"],
-          [showCarEventsToggleElement, "C"]]) {
-          toggleElement.addEventListener("change", () => {
-            toggleElement.checked ? selectedEventTypes.add(eventType) : selectedEventTypes.delete(eventType);
-            if (selectedEventTypes.size > 0) {
-              homeMarker.setIcon(selectedEventTypes.size == 1 && selectedEventTypes.has("C") ? homeIconCar : homeIconMoto);
-            }
-            updateTrackdaysVisibilityProperty();
-            updateTrackIcons();
-            updateTrackPopup();
-            updateCalendar();
-            updateDropdown();
-          });
+          [showSumoEventsToggleElement, "S"]]) {
+            let eventTypeSet = localStorage.getItem(eventType);
+            toggleElement.checked = eventTypeSet ? (eventTypeSet === "true") : true;
+            if (toggleElement.checked) {selectedEventTypes.add(eventType);}
+            toggleElement.addEventListener("change", () => {
+              localStorage.setItem(eventType, toggleElement.checked);
+              toggleElement.checked ? selectedEventTypes.add(eventType) : selectedEventTypes.delete(eventType);
+              if (selectedEventTypes.size > 0) {
+                homeMarker.setIcon(selectedEventTypes.size == 1 && selectedEventTypes.has("C") ? homeIconCar : homeIconMoto);
+              }
+              updateTrackdaysVisibilityProperty();
+              updateTrackIcons();
+              updateTrackPopup();
+              updateCalendar();
+              updateDropdown();
+            });
+        }
+        if (selectedEventTypes.size === 1 && selectedEventTypes.has("C")) {
+          homeMarker.setIcon(homeIconCar);
         }
 
         [priceSliderElement, minDateElement, maxDateElement, weekendToggleElement].forEach(elem => 
@@ -650,9 +637,29 @@
           }
         });
 
-        resetElement.addEventListener("click", setDefaults);
+        resetElement.addEventListener("click", () => {
+          showMotoEventsToggleElement.checked = true;
+          showSumoEventsToggleElement.checked = true;
+          showCarEventsToggleElement.checked = true;
+          selectedEventTypes = new Set("MSC");
+          Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
+          hideTracksWithoutEvents.checked = false;
+          Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
+
+          priceSliderElement.value = maxObservedPrice;
+          displayedPriceElement.innerText = priceSliderElement.value;
+          minDateElement.value = dayjs().format("YYYY-MM-DD");
+          maxDateElement.value = "";
+          updateMinDateVar();
+          updateMaxDateVar();
+          weekendToggleElement.checked = false;
+          resetHome();
+        });
+
         calendarToggleElement.addEventListener("change", updateCalendar);
         map.on("mousedown", () => {map.closePopup();});
+
+        resetHome();
 
       } catch (error) {
         alert("Error: unable to retrieve data");
