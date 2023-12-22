@@ -98,8 +98,8 @@
   </style>
 
   <script>
-    let userLat, userLon, gpsLat, gpsLon;
-    let homeMarker, searchCircle;
+    let locationDefault = [39.50, -98.35];  // Central US or GPS location
+    let isGPSLocation = false;
     let searchRadius, minDate, maxDate;
     let lastOpenedTrack, selectedMonth;
     const infiniteRadius = 0;
@@ -110,41 +110,30 @@
     const homeIconMoto = L.divIcon({html: homeImgMoto, className: "", iconSize: [36, 36], iconAnchor: [18, 18]});
     const homeIconCar = L.divIcon({html: homeImgCar, className: "", iconSize: [50, 50], iconAnchor: [25, 25]});
 
-    function getLocation() {
+    function getGPSLocation() {
+      function setGPSLocation(position) {
+        locationDefault = [position.coords.latitude, position.coords.longitude];
+        isGPSLocation = true;
+        resetHome();
+      }
       navigator.geolocation?.getCurrentPosition(setGPSLocation);
     }
 
-    function setGPSLocation(position) {
-      gpsLat = position.coords.latitude;
-      gpsLon = position.coords.longitude;
-      if (typeof tracks !== "undefined") {setDefaults();}
-    }
+    function resetHome() {
+      homeMarker.setLatLng(locationDefault);
+      searchCircle.setLatLng(locationDefault);
+      map.setView(locationDefault, isGPSLocation ? 6 : 3);
+      radiusSliderElement.value = isGPSLocation ? "3" : "9";
+      L.popup(locationDefault, {"content": "<b>Drag Me</b>", "className": "dragMe", "autoPan": false, "closeButton": false, "offset": [0, 50]}).openOn(map);
 
-    function updateHome(lat, lon) {
-      userLat = lat;
-      userLon = lon;
-      if (typeof homeMarker !== "undefined") {map.removeLayer(homeMarker);}
-      homeMarker = L.marker([userLat, userLon], {icon: homeIconMoto, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
-      L.popup([userLat, userLon], {"content": "<b>Drag Me</b>", "className": "dragMe", "autoPan": false, "closeButton": false, "offset": [0, 50]}).openOn(map);
-
-      if (typeof searchCircle !== "undefined") {map.removeLayer(searchCircle);}
-      searchCircle = L.circle([userLat, userLon], {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
       updateTrackDistances();
-
-      homeMarker.on("drag", (e) =>{
-        searchCircle.setLatLng(e.latlng);
-      });
-
-      homeMarker.on("dragend", (e) => {
-        let latlng = e.target.getLatLng();
-        userLat = latlng.lat;
-        userLon = latlng.lng;
-        updateTrackDistances();
-        updateTrackdaysVisibilityProperty();
-        updateTrackIcons();
-        updateCalendar();
-        updateDropdown();
-      });
+      updateSearchRadius(radiusValues[radiusSliderElement.value]);
+      updateTrackdaysVisibilityProperty();
+      updateTrackIcons();
+      updateTrackPopup();
+      selectedMonth = undefined;  // updateCalendar updates to current month
+      updateCalendar();
+      updateDropdown();
     }
 
     function updateTrackDistances() {
@@ -159,8 +148,9 @@
         let d = 2 * r * Math.asin(Math.sqrt(a));
         return d * 0.621371;
       }
+      let {lat, lng} = homeMarker.getLatLng();
       Object.keys(tracks).forEach((track) => {
-        tracks[track]["dist"] = milesBetween(userLat, userLon, tracks[track].lat, tracks[track].lon);
+        tracks[track]["dist"] = milesBetween(lat, lng, tracks[track].lat, tracks[track].lon);
       });
       trackdays.sort((a, b) => tracks[a.track].dist - tracks[b.track].dist);  // keep sorted for calendar order
     }
@@ -168,7 +158,7 @@
     function updateTrackIcons() {
       let allTracks = Object.keys(tracks);
       let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityMap).map(td => td.track));
-      
+
       if (hideTracksWithoutEvents.checked) {
         let tracksWithoutEvents = allTracks.filter((track) => !tracksWithEvents.has(track));
         tracksWithEvents.forEach((track) => {mapMarkers[track].addTo(map);});
@@ -323,28 +313,12 @@
       priceSliderElement.value = maxObservedPrice;
       syncDisplayedPrice();
       minDateElement.value = dayjs().format("YYYY-MM-DD");
-      updateMinDate();
       maxDateElement.value = "";
+      updateMinDate();
       updateMaxDate();
       weekendToggleElement.checked = false;
 
-      if (gpsLat === undefined) {
-        updateHome(39.50, -98.35);
-        map.setView(homeMarker.getLatLng(), 3);
-        radiusSliderElement.value = "9";
-      } else {
-        updateHome(gpsLat, gpsLon);
-        map.setView(homeMarker.getLatLng(), 6);
-        radiusSliderElement.value = "3";
-      }
-
-      updateSearchRadius(radiusValues[radiusSliderElement.value]);
-      updateTrackdaysVisibilityProperty();
-      updateTrackIcons();
-      updateTrackPopup();
-      selectedMonth = undefined;  // updateCalendar updates to current month
-      updateCalendar();
-      updateDropdown();
+      resetHome();
     }
 
     let showSyncInfo = false;
@@ -386,7 +360,7 @@
   gtag("config", "G-MG8WTWEELF");
 </script>
 
-<body onLoad="getLocation();">
+<body onLoad="getGPSLocation();">
 <div class="center container">
   <header style="margin-bottom: 1rem">
     <div>
@@ -497,6 +471,9 @@
     ).addTo(map);
     map.attributionControl.setPrefix("");
 
+    let homeMarker = L.marker(locationDefault, {icon: homeIconMoto, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
+    let searchCircle = L.circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
+
     let orgSelectElement = document.getElementById("orgSelect");
     let showMotoEventsToggleElement = document.getElementById("showMotoEvents");
     let showSumoEventsToggleElement = document.getElementById("showSumoEvents");
@@ -592,6 +569,18 @@
         });
 
         setDefaults();
+
+        homeMarker.on("drag", (e) =>{
+          searchCircle.setLatLng(e.latlng);
+        });
+
+        homeMarker.on("dragend", () => {
+          updateTrackDistances();
+          updateTrackdaysVisibilityProperty();
+          updateTrackIcons();
+          updateCalendar();
+          updateDropdown();
+        });
 
         // input is on event movement - change waits for event finish
         radiusSliderElement.addEventListener("input", () => {
