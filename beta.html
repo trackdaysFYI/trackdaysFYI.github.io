@@ -635,11 +635,7 @@
         );
 
         hideTracksWithoutEvents.addEventListener("change", () => {
-          if (hideTracksWithoutEvents.checked) {
-            updateTrackIcons(true);
-          } else {
-            Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
-          }
+          updateTrackIcons(true);
         });
 
         resetElement.addEventListener("click", () => {
