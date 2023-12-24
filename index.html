@@ -509,8 +509,9 @@
         document.getElementById("eventInfoSpinner").style.display = "none";
 
         tracks = tracks.reduce((obj, v) => {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
-        orgs = orgs.map(org => ({...org, numEvents: org.events.length}));  // add # events
-        orgs = orgs.map(org => ({...org, events: org.events.map(v => ({...v, org: org.orgNickname}))}));  // add org key to events
+        orgs = orgs.map(org => ({...org, 
+          numEvents: org.events.length,
+          events: org.events.map(e => ({...e, org: org.orgNickname, url: e.url ?? org.url}))}));  // add org key and default url
         trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
         trackdays = trackdays.map(td => ({...td, date: dayjs(td.date, "YYYY-MM-DD")}));  // convert date string to dayjs
         trackdays.sort((a, b) => (a.date > b.date ? 1 : -1));  // sort by date
