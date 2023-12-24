@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="One stop to find trackdays near you">
-  <title>Trackdays</title>
+  <title>Trackdays.fyi - Find Trackdays Near You</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
 
   <link href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" type="text/css" rel="stylesheet" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
@@ -500,7 +500,7 @@
 
     async function visualizeData() {
       try {
-        const res = await fetch("https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays?eventType=MSC");
+        const res = await fetch("https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays");
         const data = await res.json();
         orgs = data["orgs"];
         tracks = data["tracks"];
