@@ -80,12 +80,13 @@
     .cld-number.eventday {font-weight: bold;}
     .cld-number.eventday:hover {background: rgb(45, 51, 57);}
 
+    button {cursor: pointer;}
     input[type=range] {-webkit-appearance: none; opacity: 0.75;}
     input[type=range]::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 1rem; height: 1rem; border-radius: 0.5rem; background: rgb(57, 115, 172); margin-top: -0.35rem;}
     input[type=range]::-webkit-slider-runnable-track {height: 0.25rem; background-color: rgb(220, 220, 220); cursor: pointer;}
     input[type=range]:focus::-webkit-slider-thumb {box-shadow: 0 0 0 1px rgb(255, 255, 255), 0 0 0 0.2rem rgba(13, 110, 253, 0.2);}
     input[type=checkbox] {accent-color: rgb(57, 115, 172);}
-    input[type=date] {background-color: rgb(220, 220, 220); font-family: "Noto Sans";}
+    input[type=date] {background-color: rgb(220, 220, 220); font-family: "Noto Sans"; cursor: pointer;}
 
     @media (max-width: 26em) {.mobileSqueeze > tbody > tr > td {display: block;}}
     @media (max-width: 50.5em) {.mobileSqueeze2 > tbody > tr > td {display: block;}}
@@ -93,7 +94,7 @@
 
     .fullSizeButton {color: rgb(100, 100, 100); text-align: center;}
     .fullSizeButton input {display: none;}
-    .fullSizeButton span {border: 1px solid rgb(100, 100, 100); transition: 0.3s; display: block;}
+    .fullSizeButton span {border: 1px solid rgb(100, 100, 100); transition: 0.3s; display: block; cursor: pointer;}
     .fullSizeButton input:checked + span {color: rgb(255, 255, 255); background-color: rgba(57, 115, 172, 0.5);}
   </style>
 

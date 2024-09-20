@@ -8,6 +8,7 @@ style.innerHTML = `
 }
 .multiselect-dropdown span.optext, .multiselect-dropdown span.placeholder{
   display:inline-block;
+  cursor: pointer;
 }
 .multiselect-dropdown span.placeholder{
   color: rgb(100, 100, 100);
@@ -53,7 +54,8 @@ style.innerHTML = `
 .multiselect-dropdown-list input{
   height: 1.15em;
   width: 1.15em;
-  margin-right: 0.35em;  
+  margin-right: 0.35em;
+  cursor: pointer;
 }
 .multiselect-dropdown-list div:hover{
   background-color: rgb(64,73,82);
