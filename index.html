@@ -192,20 +192,19 @@
 
     function updateTrackdaysVisibilityProperty() {
       let maxPrice = priceSliderElement.value;
-      let onlyWeekend = weekendToggleElement.checked;
+      let selectedDays = new Set(Array.from(daySelectElement.options).filter(option => option.selected).map(option => option.value));
       trackdays.forEach((td) => {
         let withinRadius = (searchRadius === infiniteRadius || tracks[td.track].dist <= searchRadius);
-        let weekday = dayjs(td.date).format("ddd");
         let dateCheck = ((!minDate.isValid() && !maxDate.isValid()) || 
                          (!minDate.isValid() && td.date.isBefore(maxDate)) || 
                          (td.date.isAfter(minDate) && !maxDate.isValid()) || 
                          (td.date.isAfter(minDate) && td.date.isBefore(maxDate)));
         let priceCheck = (isNaN(maxPrice) || (td.price <= maxPrice));
-        let weekendCheck = (!onlyWeekend || weekday === "Sat" || weekday === "Sun");
+        let dayCheck = selectedDays.has(dayjs(td.date).format("ddd"));
         let typeCheck = [...td.type].some(t => selectedEventTypes.has(t));
         let orgSelectCheck = orgs[td.org].dropdownSelected;
         td.visibilityDropdown = (typeCheck && withinRadius);
-        td.visibilityMap = (dateCheck && priceCheck && weekendCheck && typeCheck && orgSelectCheck);
+        td.visibilityMap = (dateCheck && priceCheck && dayCheck && typeCheck && orgSelectCheck);
         td.visibilityCalendar = (td.visibilityMap && withinRadius);
       });
     }
@@ -387,7 +386,10 @@
           <td style="padding: 0 20px;">
             <table class="center">
               <tr>
-                <td colspan="4"><select id="orgSelect" multiple multiselect-search="true" multiselect-select-all="true" style="width: 20em; display: none;"></select></td>
+                <td colspan="4"><select multiple id="orgSelect" multiselect-search="true" multiselect-select-all="true" 
+                  data-txtNothingSelected="No Hosts Selected" data-txtNothingAvailable="No Hosts Found" 
+                  data-txtSelectedSuffix="hosts selected" data-txtSearch="Search Hosts" data-height="16rem"
+                  style="width: 20em; display: none;"></select></td>
               </tr>
               <tr>
                 <td>Travel</td>
@@ -409,7 +411,16 @@
                 <td><input id="minDateSearch" type="date" value="" min="" max=""> - <input id="maxDateSearch" type="date" value="" min="" max=""></td>
               </tr>
               <tr>
-                <td><div class="fullSizeButton"><label><input type="checkbox" id="weekendOnly"><span>Weekend Only (Sat/Sun)</span></label></div></td>
+                <td><select multiple id="daySelect" multiselect-search="false" multiselect-select-all="true" style="width: 100%;"
+                  data-txtNothingSelected="No Days Selected" data-txtSelectedSuffix="days selected" data-height="11.5rem">
+                  <option selected value="Sun">Sunday</option>
+                  <option selected value="Mon">Monday</option>
+                  <option selected value="Tue">Tuesday</option>
+                  <option selected value="Wed">Wednesday</option>
+                  <option selected value="Thu">Thursday</option>
+                  <option selected value="Fri">Friday</option>
+                  <option selected value="Sat">Saturday</option>
+                </select></td>
               </tr>
               <tr>
                 <td><div class="fullSizeButton"><label><input type="checkbox" id="hideTracksWithoutEvents"><span>Hide Tracks Without Events</span></label></div></td>
@@ -468,14 +479,12 @@
     let displayedPriceElement = document.getElementById("displayedPrice");
     let minDateElement = document.getElementById("minDateSearch");
     let maxDateElement = document.getElementById("maxDateSearch");
-    let weekendToggleElement = document.getElementById("weekendOnly");
+    let daySelectElement = document.getElementById("daySelect");
     let resetElement = document.getElementById("resetFilters");
     let calendarToggleElement = document.getElementById("calendarToggle");
 
     orgSelectElement.style.display = "block";
     MultiselectDropdown();
-    let orgSelectAllOption = orgSelectElement.parentNode.getElementsByClassName("multiselect-dropdown-all-selector")[0];
-    let orgSelectAllOptionInput = orgSelectAllOption.querySelector("input");
 
     minDateElement.min = dayjs().subtract(1, "d").format("YYYY-MM-DD");
     minDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
@@ -627,7 +636,7 @@
           homeMarker.setIcon(homeIconCar);
         }
 
-        [priceSliderElement, minDateElement, maxDateElement, weekendToggleElement].forEach(elem => 
+        [priceSliderElement, minDateElement, maxDateElement, daySelectElement].forEach(elem => 
           elem.addEventListener("change", () => {
             updateTrackdaysVisibilityProperty();
             updateTrackIcons(true);
@@ -658,7 +667,7 @@
           maxDateElement.value = "";
           updateMinDateVar();
           updateMaxDateVar();
-          weekendToggleElement.checked = false;
+          Array.from(daySelectElement.options).forEach((opt) => {opt.selected = true;});
           resetHome();
         });
 

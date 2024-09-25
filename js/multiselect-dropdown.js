@@ -68,12 +68,12 @@ document.head.appendChild(style);
 function MultiselectDropdown(options) {
   var config = {
     search: true,
-    height: "16rem",
-    txtNothingSelected: "No Hosts Selected",
-    txtNothingAvailable: "No Hosts Found",
-    txtSelectedSuffix: "hosts selected",
-    txtAll: "Select All",
-    txtSearch: "Search Hosts",
+    height: "16rem",  // override with data-height
+    txtNothingSelected: "None Selected",  // override with data-txtNothingSelected
+    txtNothingAvailable: "None Found",  // override with data-txtNothingAvailable
+    txtSelectedSuffix: "selected",  // override with data-txtSelectedSuffix
+    txtAll: "Select All",  // override with data-txtAll
+    txtSearch: "Search",  // override with data-txtSearch
     ...options
   };
 
@@ -106,12 +106,12 @@ function MultiselectDropdown(options) {
     });
     var list = newEl("div", {
       class: "multiselect-dropdown-list",
-      style: {height: config.height}
+      style: {height:  el.getAttribute("data-height") || config.height}
     });
     var search = newEl("input", {
       class: ["multiselect-dropdown-search"].concat([config.searchInput?.class ?? "form-control"]),
       style: {width: "100%", display: el.attributes["multiselect-search"]?.value === "true" ? "block" : "none"},
-      placeholder: config.txtSearch
+      placeholder: el.getAttribute("data-txtSearch") || config.txtSearch
     });
     listWrap.appendChild(search);
     div.appendChild(listWrap);
@@ -123,7 +123,7 @@ function MultiselectDropdown(options) {
         var op = newEl("div", {class: "multiselect-dropdown-all-selector"})
         var ic = newEl("input", {type: "checkbox"});
         op.appendChild(ic);
-        op.appendChild(newEl("label", {text: config.txtAll}));
+        op.appendChild(newEl("label", {text: el.getAttribute("data-txtAll") || config.txtAll}));
 
         op.addEventListener("click", () => {
           op.classList.toggle("checked");
@@ -180,15 +180,15 @@ function MultiselectDropdown(options) {
         if (sels.length) {
           let txt;
           if (sels.length == el.options.length) {
-            txt = "All " + config.txtSelectedSuffix;
+            txt = "All " + (el.getAttribute("data-txtSelectedSuffix") || config.txtSelectedSuffix);
           } else {
-            txt = sels.length + "/" + el.options.length + " " + config.txtSelectedSuffix;
+            txt = sels.length + "/" + el.options.length + " " + (el.getAttribute("data-txtSelectedSuffix") || config.txtSelectedSuffix);
           }
           div.appendChild(newEl("span", {class: ["optext", "maxselected"], text: txt}));
         } else if (el.options.length == 0) {
-          div.appendChild(newEl("span", {class: "placeholder", text: el.attributes["placeholder"]?.value ?? config.txtNothingAvailable}));
+          div.appendChild(newEl("span", {class: "placeholder", text: el.attributes["placeholder"]?.value ?? (el.getAttribute("data-txtNothingAvailable") || config.txtNothingAvailable)}));
         } else {
-          div.appendChild(newEl("span", {class: "placeholder", text: el.attributes["placeholder"]?.value ?? config.txtNothingSelected}));
+          div.appendChild(newEl("span", {class: "placeholder", text: el.attributes["placeholder"]?.value ?? (el.getAttribute("data-txtNothingSelected") || config.txtNothingSelected)}));
         }
       };
       div.refresh();
