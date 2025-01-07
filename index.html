@@ -286,10 +286,7 @@
           let orgStr = (tracks[td.track].nickname === td.org ? "" : " - " + td.org)
           let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
           let noteStr = (td.note ? " (" + td.note + ")" : "");
-          let calendarStr = (calendarToggleElement.value === "host" ?
-            `<a href=${td.url} target="_blank" title="${price}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${orgStr}</a>` :
-            `<a href=${td.url} target="_blank" title="${td.org}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${priceStr}</a>`
-          );
+          let calendarStr = `<a href=${td.url} target="_blank" title="${price}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${orgStr}</a>`;
           calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
         }
       });
@@ -465,13 +462,6 @@
 
     <hr>
     <div id="calendar"></div>
-    <div class="gray" style="font-size: 0.75rem;">
-      <label for="calendarToggle">Calendar Detail: </label>
-      <select name="calendarToggle" id="calendarToggle">
-        <option value="host">Host</option>
-        <option value="price">Price</option>
-      </select>
-    </div>
     <hr>
   </main>
 
@@ -503,7 +493,6 @@
     let maxDateElement = document.getElementById("maxDateSearch");
     let daySelectElement = document.getElementById("daySelect");
     let resetElement = document.getElementById("resetFilters");
-    let calendarToggleElement = document.getElementById("calendarToggle");
 
     orgSelectElement.style.display = "block";
     MultiselectDropdown();
@@ -709,7 +698,6 @@
           resetHome();
         });
 
-        calendarToggleElement.addEventListener("change", updateCalendar);
         map.on("mousedown", () => {map.closePopup();});
 
         resetHome();
