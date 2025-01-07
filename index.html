@@ -96,10 +96,28 @@
     @media (max-width: 50.5em) {.mobileSqueeze2 > tbody > tr > td {display: block;}}
     @media (orientation:landscape) and (max-width: 800px) {#map {height: 80vh;}}
 
-    .fullSizeButton {color: rgb(100, 100, 100); text-align: center;}
-    .fullSizeButton input {display: none;}
-    .fullSizeButton span {border: 1px solid rgb(100, 100, 100); transition: 0.3s; display: block; cursor: pointer;}
-    .fullSizeButton input:checked + span {color: rgb(255, 255, 255); background-color: rgba(57, 115, 172, 0.5);}
+    button.colored {
+      all: unset;
+      color: rgb(100, 100, 100);
+      border: 1px solid rgb(100, 100, 100);
+      box-sizing: border-box;  /* include border in width */
+      text-align: center;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button.colored.on {
+      color: rgb(255, 255, 255);
+      background-color: rgba(57, 115, 172, 0.5);
+    }
+    button.colored.big {
+      width: 7em;
+      line-height: 2em;
+      margin: 5px;
+    }
+    table button.colored {
+      width: 100%;
+    }
+
   </style>
 
   <script>
@@ -168,7 +186,7 @@
         allTracks.forEach(track => {  // track visibility based on event type
           [...tracks[track].type].some(t => selectedEventTypes.has(t)) ? mapMarkers[track].addTo(map) : mapMarkers[track].remove();
         });
-        if (hideTracksWithoutEvents.checked) {  // trackday visibility based on event type
+        if (!showTracksWithoutEventsToggleElement.classList.contains("on")) {  // trackday visibility based on event type
           let tracksWithoutEvents = allTracks.filter((track) => !tracksWithEvents.has(track));
           tracksWithEvents.forEach((track) => {mapMarkers[track].addTo(map);});
           tracksWithoutEvents.forEach((track) => {mapMarkers[track].remove();});
@@ -377,9 +395,9 @@
     <hr style="margin: 0rem;">
 
     <table class="center filter mobileSqueeze" style="font-size: 0.95rem; font-weight: 300;">
-      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showCarEvents"><span>Car</span></label></div></td>
-      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showMotoEvents"><span>Motorcycle</span></label></div></td>
-      <td><div class="fullSizeButton" style="width: 7.0em; line-height: 2em; margin: 5px;"><label><input type="checkbox" id="showSumoEvents"><span>Supermoto</span></label></div></td>
+      <td><button type="button" class="colored big" id="showCarEvents">Car</button></td>
+      <td><button type="button" class="colored big" id="showMotoEvents">Motorcycle</button></td>
+      <td><button type="button" class="colored big" id="showSumoEvents">Supermoto</button></td>
     </table>
 
     <div id="map"></div>
@@ -427,7 +445,7 @@
                 </select></td>
               </tr>
               <tr>
-                <td><div class="fullSizeButton"><label><input type="checkbox" id="hideTracksWithoutEvents"><span>Hide Tracks Without Events</span></label></div></td>
+                <td><button type="button" class="colored on" id="showTracksWithoutEvents">Show Tracks without Events</button></td>
               </tr>
             </table>
           </td>
@@ -474,10 +492,10 @@
     let searchCircle = L.circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
 
     let orgSelectElement = document.getElementById("orgSelect");
-    let showMotoEventsToggleElement = document.getElementById("showMotoEvents");
-    let showSumoEventsToggleElement = document.getElementById("showSumoEvents");
-    let showCarEventsToggleElement = document.getElementById("showCarEvents");
-    let hideTracksWithoutEvents = document.getElementById("hideTracksWithoutEvents");
+    let showMotoEventsButton = document.getElementById("showMotoEvents");
+    let showSumoEventsButton = document.getElementById("showSumoEvents");
+    let showCarEventsButton = document.getElementById("showCarEvents");
+    let showTracksWithoutEventsToggleElement = document.getElementById("showTracksWithoutEvents");
     let radiusSliderElement = document.getElementById("radiusSlider");
     let priceSliderElement = document.getElementById("priceSlider");
     let displayedPriceElement = document.getElementById("displayedPrice");
@@ -615,19 +633,27 @@
           updateCalendar();
         });
 
-        for (const [toggleElement, eventType] of [
-          [showCarEventsToggleElement, "C"],
-          [showMotoEventsToggleElement, "M"],
-          [showSumoEventsToggleElement, "S"]]) {
-            let eventTypeSet = localStorage.getItem(eventType);
-            toggleElement.checked = eventTypeSet ? (eventTypeSet === "true") : true;
-            if (toggleElement.checked) {selectedEventTypes.add(eventType);}
+        for (const [buttonElement, eventType] of [
+          [showCarEventsButton, "C"],
+          [showMotoEventsButton, "M"],
+          [showSumoEventsButton, "S"]]) {
+            (localStorage.getItem(eventType) === "false") ? buttonElement.classList.remove("on") : buttonElement.classList.add("on");
+            if (buttonElement.classList.contains("on")) {
+              selectedEventTypes.add(eventType);
+            }
 
-            toggleElement.addEventListener("change", () => {
-              localStorage.setItem(eventType, toggleElement.checked);
-              toggleElement.checked ? selectedEventTypes.add(eventType) : selectedEventTypes.delete(eventType);
+            buttonElement.addEventListener("click", () => {
+              let nowEnabled = !selectedEventTypes.has(eventType);
+              if (nowEnabled) {
+                selectedEventTypes.add(eventType);
+                buttonElement.classList.add("on");
+              } else {
+                selectedEventTypes.delete(eventType);
+                buttonElement.classList.remove("on");
+              }
+              localStorage.setItem(eventType, nowEnabled);
               if (selectedEventTypes.size > 0) {
-                homeMarker.setIcon(selectedEventTypes.size == 1 && selectedEventTypes.has("C") ? homeIconCar : homeIconMoto);
+                homeMarker.setIcon(selectedEventTypes.has("C") ? homeIconCar : homeIconMoto);
               }
               updateTrackdaysVisibilityProperty();
               updateTrackIcons(true);
@@ -636,7 +662,7 @@
               updateDropdown();
             });
         }
-        if (selectedEventTypes.size === 1 && selectedEventTypes.has("C")) {
+        if (selectedEventTypes.size === 0 || selectedEventTypes.has("C")) {
           homeMarker.setIcon(homeIconCar);
         }
 
@@ -649,20 +675,28 @@
           })
         );
 
-        hideTracksWithoutEvents.addEventListener("change", () => {
+        showTracksWithoutEventsToggleElement.addEventListener("click", () => {
+          let nowEnabled = !showTracksWithoutEventsToggleElement.classList.contains("on");
+          if (nowEnabled) {
+            showTracksWithoutEventsToggleElement.classList.add("on");
+            showTracksWithoutEventsToggleElement.innerText = showTracksWithoutEventsToggleElement.innerText.replace("Hide", "Show");
+          } else {
+            showTracksWithoutEventsToggleElement.classList.remove("on");
+            showTracksWithoutEventsToggleElement.innerText = showTracksWithoutEventsToggleElement.innerText.replace("Show", "Hide");
+          }
           updateTrackIcons(true);
         });
 
         resetElement.addEventListener("click", () => {
-          showMotoEventsToggleElement.checked = true;
-          showSumoEventsToggleElement.checked = true;
-          showCarEventsToggleElement.checked = true;
+          showMotoEventsButton.classList.add("on");
+          showSumoEventsButton.classList.add("on");
+          showCarEventsButton.classList.add("on");
           selectedEventTypes = new Set("MSC");
           localStorage.setItem("M", true);
           localStorage.setItem("S", true);
           localStorage.setItem("C", true);
           Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
-          hideTracksWithoutEvents.checked = false;
+          showTracksWithoutEventsToggleElement.classList.add("on");
           Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
 
           priceSliderElement.value = maxObservedPrice;
