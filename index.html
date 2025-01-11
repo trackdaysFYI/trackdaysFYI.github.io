@@ -259,7 +259,7 @@
       let numTrackdaysHidden = numTrackdaysBeforeFilter - trackdaysFiltered.length;
       let hasSubtracks = trackdaysFiltered.some(td => td.subtrack);
       let multipleVehicleTypes = (selectedVehicleTypes.size > 1);
-      let multipleEventTypes = (selectedEventTypes.size > 1);
+      let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") & (selectedEventTypes.size > 1);
       let hasPrices = trackdaysFiltered.some(td => td.price !== -1);
       let hasNotes = trackdaysFiltered.some(td => td.note);
       let tbody = trackdaysFiltered.map(td => {return `
