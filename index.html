@@ -294,7 +294,7 @@
         <a href="https://www.google.com/maps?q=directions+${track.name}" target="_blank" title="Directions">${directionImg}</a>
         <a href="https://www.google.com/search?q=weather+${track.name}" target="_blank" title="Weather">${weatherImg}</a>
         <a href="https://www.youtube.com/results?search_query=${track.name}+track&sp=CAISAhAB" target="_blank" title="Videos">${videoImg}</a>
-        <br>${tbl}${numTrackdaysHidden ? `<span style="font-size: 10px">Excluding ${numTrackdaysHidden} Filtered Events</span>` : ""}
+        <br>${tbl}${numTrackdaysHidden ? `<span style="font-size: 10px">${numTrackdaysHidden} Filtered Events Hidden</span>` : ""}
         </div>`);
     }
 
@@ -417,6 +417,7 @@
       <td><button type="button" class="colored big on" id="showCarEvents">Car</button></td>
       <td><button type="button" class="colored big on" id="showMotoEvents">Motorcycle</button></td>
       <td><button type="button" class="colored big on" id="showSumoEvents">Supermoto</button></td>
+      <td style="display: none;"><button type="button" class="colored big" id="showMiniEvents">Minimoto</button></td>
     </table>
 
     <div id="map"></div>
@@ -506,9 +507,10 @@
     let homeMarker = L.marker(locationDefault, {icon: homeIconMoto, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
     let searchCircle = L.circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
 
+    let showCarEventsButton = document.getElementById("showCarEvents");
     let showMotoEventsButton = document.getElementById("showMotoEvents");
     let showSumoEventsButton = document.getElementById("showSumoEvents");
-    let showCarEventsButton = document.getElementById("showCarEvents");
+    let showMiniEventsButton = document.getElementById("showMiniEvents");
     let orgSelectElement = document.getElementById("orgSelect");
     let radiusSliderElement = document.getElementById("radiusSlider");
     let priceSliderElement = document.getElementById("priceSlider");
