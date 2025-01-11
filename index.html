@@ -689,27 +689,6 @@
           homeMarker.setIcon(homeIconCar);
         }
 
-        [priceSliderElement, minDateElement, maxDateElement, daySelectElement].forEach(elem => 
-          elem.addEventListener("change", () => {
-            updateTrackdaysVisibilityProperty();
-            updateTrackIcons(true);
-            updateTrackPopup();
-            updateCalendar();
-          })
-        );
-
-        showTracksWithoutEventsToggleElement.addEventListener("click", () => {
-          let nowEnabled = !showTracksWithoutEventsToggleElement.classList.contains("on");
-          if (nowEnabled) {
-            showTracksWithoutEventsToggleElement.classList.add("on");
-            showTracksWithoutEventsToggleElement.innerText = showTracksWithoutEventsToggleElement.innerText.replace("Hide", "Show");
-          } else {
-            showTracksWithoutEventsToggleElement.classList.remove("on");
-            showTracksWithoutEventsToggleElement.innerText = showTracksWithoutEventsToggleElement.innerText.replace("Show", "Hide");
-          }
-          updateTrackIcons(true);
-        });
-
         for (const [buttonElement, eventType] of [[showTrackdaysToggleElement, "T"], [showSchoolsToggleElement, "S"], [showRacesToggleElement, "R"]]) {
           (localStorage.getItem("eventTypes") || "").includes(eventType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
           if (buttonElement.classList.contains("on")) {
@@ -734,6 +713,27 @@
             updateDropdown();
           });
         }
+
+        [priceSliderElement, minDateElement, maxDateElement, daySelectElement].forEach(elem => 
+          elem.addEventListener("change", () => {
+            updateTrackdaysVisibilityProperty();
+            updateTrackIcons(true);
+            updateTrackPopup();
+            updateCalendar();
+          })
+        );
+
+        showTracksWithoutEventsToggleElement.addEventListener("click", () => {
+          let nowEnabled = !showTracksWithoutEventsToggleElement.classList.contains("on");
+          if (nowEnabled) {
+            showTracksWithoutEventsToggleElement.classList.add("on");
+            showTracksWithoutEventsToggleElement.innerText = showTracksWithoutEventsToggleElement.innerText.replace("Hide", "Show");
+          } else {
+            showTracksWithoutEventsToggleElement.classList.remove("on");
+            showTracksWithoutEventsToggleElement.innerText = showTracksWithoutEventsToggleElement.innerText.replace("Show", "Hide");
+          }
+          updateTrackIcons(true);
+        });
 
         resetElement.addEventListener("click", () => {
           showMotoEventsButton.classList.add("on");
