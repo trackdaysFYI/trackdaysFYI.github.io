@@ -52,7 +52,6 @@
 
     #map {position: relative; width: 100%; height: 55vh; border: 3px solid rgb(100, 100, 100);}
     .popup table, .popup th, .popup td {font-size: 12.5px; border: 1px solid rgb(176, 176, 176); border-collapse: collapse; white-space: nowrap; margin: auto; padding: 2px;}
-    .filter table, .filter td {white-space: nowrap; padding: 2px;}  /* border: 1px solid; border-collapse: collapse; */
     .leaflet-container {font-family: unset}
     .leaflet-popup-content-wrapper, .leaflet-popup-tip {background: rgb(240, 240, 240);}
     .leaflet-popup-content {text-align: center; padding-right: 5px; margin: 8px 5px 8px 5px;}
@@ -93,8 +92,12 @@
     input[type=date] {background-color: rgb(220, 220, 220); font-family: "Noto Sans"; cursor: pointer;}
 
     @media (max-width: 26em) {.mobileSqueeze > tbody > tr > td {display: block;}}
-    @media (max-width: 50.5em) {.mobileSqueeze2 > tbody > tr > td {display: block;}}
     @media (orientation:landscape) and (max-width: 800px) {#map {height: 80vh;}}
+
+    .control-font {
+      font-size: 0.95rem;
+      font-weight: 300;
+    }
 
     button.colored {
       all: unset;
@@ -118,6 +121,20 @@
       width: 100%;
     }
 
+    .flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      column-gap: 12px;
+      margin-top: 5px;
+    }
+    .flex-cell {
+      width: 250px;
+    }
+    .flex-cell > * tr {
+      height: 26px;
+    }
   </style>
 
   <script>
@@ -396,7 +413,7 @@
     <p id="syncInfo"></p>
     <hr style="margin: 0rem;">
 
-    <table class="center filter mobileSqueeze" style="font-size: 0.95rem; font-weight: 300;">
+    <table class="center mobileSqueeze control-font">
       <td><button type="button" class="colored big" id="showCarEvents">Car</button></td>
       <td><button type="button" class="colored big" id="showMotoEvents">Motorcycle</button></td>
       <td><button type="button" class="colored big" id="showSumoEvents">Supermoto</button></td>
@@ -404,76 +421,66 @@
 
     <div id="map"></div>
 
-    <div>
-      <table class="center filter mobileSqueeze2" style="font-size: 0.95rem; font-weight: 300;">
+    <div class="flex-row control-font">
+      <table class="flex-cell">
         <tr>
-          <td style="padding: 0 20px;">
-            <table class="center">
-              <tr>
-                <td colspan="4"><select multiple id="orgSelect" multiselect-search="true" multiselect-select-all="true" 
-                  data-txtNothingSelected="No Hosts Selected" data-txtNothingAvailable="No Hosts Found" 
-                  data-txtSelectedSuffix="hosts selected" data-txtSearch="Search Hosts" data-height="16rem"
-                  style="width: 20em; display: none;"></select></td>
-              </tr>
-              <tr>
-                <td>Travel</td>
-                <td><input id="radiusSlider" type="range" min="0" value="9" max="9" step="1" style="vertical-align: middle;"></td>
-                <td>≤</td>
-                <td><span id="displayedRadius" style="display: inline-block; width: 3ch; text-align: center;"></span> mi</td>
-              </tr>
-              <tr>
-                <td>Price</td>
-                <td><input id="priceSlider" type ="range" min="100" max="500" step="20" value="500" style="vertical-align: middle;"/></td>
-                <td>≤</td>
-                <td>$<span id="displayedPrice" style="display: inline-block; width: 3ch; text-align: center;"></td>
-              </tr>
-            </table>
-          </td>
-          <td>
-            <table class="center">
-              <tr>
-                <td><input id="minDateSearch" type="date" value="" min="" max=""> - <input id="maxDateSearch" type="date" value="" min="" max=""></td>
-              </tr>
-              <tr>
-                <td><select multiple id="daySelect" multiselect-search="false" multiselect-select-all="true" style="width: 100%;"
-                  data-txtNothingSelected="No Days Selected" data-txtSelectedSuffix="days selected" data-height="11.5rem">
-                  <option selected value="Sun">Sunday</option>
-                  <option selected value="Mon">Monday</option>
-                  <option selected value="Tue">Tuesday</option>
-                  <option selected value="Wed">Wednesday</option>
-                  <option selected value="Thu">Thursday</option>
-                  <option selected value="Fri">Friday</option>
-                  <option selected value="Sat">Saturday</option>
-                </select></td>
-              </tr>
-              <tr>
-                <td><button type="button" class="colored on" id="showTracksWithoutEvents">Show Tracks without Events</button></td>
-              </tr>
-            </table>
-          </td>
-          <td style="display: none;">
-            <table class="center" style="width: 15em;">
-              <tr>
-                <td><button type="button" class="colored on" id="showTrackdays">Show Trackdays</button></td>
-              </tr>
-              <tr>
-                <td><button type="button" class="colored on" id="showSchools">Show Track Schools</button></td>
-              </tr>
-              <tr>
-                <td><button type="button" class="colored on" id="showRaces">Show Races</button></td>
-              </tr>
-            </table>
-          </td>
-          <td style="padding: 0 20px;">
-            <table class="center">
-              <tr>
-                <td id="numTrackdaysMatching" style="min-width: 19ch; display: inline-block"></td>
-              </tr>
-              <tr>
-                <td><button id="resetFilters" type="button">Reset</button></td>
-              </tr>
-            </table>
-          </td>
+          <td colspan="4"><select multiple id="orgSelect" multiselect-search="true" multiselect-select-all="true" 
+            data-txtNothingSelected="No Hosts Selected" data-txtNothingAvailable="No Hosts Found" 
+            data-txtSelectedSuffix="hosts selected" data-txtSearch="Search Hosts" data-height="16rem"></select></td>
+        </tr>
+        <tr>
+          <td>Travel</td>
+          <td><input id="radiusSlider" type="range" min="0" value="9" max="9" step="1" style="vertical-align: middle;"></td>
+          <td>≤</td>
+          <td><span id="displayedRadius" style="display: inline-block; width: 3ch; text-align: center;"></span> mi</td>
+        </tr>
+        <tr>
+          <td>Price</td>
+          <td><input id="priceSlider" type ="range" min="100" max="500" step="20" value="500" style="vertical-align: middle;"/></td>
+          <td>≤</td>
+          <td>$<span id="displayedPrice" style="display: inline-block; width: 3ch; text-align: center;"></td>
+        </tr>
+      </table>
+
+      <table class="flex-cell">
+        <tr>
+          <td><input id="minDateSearch" type="date" value="" min="" max=""> - <input id="maxDateSearch" type="date" value="" min="" max=""></td>
+        </tr>
+        <tr>
+          <td><select multiple id="daySelect" multiselect-search="false" multiselect-select-all="true" style="width: 100%;"
+            data-txtNothingSelected="No Days Selected" data-txtSelectedSuffix="days selected" data-height="11.1rem">
+            <option selected value="Sun">Sunday</option>
+            <option selected value="Mon">Monday</option>
+            <option selected value="Tue">Tuesday</option>
+            <option selected value="Wed">Wednesday</option>
+            <option selected value="Thu">Thursday</option>
+            <option selected value="Fri">Friday</option>
+            <option selected value="Sat">Saturday</option>
+          </select></td>
+        </tr>
+        <tr>
+          <td><button type="button" class="colored on" id="showTracksWithoutEvents">Show Tracks without Events</button></td>
+        </tr>
+      </table>
+
+      <table class="flex-cell" style="display: none;">
+        <tr>
+          <td><button type="button" class="colored on" id="showTrackdays">Show Trackdays</button></td>
+        </tr>
+        <tr>
+          <td><button type="button" class="colored" id="showSchools">Show Track Schools</button></td>
+        </tr>
+        <tr>
+          <td><button type="button" class="colored on" id="showRaces">Show Races</button></td>
+        </tr>
+      </table>
+
+      <table class="flex-cell">
+        <tr>
+          <td><span id="numTrackdaysMatching"></span></td>
+        </tr>
+        <tr>
+          <td><button id="resetFilters" type="button">Reset</button></td>
         </tr>
       </table>
     </div>
