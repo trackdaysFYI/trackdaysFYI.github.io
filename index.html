@@ -607,6 +607,7 @@
         });
 
         homeMarker.on("drag", (e) =>{
+          map.closePopup();  // close "Drag Me" popup
           searchCircle.setLatLng(e.latlng);
         });
 
