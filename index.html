@@ -652,8 +652,11 @@
           updateCalendar();
         });
 
+        if (!localStorage.getItem("vehicleTypes")) {  // new user or all vehicle types unselected
+          localStorage.setItem("vehicleTypes", Object.keys(vehicleTypeMap).join(""));
+        }
         for (const [buttonElement, vehicleType] of [[showCarEventsButton, "C"], [showMotoEventsButton, "M"], [showSumoEventsButton, "S"]]) {
-          (localStorage.getItem(vehicleType) === "false") ? buttonElement.classList.remove("on") : buttonElement.classList.add("on");
+          (localStorage.getItem("vehicleTypes") || "").includes(vehicleType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
           if (buttonElement.classList.contains("on")) {
             selectedVehicleTypes.add(vehicleType);
           }
@@ -667,7 +670,7 @@
               selectedVehicleTypes.delete(vehicleType);
               buttonElement.classList.remove("on");
             }
-            localStorage.setItem(vehicleType, nowEnabled);
+            localStorage.setItem("vehicleTypes", [...selectedVehicleTypes].join(""));
             if (selectedVehicleTypes.size > 0) {
               homeMarker.setIcon(selectedVehicleTypes.has("C") ? homeIconCar : homeIconMoto);
             }
@@ -730,14 +733,14 @@
           showMotoEventsButton.classList.add("on");
           showSumoEventsButton.classList.add("on");
           showCarEventsButton.classList.add("on");
-          selectedVehicleTypes = new Set("MSC");
-          localStorage.setItem("M", true);
-          localStorage.setItem("S", true);
-          localStorage.setItem("C", true);
+          selectedVehicleTypes = new Set(Object.keys(vehicleTypeMap));
+          localStorage.setItem("vehicleTypes", Object.keys(vehicleTypeMap).join(""));
+
           showTrackdaysToggleElement.classList.add("on");
           showSchoolsToggleElement.classList.add("on");
           showRacesToggleElement.classList.add("on");
-          selectedEventTypes = new Set("TSR");
+          selectedEventTypes = new Set(Object.keys(eventTypeMap));
+
           Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
           showTracksWithoutEventsToggleElement.classList.add("on");
           Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
