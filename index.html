@@ -414,9 +414,9 @@
     <hr style="margin: 0rem;">
 
     <table class="center mobileSqueeze control-font">
-      <td><button type="button" class="colored big" id="showCarEvents">Car</button></td>
-      <td><button type="button" class="colored big" id="showMotoEvents">Motorcycle</button></td>
-      <td><button type="button" class="colored big" id="showSumoEvents">Supermoto</button></td>
+      <td><button type="button" class="colored big on" id="showCarEvents">Car</button></td>
+      <td><button type="button" class="colored big on" id="showMotoEvents">Motorcycle</button></td>
+      <td><button type="button" class="colored big on" id="showSumoEvents">Supermoto</button></td>
     </table>
 
     <div id="map"></div>
@@ -468,7 +468,7 @@
           <td><button type="button" class="colored on" id="showTrackdays">Show Trackdays</button></td>
         </tr>
         <tr>
-          <td><button type="button" class="colored" id="showSchools">Show Track Schools</button></td>
+          <td><button type="button" class="colored on" id="showSchools">Show Track Schools</button></td>
         </tr>
         <tr>
           <td><button type="button" class="colored on" id="showRaces">Show Races</button></td>
@@ -655,6 +655,10 @@
         if (!localStorage.getItem("vehicleTypes")) {  // new user or all vehicle types unselected
           localStorage.setItem("vehicleTypes", Object.keys(vehicleTypeMap).join(""));
         }
+        if (!localStorage.getItem("eventTypes")) {  // new user or all event types unselected
+          localStorage.setItem("eventTypes", Object.keys(eventTypeMap).join(""));
+        }
+
         for (const [buttonElement, vehicleType] of [[showCarEventsButton, "C"], [showMotoEventsButton, "M"], [showSumoEventsButton, "S"]]) {
           (localStorage.getItem("vehicleTypes") || "").includes(vehicleType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
           if (buttonElement.classList.contains("on")) {
@@ -707,11 +711,12 @@
         });
 
         for (const [buttonElement, eventType] of [[showTrackdaysToggleElement, "T"], [showSchoolsToggleElement, "S"], [showRacesToggleElement, "R"]]) {
+          (localStorage.getItem("eventTypes") || "").includes(eventType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
           if (buttonElement.classList.contains("on")) {
             selectedEventTypes.add(eventType);
           }
           buttonElement.addEventListener("click", () => {
-            let nowEnabled = !buttonElement.classList.contains("on");
+            let nowEnabled = !selectedEventTypes.has(eventType);
             if (nowEnabled) {
               selectedEventTypes.add(eventType);
               buttonElement.classList.add("on");
@@ -721,6 +726,7 @@
               buttonElement.classList.remove("on");
               buttonElement.innerText = buttonElement.innerText.replace("Show", "Hide");
             }
+            localStorage.setItem("eventTypes", [...selectedEventTypes].join(""));
             updateTrackdaysVisibilityProperty();
             updateTrackIcons(true);
             updateTrackPopup();
@@ -740,6 +746,7 @@
           showSchoolsToggleElement.classList.add("on");
           showRacesToggleElement.classList.add("on");
           selectedEventTypes = new Set(Object.keys(eventTypeMap));
+          localStorage.setItem("eventTypes", Object.keys(eventTypeMap).join(""));
 
           Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
           showTracksWithoutEventsToggleElement.classList.add("on");
