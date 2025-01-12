@@ -132,6 +132,9 @@
     .flex-cell {
       width: 250px;
     }
+    .flex-cell input[type="date"] {
+      width: 105px;  /* fit on mobile */
+    }
     .flex-cell > * tr {
       height: 26px;
     }
@@ -464,7 +467,7 @@
         </tr>
       </table>
 
-      <table class="flex-cell" style="display: none;">
+      <table class="flex-cell">
         <tr>
           <td><button type="button" class="colored on" id="showTrackdays">Show Trackdays</button></td>
         </tr>
