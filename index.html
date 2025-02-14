@@ -388,7 +388,7 @@
 </script>
 
 <body onLoad="getGPSLocation();">
-<div id="header-ad" style="background-color: rgba(57, 115, 172, 0.5); color: whitesmoke; padding: 10px; text-align: center; position: relative;">
+<div id="fotosort-ad" style="background-color: rgba(57, 115, 172, 0.5); color: whitesmoke; padding: 10px; text-align: center; position: relative;">
   <span>Are you a trackday or race photographer? Try out <a href="https://fotosort.com/" target="_blank" style="color: whitesmoke; font-weight: bold; text-decoration: underline;">FotoSort.com</a></span>
   <button id="close-ad" style="position: absolute; top: 5px; right: 10px; background: none; border: none; color: whitesmoke; font-size: 26px; cursor: pointer;" title="Don't show again">&times;</button>
 </div>
@@ -506,7 +506,7 @@
   </footer>
 
   <script>
-    const headerAd = document.getElementById("header-ad");
+    const headerAd = document.getElementById("fotosort-ad");
     const headerBuffer = document.getElementById("header-buffer");
     if (localStorage.getItem("headerAdClosed")) {
       headerAd.style.display = "none";
