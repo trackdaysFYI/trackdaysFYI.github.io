@@ -667,7 +667,7 @@
         Object.keys(tracks).forEach((trackName) => {
           track = tracks[trackName];
           mapMarkers[trackName] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
-          mapMarkers[trackName].bindPopup("", {maxHeight: 300, maxWidth: 420, closeButton: false});  // popup content updated on click
+          mapMarkers[trackName].bindPopup("", {maxHeight: 300, maxWidth: 450, closeButton: false});  // popup content updated on click
           mapMarkers[trackName].on("mousedown", (e) => {
             lastOpenedTrack = e.target.options.title.toUpperCase();
             updateTrackPopup();
