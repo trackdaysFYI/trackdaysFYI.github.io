@@ -145,6 +145,16 @@
     const STORAGE_KEY_USER_SAVED_EVENTS = "trackdaysFYI:userSavedEvents";
     const STORAGE_KEY_USER_VEHICLE_TYPES = "trackdaysFYI:userVehicleTypes";
     const STORAGE_KEY_USER_EVENT_TYPES = "trackdaysFYI:userEventTypes";
+    let savedEventsSet = (function () {
+      try {
+        let raw = localStorage.getItem(STORAGE_KEY_USER_SAVED_EVENTS);
+        if (!raw) {return new Set();}
+        let arr = JSON.parse(raw);
+        return new Set(Array.isArray(arr) ? arr : []);
+      } catch (e) {
+        return new Set();
+      }
+    })();
     let locationDefault = [39.50, -98.35];  // Central US or GPS location
     let isGPSLocation = false;
     let searchRadius, minDate, maxDate;
@@ -206,7 +216,6 @@
     function updateTrackIcons(updateTrackVisibility) {
       let allTracks = Object.keys(tracks);
       let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityMap).map(td => td.track));
-      let savedEventsSet = loadSavedEventsSet();
 
       if (updateTrackVisibility) {
         allTracks.forEach(track => {  // track visibility on map based on event type or saved events
@@ -244,7 +253,6 @@
     function updateTrackdaysVisibilityProperty() {
       let maxPrice = priceSliderElement.value;
       let selectedDays = new Set(Array.from(daySelectElement.options).filter(option => option.selected).map(option => option.value));
-      let savedEventsSet = loadSavedEventsSet();
       trackdays.forEach((td) => {
         let withinRadius = (searchRadius === infiniteRadius || tracks[td.track].dist <= searchRadius);
         let dateCheck = ((!minDate.isValid() && !maxDate.isValid()) || 
@@ -268,26 +276,14 @@
       return [td.date.format("YYYY-MM-DD"), td.org, td.track, td.subtrack, td.eventType, td.vehicleType].join("|");
     }
 
-    function loadSavedEventsSet() {
-      try {
-        let raw = localStorage.getItem(STORAGE_KEY_USER_SAVED_EVENTS);
-        if (!raw) {return new Set();}
-        let arr = JSON.parse(raw);
-        return new Set(Array.isArray(arr) ? arr : []);
-      } catch (e) {
-        return new Set();
-      }
-    }
-
     function onEventSaveToggle(checkbox) {
       let key = decodeURIComponent(checkbox.getAttribute("data-event-key"));
-      let set = loadSavedEventsSet();
       if (checkbox.checked) {
-        set.add(key);
+        savedEventsSet.add(key);
       } else {
-        set.delete(key);
+        savedEventsSet.delete(key);
       }
-      localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...set]));
+      localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
       if (typeof trackdays !== "undefined") {
         updateTrackdaysVisibilityProperty();
         updateTrackIcons(true);
@@ -307,7 +303,6 @@
       let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") & (selectedEventTypes.size > 1);
       let hasPrices = trackdaysFiltered.some(td => td.price !== -1);
       let hasNotes = trackdaysFiltered.some(td => td.note);
-      let savedEventsSet = loadSavedEventsSet();
       let tbody = trackdaysFiltered.map(td => {
         let eventKey = getEventKey(td);
         return `
@@ -352,7 +347,6 @@
     function updateCalendar() {
       // trackdays should be sorted by distance before this
       let calendarEvents = [];
-      let savedEventsSet = loadSavedEventsSet();
       trackdays.forEach((td) => {
         if (td.visibilityCalendar) {
           let price = (td.price === -1 ? "" : "$" + td.price);
