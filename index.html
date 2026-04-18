@@ -141,6 +141,8 @@
   </style>
 
   <script>
+    const STORAGE_KEY_USER_SAVED_EVENTS = "trackdaysFYI:userSavedEvents";
+    const STORAGE_KEY_USER_VEHICLE_TYPES = "trackdaysFYI:userVehicleTypes";
     let locationDefault = [39.50, -98.35];  // Central US or GPS location
     let isGPSLocation = false;
     let searchRadius, minDate, maxDate;
@@ -674,15 +676,15 @@
           updateCalendar();
         });
 
-        if (!localStorage.getItem("vehicleTypes")) {  // new user or all vehicle types unselected
-          localStorage.setItem("vehicleTypes", Object.keys(vehicleTypeMap).join(""));
+        if (!localStorage.getItem(STORAGE_KEY_USER_VEHICLE_TYPES)) {  // new user or all vehicle types unselected
+          localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(vehicleTypeMap).join(""));
         }
-        if (!localStorage.getItem("eventTypes")) {  // new user or all event types unselected
-          localStorage.setItem("eventTypes", Object.keys(eventTypeMap).join(""));
+        if (!localStorage.getItem(STORAGE_KEY_USER_EVENT_TYPES)) {  // new user or all event types unselected
+          localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, Object.keys(eventTypeMap).join(""));
         }
 
         for (const [buttonElement, vehicleType] of [[showCarEventsButton, "C"], [showMotoEventsButton, "M"], [showSumoEventsButton, "S"]]) {
-          (localStorage.getItem("vehicleTypes") || "").includes(vehicleType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
+          (localStorage.getItem(STORAGE_KEY_USER_VEHICLE_TYPES) || "").includes(vehicleType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
           if (buttonElement.classList.contains("on")) {
             selectedVehicleTypes.add(vehicleType);
           }
@@ -696,7 +698,7 @@
               selectedVehicleTypes.delete(vehicleType);
               buttonElement.classList.remove("on");
             }
-            localStorage.setItem("vehicleTypes", [...selectedVehicleTypes].join(""));
+            localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, [...selectedVehicleTypes].join(""));
             if (selectedVehicleTypes.size > 0) {
               homeMarker.setIcon(selectedVehicleTypes.has("C") ? homeIconCar : homeIconMoto);
             }
@@ -712,7 +714,7 @@
         }
 
         for (const [buttonElement, eventType] of [[showTrackdaysToggleElement, "T"], [showSchoolsToggleElement, "S"], [showRacesToggleElement, "R"]]) {
-          (localStorage.getItem("eventTypes") || "").includes(eventType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
+          (localStorage.getItem(STORAGE_KEY_USER_EVENT_TYPES) || "").includes(eventType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
           if (buttonElement.classList.contains("on")) {
             selectedEventTypes.add(eventType);
           }
@@ -727,7 +729,7 @@
               buttonElement.classList.remove("on");
               buttonElement.innerText = buttonElement.innerText.replace("Show", "Hide");
             }
-            localStorage.setItem("eventTypes", [...selectedEventTypes].join(""));
+            localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, [...selectedEventTypes].join(""));
             updateTrackdaysVisibilityProperty();
             updateTrackIcons(true);
             updateTrackPopup();
@@ -762,13 +764,13 @@
           showSumoEventsButton.classList.add("on");
           showCarEventsButton.classList.add("on");
           selectedVehicleTypes = new Set(Object.keys(vehicleTypeMap));
-          localStorage.setItem("vehicleTypes", Object.keys(vehicleTypeMap).join(""));
+          localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(vehicleTypeMap).join(""));
 
           showTrackdaysToggleElement.classList.add("on");
           showSchoolsToggleElement.classList.add("on");
           showRacesToggleElement.classList.add("on");
           selectedEventTypes = new Set(Object.keys(eventTypeMap));
-          localStorage.setItem("eventTypes", Object.keys(eventTypeMap).join(""));
+          localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, Object.keys(eventTypeMap).join(""));
 
           Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
           showTracksWithoutEventsToggleElement.classList.add("on");
