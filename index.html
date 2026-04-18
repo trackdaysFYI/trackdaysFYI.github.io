@@ -52,6 +52,7 @@
 
     #map {position: relative; width: 100%; height: 55vh; border: 3px solid rgb(100, 100, 100);}
     .popup table, .popup th, .popup td {font-size: 12.5px; border: 1px solid rgb(176, 176, 176); border-collapse: collapse; white-space: nowrap; margin: auto; padding: 2px;}
+    .popup .event-mark-checkbox {width: 1rem; height: 1rem; margin: 0; vertical-align: middle; cursor: pointer;}
     .leaflet-container {font-family: unset}
     .leaflet-popup-content-wrapper, .leaflet-popup-tip {background: rgb(240, 240, 240);}
     .leaflet-popup-content {text-align: center; padding-right: 5px; margin: 8px 5px 8px 5px;}
@@ -205,10 +206,13 @@
     function updateTrackIcons(updateTrackVisibility) {
       let allTracks = Object.keys(tracks);
       let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityMap).map(td => td.track));
+      let savedEventsSet = loadSavedEventsSet();
 
       if (updateTrackVisibility) {
-        allTracks.forEach(track => {  // track visibility based on event type
-          [...tracks[track].vehicleType].some(t => selectedVehicleTypes.has(t)) ? mapMarkers[track].addTo(map) : mapMarkers[track].remove();
+        allTracks.forEach(track => {  // track visibility on map based on event type or saved events
+          let matchingVehicleType = [...tracks[track].vehicleType].some(t => selectedVehicleTypes.has(t));
+          let containsSavedEvent = trackdays.some((td) => td.track === track && savedEventsSet.has(getEventKey(td)));
+          (matchingVehicleType || containsSavedEvent) ? mapMarkers[track].addTo(map) : mapMarkers[track].remove();
         });
         if (!showTracksWithoutEventsToggleElement.classList.contains("on")) {  // trackday visibility based on event type
           let tracksWithoutEvents = allTracks.filter((track) => !tracksWithEvents.has(track));
@@ -219,8 +223,9 @@
 
       allTracks.forEach((track) => {
         let withinRadius = (searchRadius === infiniteRadius || tracks[track].dist <= searchRadius);
+        let containsSavedEvent = trackdays.some((td) => td.track === track && savedEventsSet.has(getEventKey(td)));
         opacityMultiplier = tracksWithEvents.has(track) ? 1.0 : 0.35;
-        if (withinRadius) {
+        if (withinRadius || containsSavedEvent) {
           mapMarkers[track].setIcon(trackIconCheckered);
           mapMarkers[track].setOpacity(0.8 * opacityMultiplier);
         } else {
@@ -239,6 +244,7 @@
     function updateTrackdaysVisibilityProperty() {
       let maxPrice = priceSliderElement.value;
       let selectedDays = new Set(Array.from(daySelectElement.options).filter(option => option.selected).map(option => option.value));
+      let savedEventsSet = loadSavedEventsSet();
       trackdays.forEach((td) => {
         let withinRadius = (searchRadius === infiniteRadius || tracks[td.track].dist <= searchRadius);
         let dateCheck = ((!minDate.isValid() && !maxDate.isValid()) || 
@@ -250,10 +256,43 @@
         let vehicleTypeCheck = [...td.vehicleType].some(t => selectedVehicleTypes.has(t));
         let eventTypeCheck = [...td.eventType].some(t => selectedEventTypes.has(t));
         let orgSelectCheck = orgs[td.org].dropdownSelected;
+        let isSaved = savedEventsSet.has(getEventKey(td));
+        let passesFilters = dateCheck && priceCheck && dayCheck && vehicleTypeCheck && eventTypeCheck && orgSelectCheck;
         td.visibilityDropdown = (withinRadius && vehicleTypeCheck && eventTypeCheck);
-        td.visibilityMap = (dateCheck && priceCheck && dayCheck && vehicleTypeCheck && eventTypeCheck && orgSelectCheck);
-        td.visibilityCalendar = (td.visibilityMap && withinRadius);
+        td.visibilityMap = isSaved || passesFilters;
+        td.visibilityCalendar = isSaved || (passesFilters && withinRadius);
       });
+    }
+
+    function getEventKey(td) {  // string identifying a specific event
+      return [td.date.format("YYYY-MM-DD"), td.org, td.track, td.subtrack, td.eventType, td.vehicleType].join("|");
+    }
+
+    function loadSavedEventsSet() {
+      try {
+        let raw = localStorage.getItem(STORAGE_KEY_USER_SAVED_EVENTS);
+        if (!raw) {return new Set();}
+        let arr = JSON.parse(raw);
+        return new Set(Array.isArray(arr) ? arr : []);
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    function onEventSaveToggle(checkbox) {
+      let key = decodeURIComponent(checkbox.getAttribute("data-event-key"));
+      let set = loadSavedEventsSet();
+      if (checkbox.checked) {
+        set.add(key);
+      } else {
+        set.delete(key);
+      }
+      localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...set]));
+      if (typeof trackdays !== "undefined") {
+        updateTrackdaysVisibilityProperty();
+        updateTrackIcons(true);
+        updateCalendar();
+      }
     }
 
     function updateTrackPopup() {
@@ -268,8 +307,12 @@
       let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") & (selectedEventTypes.size > 1);
       let hasPrices = trackdaysFiltered.some(td => td.price !== -1);
       let hasNotes = trackdaysFiltered.some(td => td.note);
-      let tbody = trackdaysFiltered.map(td => {return `
+      let savedEventsSet = loadSavedEventsSet();
+      let tbody = trackdaysFiltered.map(td => {
+        let eventKey = getEventKey(td);
+        return `
         <tr>
+          <td><input type="checkbox" class="event-mark-checkbox" title="Save" data-event-key="${encodeURIComponent(eventKey)}" ${savedEventsSet.has(eventKey) ? "checked" : ""} onchange="onEventSaveToggle(this)"></td>
           <td><a href="${td.url}" target="_blank">${td.date.format("MM/DD")}</a></td>
           <td>${td.date.format("ddd")}</td>
           <td>${td.org}</td>
@@ -279,10 +322,12 @@
           ${hasNotes ? `<td>${td.note ? td.note : "-"}</td>` : ""}
           ${hasPrices ? `<td>${td.price >= 0 ? '$' + td.price : "-"}</td>` : ""}
         </tr>
-      `}).join("");
+      `;
+      }).join("");
       let tbl = (trackdaysFiltered.length === 0 ? `No Events Found<br>` :
         `<table>
           <thead><tr>
+          <th>✓</th>
           <th>Date</th>
           <th>Day</th>
           <th>Host</th>
@@ -307,6 +352,7 @@
     function updateCalendar() {
       // trackdays should be sorted by distance before this
       let calendarEvents = [];
+      let savedEventsSet = loadSavedEventsSet();
       trackdays.forEach((td) => {
         if (td.visibilityCalendar) {
           let price = (td.price === -1 ? "" : "$" + td.price);
@@ -315,6 +361,9 @@
           let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
           let noteStr = (td.note ? " (" + td.note + ")" : "");
           let calendarStr = `<a href=${td.url} target="_blank" title="${price}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${orgStr}</a>`;
+          if (savedEventsSet.has(getEventKey(td))) {
+            calendarStr = `<b>${calendarStr}</b>`;
+          }
           calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
         }
       });
