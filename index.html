@@ -308,6 +308,22 @@
       }
     }
 
+    function alertOnMissingSavedEvents() {
+      if (typeof trackdays === "undefined") {return;}
+      let currentEventKeys = new Set(trackdays.map(td => getEventKey(td)));
+      let unmatchedSavedEvents = [...savedEventsSet].filter(key => !currentEventKeys.has(key));
+      if (unmatchedSavedEvents.length === 0) {return;}
+      let eventList = unmatchedSavedEvents
+        .map((key) => {
+          let [date, org, track] = key.split("|");
+          return `${date} | ${track} | ${org}`;
+        })
+        .join("\n");
+      alert(`Previously saved events have been cancelled or modified:\n${eventList}`);
+      unmatchedSavedEvents.forEach((key) => {savedEventsSet.delete(key);});
+      localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+    }
+
     function escapeICSValue(value) {
       return String(value || "")
         .replace(/\\/g, "\\\\")  // escape backslash
@@ -942,6 +958,7 @@
 
         map.on("mousedown", () => {map.closePopup();});
 
+        alertOnMissingSavedEvents();
         resetHome();
 
       } catch (error) {
