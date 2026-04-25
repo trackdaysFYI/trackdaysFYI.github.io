@@ -162,6 +162,7 @@
       [...savedEventsSet].forEach((key) => {
         let [eventDate] = key.split("|");
         if (eventDate && eventDate < todayStr) {
+          console.log(`Removing past saved event: ${key}`);
           savedEventsSet.delete(key);
           hasChanges = true;
         }
