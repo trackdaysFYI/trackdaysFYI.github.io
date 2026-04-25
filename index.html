@@ -155,6 +155,23 @@
         return new Set();
       }
     })();
+
+    function removePastSavedEvents() {
+      let todayStr = dayjs().format("YYYY-MM-DD");
+      let hasChanges = false;
+      [...savedEventsSet].forEach((key) => {
+        let [eventDate] = key.split("|");
+        if (eventDate && eventDate < todayStr) {
+          savedEventsSet.delete(key);
+          hasChanges = true;
+        }
+      });
+      if (hasChanges) {
+        localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+      }
+    }
+    removePastSavedEvents();
+
     let locationDefault = [39.50, -98.35];  // Central US or GPS location
     let isGPSLocation = false;
     let searchRadius, minDate, maxDate;
@@ -892,7 +909,7 @@
             let [date, org, track] = eventKey.split("|");
             return `${date} | ${track} | ${org}`;
           }).join("\n");
-          if (savedEventsSet.size > 0 && confirm(`Also clear saved events?\n\n${savedEventsPrompt}`)) {
+          if (savedEventsSet.size > 0 && confirm(`Also clear all saved events?\n\n${savedEventsPrompt}`)) {
             savedEventsSet.clear();
             localStorage.removeItem(STORAGE_KEY_USER_SAVED_EVENTS);
           }
