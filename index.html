@@ -884,6 +884,19 @@
         });
 
         resetElement.addEventListener("click", () => {
+          let savedEventsPrompt = [...savedEventsSet].sort((a, b) => {
+            let [dateA] = a.split("|");
+            let [dateB] = b.split("|");
+            return dateA.localeCompare(dateB) || a.localeCompare(b);
+          }).map((eventKey) => {
+            let [date, org, track] = eventKey.split("|");
+            return `${date} | ${track} | ${org}`;
+          }).join("\n");
+          if (savedEventsSet.size > 0 && confirm(`Also clear saved events?\n\n${savedEventsPrompt}`)) {
+            savedEventsSet.clear();
+            localStorage.removeItem(STORAGE_KEY_USER_SAVED_EVENTS);
+          }
+
           showMotoEventsButton.classList.add("on");
           showSumoEventsButton.classList.add("on");
           showCarEventsButton.classList.add("on");
