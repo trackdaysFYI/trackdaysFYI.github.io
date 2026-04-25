@@ -83,6 +83,7 @@
     .cld-day:hover {background: rgb(45, 51, 57);}
     .cld-number.eventday {font-weight: bold;}
     .cld-number.eventday:hover {background: rgb(45, 51, 57);}
+    .saved-calendar-event {color: rgb(34, 197, 94) !important; font-weight: bold;}
 
     button {cursor: pointer;}
     input[type=range] {-webkit-appearance: none; opacity: 0.75;}
@@ -339,7 +340,7 @@
         .filter(td => savedEventsSet.has(getEventKey(td)))
         .sort((a, b) => (a.date > b.date ? 1 : -1));
       if (savedEvents.length === 0) {
-        alert("No saved events found.");
+        alert("No saved events to export.");
         return;
       }
 
@@ -460,10 +461,8 @@
           let orgStr = (tracks[td.track].nickname === td.org ? "" : " - " + td.org)
           let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
           let noteStr = (td.note ? " (" + td.note + ")" : "");
-          let calendarStr = `<a href=${td.url} target="_blank" title="${price}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${orgStr}</a>`;
-          if (savedEventsSet.has(getEventKey(td))) {
-            calendarStr = `<b>${calendarStr}</b>`;
-          }
+          let savedClass = savedEventsSet.has(getEventKey(td)) ? "saved-calendar-event" : "";
+          let calendarStr = `<a class="${savedClass}" href=${td.url} target="_blank" title="${price}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${orgStr}</a>`;
           calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
         }
       });
