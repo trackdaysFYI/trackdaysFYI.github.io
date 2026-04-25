@@ -52,6 +52,7 @@
 
     #map {position: relative; width: 100%; height: 55vh; border: 3px solid rgb(100, 100, 100);}
     .popup table, .popup th, .popup td {font-size: 12.5px; border: 1px solid rgb(176, 176, 176); border-collapse: collapse; white-space: nowrap; margin: auto; padding: 2px;}
+    .popup .event-mark-checkbox {width: 1rem; height: 1rem; margin: 0; vertical-align: middle; cursor: pointer;}
     .leaflet-container {font-family: unset}
     .leaflet-popup-content-wrapper, .leaflet-popup-tip {background: rgb(240, 240, 240);}
     .leaflet-popup-content {text-align: center; padding-right: 5px; margin: 8px 5px 8px 5px;}
@@ -64,7 +65,7 @@
     .leaflet-popup-scrolled::-webkit-scrollbar {width: 3px; height: 3px; background-color: rgb(220, 220, 220);}  /* popup slider size, background */
 
     .cld-main {position: relative; width: 100%; height: 0; padding-bottom: 60%; }
-    .cld-main a {color: rgb(255, 0, 0);}
+    .cld-main a {color: rgb(255, 0, 0); text-decoration: none;}
     .cld-datetime {max-width: 250px; margin: auto; overflow: hidden;}
     .cld-datetime .today {position: relative; float: left; width: calc(100% - 40px); margin: auto; text-align: center;}
     .cld-nav svg {fill: rgb(220, 220, 220);}
@@ -82,6 +83,7 @@
     .cld-day:hover {background: rgb(45, 51, 57);}
     .cld-number.eventday {font-weight: bold;}
     .cld-number.eventday:hover {background: rgb(45, 51, 57);}
+    .saved-calendar-event {color: rgb(34, 197, 94) !important; font-weight: bold;}
 
     button {cursor: pointer;}
     input[type=range] {-webkit-appearance: none; opacity: 0.75;}
@@ -141,6 +143,37 @@
   </style>
 
   <script>
+    const STORAGE_KEY_USER_SAVED_EVENTS = "trackdaysFYI:userSavedEvents";
+    const STORAGE_KEY_USER_VEHICLE_TYPES = "trackdaysFYI:userVehicleTypes";
+    const STORAGE_KEY_USER_EVENT_TYPES = "trackdaysFYI:userEventTypes";
+    let savedEventsSet = (function () {
+      try {
+        let raw = localStorage.getItem(STORAGE_KEY_USER_SAVED_EVENTS);
+        if (!raw) {return new Set();}
+        let arr = JSON.parse(raw);
+        return new Set(Array.isArray(arr) ? arr : []);
+      } catch (e) {
+        return new Set();
+      }
+    })();
+
+    function removePastSavedEvents() {
+      let todayStr = dayjs().format("YYYY-MM-DD");
+      let hasChanges = false;
+      [...savedEventsSet].forEach((key) => {
+        let [eventDate] = key.split("|");
+        if (eventDate && eventDate < todayStr) {
+          console.log(`Removing past saved event: ${key}`);
+          savedEventsSet.delete(key);
+          hasChanges = true;
+        }
+      });
+      if (hasChanges) {
+        localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+      }
+    }
+    removePastSavedEvents();
+
     let locationDefault = [39.50, -98.35];  // Central US or GPS location
     let isGPSLocation = false;
     let searchRadius, minDate, maxDate;
@@ -204,8 +237,10 @@
       let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityMap).map(td => td.track));
 
       if (updateTrackVisibility) {
-        allTracks.forEach(track => {  // track visibility based on event type
-          [...tracks[track].vehicleType].some(t => selectedVehicleTypes.has(t)) ? mapMarkers[track].addTo(map) : mapMarkers[track].remove();
+        allTracks.forEach(track => {  // track visibility on map based on event type or saved events
+          let matchingVehicleType = [...tracks[track].vehicleType].some(t => selectedVehicleTypes.has(t));
+          let containsSavedEvent = trackdays.some((td) => td.track === track && savedEventsSet.has(getEventKey(td)));
+          (matchingVehicleType || containsSavedEvent) ? mapMarkers[track].addTo(map) : mapMarkers[track].remove();
         });
         if (!showTracksWithoutEventsToggleElement.classList.contains("on")) {  // trackday visibility based on event type
           let tracksWithoutEvents = allTracks.filter((track) => !tracksWithEvents.has(track));
@@ -216,8 +251,9 @@
 
       allTracks.forEach((track) => {
         let withinRadius = (searchRadius === infiniteRadius || tracks[track].dist <= searchRadius);
+        let containsSavedEvent = trackdays.some((td) => td.track === track && savedEventsSet.has(getEventKey(td)));
         opacityMultiplier = tracksWithEvents.has(track) ? 1.0 : 0.35;
-        if (withinRadius) {
+        if (withinRadius || containsSavedEvent) {
           mapMarkers[track].setIcon(trackIconCheckered);
           mapMarkers[track].setOpacity(0.8 * opacityMultiplier);
         } else {
@@ -247,10 +283,119 @@
         let vehicleTypeCheck = [...td.vehicleType].some(t => selectedVehicleTypes.has(t));
         let eventTypeCheck = [...td.eventType].some(t => selectedEventTypes.has(t));
         let orgSelectCheck = orgs[td.org].dropdownSelected;
+        let isSaved = savedEventsSet.has(getEventKey(td));
+        let passesFilters = dateCheck && priceCheck && dayCheck && vehicleTypeCheck && eventTypeCheck && orgSelectCheck;
         td.visibilityDropdown = (withinRadius && vehicleTypeCheck && eventTypeCheck);
-        td.visibilityMap = (dateCheck && priceCheck && dayCheck && vehicleTypeCheck && eventTypeCheck && orgSelectCheck);
-        td.visibilityCalendar = (td.visibilityMap && withinRadius);
+        td.visibilityMap = isSaved || passesFilters;
+        td.visibilityCalendar = isSaved || (passesFilters && withinRadius);
       });
+    }
+
+    function getEventKey(td) {  // string identifying a specific event
+      return [td.date.format("YYYY-MM-DD"), td.org, td.track, td.subtrack, td.eventType, td.vehicleType].join("|");
+    }
+
+    function onEventSaveToggle(checkbox) {
+      let key = decodeURIComponent(checkbox.getAttribute("data-event-key"));
+      if (checkbox.checked) {
+        savedEventsSet.add(key);
+      } else {
+        savedEventsSet.delete(key);
+      }
+      localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+      if (typeof trackdays !== "undefined") {
+        updateTrackdaysVisibilityProperty();
+        updateTrackIcons(true);
+        updateCalendar();
+      }
+    }
+
+    function alertOnMissingSavedEvents() {
+      if (typeof trackdays === "undefined") {return;}
+      let currentEventKeys = new Set(trackdays.map(td => getEventKey(td)));
+      let unmatchedSavedEvents = [...savedEventsSet].filter(key => !currentEventKeys.has(key));
+      if (unmatchedSavedEvents.length === 0) {return;}
+      let eventList = unmatchedSavedEvents
+        .map((key) => {
+          let [date, org, track] = key.split("|");
+          return `${date} | ${track} | ${org}`;
+        })
+        .join("\n");
+      alert(`Previously saved events have been cancelled or modified:\n${eventList}`);
+      unmatchedSavedEvents.forEach((key) => {savedEventsSet.delete(key);});
+      localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+    }
+
+    function escapeICSValue(value) {
+      return String(value || "")
+        .replace(/\\/g, "\\\\")  // escape backslash
+        .replace(/\r?\n/g, "\\n")  // escape newline
+        .replace(/,/g, "\\,")  // escape commas
+        .replace(/;/g, "\\;");  // escape semicolon
+    }
+
+    function downloadSavedEventsICS() {
+      if (typeof trackdays === "undefined") return;
+      let savedEvents = trackdays
+        .filter(td => savedEventsSet.has(getEventKey(td)))
+        .sort((a, b) => (a.date > b.date ? 1 : -1));
+      if (savedEvents.length === 0) {
+        alert("No saved events to export.");
+        return;
+      }
+
+      let nowStamp = dayjs.utc().format("YYYYMMDDTHHmmss[Z]");
+      let lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Trackdays.fyi//Saved Events//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH"
+      ];
+
+      savedEvents.forEach((td, idx) => {
+        let startDate = td.date.format("YYYYMMDD");
+        let endDate = td.date.add(1, "day").format("YYYYMMDD");
+        let track = tracks[td.track];
+        let summary = `${track.nickname} - ${td.org}`;
+        let eventType = [...td.eventType].map(t => eventTypeMap[t]).join("/");
+        let vehicleType = [...td.vehicleType].map(t => vehicleTypeMap[t]).join("/");
+        let descriptionParts = [
+          `Track: ${track.name}`,
+          td.subtrack ? `Circuit: ${td.subtrack}` : "",
+          eventType ? `Type: ${eventType}` : "",
+          vehicleType ? `Vehicle: ${vehicleType}` : "",
+          td.price >= 0 ? `Price: $${td.price}` : "",
+          td.note ? `Note: ${td.note}` : "",
+          `Link: ${td.url}`,
+          `[Generated by https://trackdays.fyi]`
+        ].filter(Boolean);
+
+        lines.push(
+          "BEGIN:VEVENT",
+          `UID:${startDate}-${idx}-${escapeICSValue(getEventKey(td))}@trackdays.fyi`,
+          `DTSTAMP:${nowStamp}`,
+          `DTSTART;VALUE=DATE:${startDate}`,
+          `DTEND;VALUE=DATE:${endDate}`,
+          `SUMMARY:${escapeICSValue(summary)}`,
+          `LOCATION:${escapeICSValue(track.name)}`,
+          `DESCRIPTION:${escapeICSValue(descriptionParts.join("\n"))}`,
+          `URL:${escapeICSValue(td.url)}`,
+          "END:VEVENT"
+        );
+      });
+      lines.push("END:VCALENDAR");
+
+      let icsBlob = new Blob([lines.join("\r\n")], {type: "text/calendar;charset=utf-8"});
+      let fileName = `trackdaysFYI-saved-events-${dayjs().format("YYYYMMDD")}.ics`;
+      let url = URL.createObjectURL(icsBlob);
+      let link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     }
 
     function updateTrackPopup() {
@@ -265,8 +410,11 @@
       let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") & (selectedEventTypes.size > 1);
       let hasPrices = trackdaysFiltered.some(td => td.price !== -1);
       let hasNotes = trackdaysFiltered.some(td => td.note);
-      let tbody = trackdaysFiltered.map(td => {return `
+      let tbody = trackdaysFiltered.map(td => {
+        let eventKey = getEventKey(td);
+        return `
         <tr>
+          <td><input type="checkbox" class="event-mark-checkbox" title="Save" data-event-key="${encodeURIComponent(eventKey)}" ${savedEventsSet.has(eventKey) ? "checked" : ""} onchange="onEventSaveToggle(this)"></td>
           <td><a href="${td.url}" target="_blank">${td.date.format("MM/DD")}</a></td>
           <td>${td.date.format("ddd")}</td>
           <td>${td.org}</td>
@@ -276,10 +424,12 @@
           ${hasNotes ? `<td>${td.note ? td.note : "-"}</td>` : ""}
           ${hasPrices ? `<td>${td.price >= 0 ? '$' + td.price : "-"}</td>` : ""}
         </tr>
-      `}).join("");
+      `;
+      }).join("");
       let tbl = (trackdaysFiltered.length === 0 ? `No Events Found<br>` :
         `<table>
           <thead><tr>
+          <th>✓</th>
           <th>Date</th>
           <th>Day</th>
           <th>Host</th>
@@ -311,7 +461,8 @@
           let orgStr = (tracks[td.track].nickname === td.org ? "" : " - " + td.org)
           let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
           let noteStr = (td.note ? " (" + td.note + ")" : "");
-          let calendarStr = `<a href=${td.url} target="_blank" title="${price}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${orgStr}</a>`;
+          let savedClass = savedEventsSet.has(getEventKey(td)) ? "saved-calendar-event" : "";
+          let calendarStr = `<a class="${savedClass}" href=${td.url} target="_blank" title="${price}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${orgStr}</a>`;
           calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
         }
       });
@@ -489,6 +640,9 @@
           <td><span id="numTrackdaysMatching"></span></td>
         </tr>
         <tr>
+          <td><button id="exportSavedEvents" type="button" title="Export Saved Events to ICS Calendar">Export Calendar</button></td>
+        </tr>
+        <tr>
           <td><button id="resetFilters" type="button">Reset</button></td>
         </tr>
       </table>
@@ -502,7 +656,7 @@
   <footer class="gray" style="margin: 0; font-size: 0.7rem;">
     <p>No guarantee of event availability, pricing accuracy, or completeness. Contact hosts for up-to-date information.</p>
     <p>To report inaccuracies or bugs: <b class="allowSelect">trackdaysFYI@gmail.com</b></p>
-    <p>© 2023-2025 Trackdays.fyi</p>
+    <p>© 2023-2026 Trackdays.fyi</p>
   </footer>
 
   <script>
@@ -542,6 +696,7 @@
     let showTrackdaysToggleElement = document.getElementById("showTrackdays");
     let showSchoolsToggleElement = document.getElementById("showSchools");
     let showRacesToggleElement = document.getElementById("showRaces");
+    let exportSavedEventsElement = document.getElementById("exportSavedEvents");
     let resetElement = document.getElementById("resetFilters");
 
     orgSelectElement.style.display = "block";
@@ -621,7 +776,7 @@
         Object.keys(tracks).forEach((trackName) => {
           track = tracks[trackName];
           mapMarkers[trackName] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
-          mapMarkers[trackName].bindPopup("", {maxHeight: 300, maxWidth: 420, closeButton: false});  // popup content updated on click
+          mapMarkers[trackName].bindPopup("", {maxHeight: 300, maxWidth: 450, closeButton: false});  // popup content updated on click
           mapMarkers[trackName].on("mousedown", (e) => {
             lastOpenedTrack = e.target.options.title.toUpperCase();
             updateTrackPopup();
@@ -674,15 +829,15 @@
           updateCalendar();
         });
 
-        if (!localStorage.getItem("vehicleTypes")) {  // new user or all vehicle types unselected
-          localStorage.setItem("vehicleTypes", Object.keys(vehicleTypeMap).join(""));
+        if (!localStorage.getItem(STORAGE_KEY_USER_VEHICLE_TYPES)) {  // new user or all vehicle types unselected
+          localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(vehicleTypeMap).join(""));
         }
-        if (!localStorage.getItem("eventTypes")) {  // new user or all event types unselected
-          localStorage.setItem("eventTypes", Object.keys(eventTypeMap).join(""));
+        if (!localStorage.getItem(STORAGE_KEY_USER_EVENT_TYPES)) {  // new user or all event types unselected
+          localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, Object.keys(eventTypeMap).join(""));
         }
 
         for (const [buttonElement, vehicleType] of [[showCarEventsButton, "C"], [showMotoEventsButton, "M"], [showSumoEventsButton, "S"]]) {
-          (localStorage.getItem("vehicleTypes") || "").includes(vehicleType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
+          (localStorage.getItem(STORAGE_KEY_USER_VEHICLE_TYPES) || "").includes(vehicleType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
           if (buttonElement.classList.contains("on")) {
             selectedVehicleTypes.add(vehicleType);
           }
@@ -696,7 +851,7 @@
               selectedVehicleTypes.delete(vehicleType);
               buttonElement.classList.remove("on");
             }
-            localStorage.setItem("vehicleTypes", [...selectedVehicleTypes].join(""));
+            localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, [...selectedVehicleTypes].join(""));
             if (selectedVehicleTypes.size > 0) {
               homeMarker.setIcon(selectedVehicleTypes.has("C") ? homeIconCar : homeIconMoto);
             }
@@ -712,7 +867,7 @@
         }
 
         for (const [buttonElement, eventType] of [[showTrackdaysToggleElement, "T"], [showSchoolsToggleElement, "S"], [showRacesToggleElement, "R"]]) {
-          (localStorage.getItem("eventTypes") || "").includes(eventType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
+          (localStorage.getItem(STORAGE_KEY_USER_EVENT_TYPES) || "").includes(eventType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
           if (buttonElement.classList.contains("on")) {
             selectedEventTypes.add(eventType);
           }
@@ -727,7 +882,7 @@
               buttonElement.classList.remove("on");
               buttonElement.innerText = buttonElement.innerText.replace("Show", "Hide");
             }
-            localStorage.setItem("eventTypes", [...selectedEventTypes].join(""));
+            localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, [...selectedEventTypes].join(""));
             updateTrackdaysVisibilityProperty();
             updateTrackIcons(true);
             updateTrackPopup();
@@ -757,18 +912,35 @@
           updateTrackIcons(true);
         });
 
+        exportSavedEventsElement.addEventListener("click", () => {
+          downloadSavedEventsICS();
+        });
+
         resetElement.addEventListener("click", () => {
+          let savedEventsPrompt = [...savedEventsSet].sort((a, b) => {
+            let [dateA] = a.split("|");
+            let [dateB] = b.split("|");
+            return dateA.localeCompare(dateB) || a.localeCompare(b);
+          }).map((eventKey) => {
+            let [date, org, track] = eventKey.split("|");
+            return `${date} | ${track} | ${org}`;
+          }).join("\n");
+          if (savedEventsSet.size > 0 && confirm(`Also clear all saved events?\n\n${savedEventsPrompt}`)) {
+            savedEventsSet.clear();
+            localStorage.removeItem(STORAGE_KEY_USER_SAVED_EVENTS);
+          }
+
           showMotoEventsButton.classList.add("on");
           showSumoEventsButton.classList.add("on");
           showCarEventsButton.classList.add("on");
           selectedVehicleTypes = new Set(Object.keys(vehicleTypeMap));
-          localStorage.setItem("vehicleTypes", Object.keys(vehicleTypeMap).join(""));
+          localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(vehicleTypeMap).join(""));
 
           showTrackdaysToggleElement.classList.add("on");
           showSchoolsToggleElement.classList.add("on");
           showRacesToggleElement.classList.add("on");
           selectedEventTypes = new Set(Object.keys(eventTypeMap));
-          localStorage.setItem("eventTypes", Object.keys(eventTypeMap).join(""));
+          localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, Object.keys(eventTypeMap).join(""));
 
           Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
           showTracksWithoutEventsToggleElement.classList.add("on");
@@ -786,6 +958,7 @@
 
         map.on("mousedown", () => {map.closePopup();});
 
+        alertOnMissingSavedEvents();
         resetHome();
 
       } catch (error) {
