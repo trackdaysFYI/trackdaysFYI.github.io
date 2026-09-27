@@ -686,7 +686,7 @@
       localStorage.setItem("headerAdClosed", "true");
     });
 
-    var map = L.map("map", {doubleClickZoom: false, boxZoom: false, minZoom: 4, maxZoom: 15, worldCopyJump: true});
+    var map = L.map("map", {doubleClickZoom: false, boxZoom: false, minZoom: 3, maxZoom: 15, worldCopyJump: true});
     let tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", 
       {attribution: `<a style="font-size:9px" href="http://www.openstreetmap.org/copyright">&copy; OpenStreetMap</a>`}
     ).addTo(map);
