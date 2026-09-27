@@ -742,6 +742,7 @@
     async function visualizeData() {
       try {
         const res = await fetch("https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays");
+        if (!res.ok) throw new Error("unable to retrieve data");
         const data = await res.json();
         orgs = data["orgs"];
         tracks = data["tracks"];
@@ -1003,6 +1004,12 @@
         resetHome();
 
       } catch (error) {
+        document.getElementById("eventInfoText").style.display = "none";
+        const spinner = document.getElementById("eventInfoSpinner");
+        spinner.style.display = "block";
+        spinner.querySelector("span").innerText = "Unable to retrieve events.";
+        const loadingImg = spinner.querySelector("img");
+        if (loadingImg) loadingImg.style.display = "none";
         alert("Error: unable to retrieve data");
       }
     };
