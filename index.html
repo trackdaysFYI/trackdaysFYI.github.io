@@ -163,9 +163,9 @@
     .filter-bar .btn-action {border-radius: 999px; padding: 0.35rem 0.8rem; line-height: 1.35;}
     .toggle-row, .secondary-row {display: flex; flex-wrap: wrap; align-items: flex-end; max-width: 100%;}
     .toggle-row {gap: 14px 2.75rem;}
-    .secondary-row {gap: 14px 1.75rem; align-items: flex-start;}
+    .secondary-row {gap: 14px 0.85rem; align-items: flex-start;}
     .filter-group {display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 0 1 auto; max-width: 100%;}
-    .host-group {width: 15.25rem; max-width: 100%;}
+    .host-group {width: 14.5rem; max-width: 100%;}
     .host-group .multiselect-dropdown,
     .day-group .multiselect-dropdown {text-align: center;}
     .day-group {width: auto;}
@@ -731,7 +731,7 @@
         <span class="filter-label">When</span>
         <div class="date-row">
           <input id="minDateSearch" type="date" value="" min="" max="" aria-label="From date">
-          <span>–</span>
+          <span>to</span>
           <input id="maxDateSearch" type="date" value="" min="" max="" aria-label="To date">
           <select multiple id="daySelect" multiselect-search="false" multiselect-select-all="true"
             data-txtNothingSelected="No Days Selected" data-txtSelectedSuffix="days selected" data-height="11.1rem">
@@ -961,7 +961,6 @@
         });
 
         radiusSliderElement.addEventListener("input", () => {
-          // circle and label follow live; icons, calendar, and hosts wait until release
           updateSearchRadius(radiusValues[radiusSliderElement.value]);
         });
 
