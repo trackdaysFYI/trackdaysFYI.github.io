@@ -286,6 +286,7 @@
         let isSaved = savedEventsSet.has(getEventKey(td));
         let passesFilters = dateCheck && priceCheck && dayCheck && vehicleTypeCheck && eventTypeCheck && orgSelectCheck;
         td.visibilityDropdown = (withinRadius && vehicleTypeCheck && eventTypeCheck);
+        // saved events intentionally skip most filters (radius, price, date, weekday, host, vehicle type, event type)
         td.visibilityMap = isSaved || passesFilters;
         td.visibilityCalendar = isSaved || (passesFilters && withinRadius);
       });
@@ -754,7 +755,7 @@
         trackdays.sort((a, b) => (a.date > b.date ? 1 : -1));  // sort by date
 
         const idx = trackdays.findIndex(td => td.date >= dayjs().startOf("day"));  // remove trackdays prior to current day
-        trackdays = trackdays.slice(idx);
+        trackdays = idx === -1 ? [] : trackdays.slice(idx);
 
         orgs = orgs.map(({events, ...item}) => item);  // drop events key
         orgs = orgs.map(org => ({...org,
@@ -774,11 +775,15 @@
           return result;
         }, {});
 
-        // update price slider limits
-        minObservedPrice = Math.min(...trackdays.map(td => td.price));
-        maxObservedPrice = Math.max(...trackdays.map(td => td.price));
-        minObservedPrice = Math.ceil(minObservedPrice / 20) * 20;  // round up 20
-        maxObservedPrice = Math.ceil(maxObservedPrice / 20) * 20;  // round up 20
+        // update price slider limits; an empty list would make Math.min/Math.max Infinity
+        if (trackdays.length === 0) {
+          minObservedPrice = maxObservedPrice = 0;
+        } else {
+          minObservedPrice = Math.min(...trackdays.map(td => td.price));
+          maxObservedPrice = Math.max(...trackdays.map(td => td.price));
+          minObservedPrice = Math.ceil(minObservedPrice / 20) * 20;  // round up 20
+          maxObservedPrice = Math.ceil(maxObservedPrice / 20) * 20;  // round up 20
+        }
         priceSliderElement.min = minObservedPrice;
         priceSliderElement.value = priceSliderElement.max = displayedPriceElement.innerText = maxObservedPrice;
 
