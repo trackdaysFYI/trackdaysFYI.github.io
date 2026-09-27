@@ -883,7 +883,7 @@
 
         let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
         document.getElementById("lastSyncMessage").innerText = dayjs().to(lastSync);
-        document.getElementById("numTrackdays").innerText = trackdays.length;
+        document.getElementById("numTrackdays").innerText = trackdays.reduce((sum, td) => sum + [...td.eventType].filter(t => eventTypeMap[t]).length, 0);  // an event tagged with 2 types counts twice
         document.getElementById("numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
 
         orgs = orgs.reduce((result, org) => {  // map org nickname -> org
