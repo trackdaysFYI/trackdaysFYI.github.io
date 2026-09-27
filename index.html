@@ -345,6 +345,25 @@
         .replace(/;/g, "\\;");  // escape semicolon
     }
 
+    function foldICSLine(line) {
+      // RFC 5545: fold at 75 octets. A continuation line starts with one space.
+      const maxOctets = 75;
+      const encoder = new TextEncoder();
+      if (encoder.encode(line).length <= maxOctets) return line;
+      let folded = "";
+      let budget = maxOctets;
+      for (const char of line) {
+        const size = encoder.encode(char).length;
+        if (size > budget) {
+          folded += "\r\n ";
+          budget = maxOctets - 1;
+        }
+        folded += char;
+        budget -= size;
+      }
+      return folded;
+    }
+
     function downloadSavedEventsICS() {
       if (typeof trackdays === "undefined") return;
       let savedEvents = trackdays
@@ -364,7 +383,7 @@
         "METHOD:PUBLISH"
       ];
 
-      savedEvents.forEach((td, idx) => {
+      savedEvents.forEach((td) => {
         let startDate = td.date.format("YYYYMMDD");
         let endDate = td.date.add(1, "day").format("YYYYMMDD");
         let track = tracks[td.track];
@@ -384,7 +403,7 @@
 
         lines.push(
           "BEGIN:VEVENT",
-          `UID:${startDate}-${idx}-${escapeICSValue(getEventKey(td))}@trackdays.fyi`,
+          `UID:${escapeICSValue(getEventKey(td))}@trackdays.fyi`,
           `DTSTAMP:${nowStamp}`,
           `DTSTART;VALUE=DATE:${startDate}`,
           `DTEND;VALUE=DATE:${endDate}`,
@@ -397,7 +416,7 @@
       });
       lines.push("END:VCALENDAR");
 
-      let icsBlob = new Blob([lines.join("\r\n")], {type: "text/calendar;charset=utf-8"});
+      let icsBlob = new Blob([lines.map(foldICSLine).join("\r\n")], {type: "text/calendar;charset=utf-8"});
       let fileName = `trackdaysFYI-saved-events-${dayjs().format("YYYYMMDD")}.ics`;
       let url = URL.createObjectURL(icsBlob);
       let link = document.createElement("a");
