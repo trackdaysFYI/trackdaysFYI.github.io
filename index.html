@@ -326,6 +326,14 @@
       localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
     }
 
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
     function escapeICSValue(value) {
       return String(value || "")
         .replace(/\\/g, "\\\\")  // escape backslash
@@ -457,13 +465,15 @@
       trackdays.forEach((td) => {
         if (td.visibilityCalendar) {
           let price = (td.price === -1 ? "" : "$" + td.price);
-          let priceStr = (price ? " - " + price : "");
-          let orgStr = (tracks[td.track].nickname === td.org ? "" : " - " + td.org)
+          let orgStr = (tracks[td.track].nickname === td.org ? "" : " - " + td.org);
           let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
           let noteStr = (td.note ? " (" + td.note + ")" : "");
           let savedClass = savedEventsSet.has(getEventKey(td)) ? "saved-calendar-event" : "";
-          let calendarStr = `<a class="${savedClass}" href=${td.url} target="_blank" title="${price}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${orgStr}</a>`;
-          calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
+          let label = `• ${tracks[td.track].nickname}${orgStr}`;
+          let tooltip = `${price}${subtrackStr}${noteStr}`;
+          // caleandar wraps Title in <a href="Link">, so Title must not contain its own link.
+          let calendarStr = `<span class="${savedClass}" title="${escapeHtml(tooltip)}">${escapeHtml(label)}</span>`;
+          calendarEvents.push({Date: td.date.toDate(), Title: calendarStr, Link: escapeHtml(td.url)});
         }
       });
       calendar = document.getElementById("calendar");
