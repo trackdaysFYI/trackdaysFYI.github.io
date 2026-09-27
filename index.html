@@ -452,12 +452,15 @@
           </tr></thead>
           <tbody>${tbody}</tbody>
         </table>`);
+      let directionsUrl = "https://www.google.com/maps?q=" + encodeURIComponent("directions " + track.name);
+      let weatherUrl = "https://www.google.com/search?q=" + encodeURIComponent("weather " + track.name);
+      let videoUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(track.name + " track") + "&sp=CAISAhAB";
       mapMarkers[lastOpenedTrack].getPopup().setContent(
         `<div class="popup">
         <b class="allowSelect">${track.name}${track.showNickname ? " (" + track.nickname + ")" : ""}</b><br>
-        <a href="https://www.google.com/maps?q=directions+${track.name}" target="_blank" title="Directions">${directionImg}</a>
-        <a href="https://www.google.com/search?q=weather+${track.name}" target="_blank" title="Weather">${weatherImg}</a>
-        <a href="https://www.youtube.com/results?search_query=${track.name}+track&sp=CAISAhAB" target="_blank" title="Videos">${videoImg}</a>
+        <a href="${directionsUrl}" target="_blank" title="Directions">${directionImg}</a>
+        <a href="${weatherUrl}" target="_blank" title="Weather">${weatherImg}</a>
+        <a href="${videoUrl}" target="_blank" title="Videos">${videoImg}</a>
         <br>${tbl}${numTrackdaysHidden ? `<span style="font-size: 10px">${numTrackdaysHidden} Filtered Events Hidden</span>` : ""}
         </div>`);
     }
