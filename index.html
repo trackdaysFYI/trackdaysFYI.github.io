@@ -503,11 +503,13 @@
     }
 
     function updateMinDateVar() {
-      minDate = dayjs(minDateElement.value + " 00:00").subtract(1, "s");
-    } // str addition to avoid use of CustomParseFormat, add/subtract second for dayjs comparison
+      // explicit format parses as local midnight in every browser. isAfter is exclusive, so pad 1s to include this day
+      minDate = dayjs(minDateElement.value, "YYYY-MM-DD", true).subtract(1, "s");
+    }
 
     function updateMaxDateVar() {
-      maxDate = dayjs(maxDateElement.value + " 00:01");
+      // isBefore is exclusive, so pad 1 minute to include this day. an empty value stays invalid and means no end date
+      maxDate = dayjs(maxDateElement.value, "YYYY-MM-DD", true).add(1, "minute");
     }
 
     let showSyncInfo = false;
