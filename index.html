@@ -902,15 +902,26 @@
           });
         });
 
+        let homeDragFrame = 0;
+        let homeDragTick = 0;
         homeMarker.on("dragstart", () => {
           map.closePopup();  // close "Drag Me" popup
-        });
-        homeMarker.on("drag", (e) => {
-          // only the visible circle follows live; the thick handle waits until drop
-          searchCircle.setLatLng(e.latlng);
+          homeDragTick = 0;
+          if (homeDragFrame) cancelAnimationFrame(homeDragFrame);
+          homeDragFrame = requestAnimationFrame(function followHomeCircle() {
+            homeDragTick++;
+            if (homeDragTick % 3 === 0) searchCircle.setLatLng(homeMarker.getLatLng());
+            homeDragFrame = requestAnimationFrame(followHomeCircle);
+          });
         });
         homeMarker.on("dragend", () => {
-          searchCircleHandle.setLatLng(homeMarker.getLatLng());
+          if (homeDragFrame) {
+            cancelAnimationFrame(homeDragFrame);
+            homeDragFrame = 0;
+          }
+          let latlng = homeMarker.getLatLng();
+          searchCircle.setLatLng(latlng);
+          searchCircleHandle.setLatLng(latlng);
           updateTrackDistances();
           updateTrackdaysVisibilityProperty();
           updateTrackIcons(false);
