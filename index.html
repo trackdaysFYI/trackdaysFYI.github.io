@@ -278,6 +278,7 @@
                          (!minDate.isValid() && td.date.isBefore(maxDate)) || 
                          (td.date.isAfter(minDate) && !maxDate.isValid()) || 
                          (td.date.isAfter(minDate) && td.date.isBefore(maxDate)));
+        // events with no price (-1) intentionally always pass
         let priceCheck = (isNaN(maxPrice) || (td.price <= maxPrice));
         let dayCheck = selectedDays.has(dayjs(td.date).format("ddd"));
         let vehicleTypeCheck = [...td.vehicleType].some(t => selectedVehicleTypes.has(t));
