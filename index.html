@@ -399,6 +399,16 @@
         .replace(/"/g, "&quot;");
     }
 
+    function safeHttpUrl(value) {
+      try {
+        let url = new URL(String(value));
+        if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+        return escapeHtml(url.href);
+      } catch (e) {
+        return "";
+      }
+    }
+
     function escapeICSValue(value) {
       return String(value || "")
         .replace(/\\/g, "\\\\")  // escape backslash
@@ -504,17 +514,19 @@
       let hasNotes = trackdaysFiltered.some(td => td.note);
       let tbody = trackdaysFiltered.map(td => {
         let eventKey = getEventKey(td);
+        let eventUrl = safeHttpUrl(td.url);
+        let dateCell = eventUrl ? `<a href="${eventUrl}" target="_blank">${td.date.format("MM/DD")}</a>` : td.date.format("MM/DD");
         return `
         <tr>
           <td><input type="checkbox" class="event-mark-checkbox" title="Save" data-event-key="${encodeURIComponent(eventKey)}" ${savedEventsSet.has(eventKey) ? "checked" : ""} onchange="onEventSaveToggle(this)"></td>
-          <td><a href="${td.url}" target="_blank">${td.date.format("MM/DD")}</a></td>
+          <td>${dateCell}</td>
           <td>${td.date.format("ddd")}</td>
-          <td>${td.org}</td>
+          <td>${escapeHtml(td.org)}</td>
           ${multipleVehicleTypes ? `<td>${[...td.vehicleType].map(t => vehicleTypeMap[t]).join("/")}</td>` : ""}
           ${multipleEventTypes ? `<td>${[...td.eventType].map(t => eventTypeMap[t]).join("/")}</td>` : ""}
-          ${hasSubtracks ? `<td>${td.subtrack ? td.subtrack : "-"}</td>` : ""}
-          ${hasNotes ? `<td>${td.note ? td.note : "-"}</td>` : ""}
-          ${hasPrices ? `<td>${td.price >= 0 ? '$' + td.price : "-"}</td>` : ""}
+          ${hasSubtracks ? `<td>${td.subtrack ? escapeHtml(td.subtrack) : "-"}</td>` : ""}
+          ${hasNotes ? `<td>${td.note ? escapeHtml(td.note) : "-"}</td>` : ""}
+          ${hasPrices ? `<td>${td.price >= 0 ? "$" + escapeHtml(td.price) : "-"}</td>` : ""}
         </tr>
       `;
       }).join("");
@@ -536,12 +548,13 @@
       let directionsUrl = "https://www.google.com/maps?q=" + encodeURIComponent("directions " + track.name);
       let weatherUrl = "https://www.google.com/search?q=" + encodeURIComponent("weather " + track.name);
       let videoUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(track.name + " track") + "&sp=CAISAhAB";
+      let nickname = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
       mapMarkers[lastOpenedTrack].getPopup().setContent(
         `<div class="popup">
-        <b class="allowSelect">${track.name}${track.showNickname ? " (" + track.nickname + ")" : ""}</b><br>
-        <a href="${directionsUrl}" target="_blank" title="Directions">${directionImg}</a>
-        <a href="${weatherUrl}" target="_blank" title="Weather">${weatherImg}</a>
-        <a href="${videoUrl}" target="_blank" title="Videos">${videoImg}</a>
+        <b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><br>
+        <a href="${escapeHtml(directionsUrl)}" target="_blank" title="Directions">${directionImg}</a>
+        <a href="${escapeHtml(weatherUrl)}" target="_blank" title="Weather">${weatherImg}</a>
+        <a href="${escapeHtml(videoUrl)}" target="_blank" title="Videos">${videoImg}</a>
         <br>${tbl}${numTrackdaysHidden ? `<span style="font-size: 10px">${numTrackdaysHidden} Filtered Events Hidden</span>` : ""}
         </div>`);
     }
