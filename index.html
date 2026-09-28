@@ -1092,6 +1092,9 @@
           showMotoEventsButton.classList.add("on");
           showSumoEventsButton.classList.add("on");
           showCarEventsButton.classList.add("on");
+          setFilterToggleLabel(showMotoEventsButton, true);
+          setFilterToggleLabel(showSumoEventsButton, true);
+          setFilterToggleLabel(showCarEventsButton, true);
           selectedVehicleTypes = new Set(Object.keys(vehicleTypeMap));
           localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(vehicleTypeMap).join(""));
 
