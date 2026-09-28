@@ -29,14 +29,23 @@
       box-sizing: border-box;
         -webkit-user-select: none; /* Safari */
             -ms-user-select: none; /* Explorer, Edge */
-                user-select: none; /* Chrome, Edge, Opera, Firefox */
+                user-select: none; /* text selection is intentionally disabled */
      }
     .allowSelect {
         -webkit-user-select: text;
             -ms-user-select: text;
                 user-select: text;
     }
-    :root {font-family: "Noto Sans", sans-serif; line-height: 1.2; color:rgb(255, 255, 255); background-color: rgb(34,38,42);}
+    :root {
+      --accent: rgb(57, 115, 172);
+      --muted: rgb(176, 176, 176);
+      --line: rgb(100, 100, 100);
+      --soft: rgb(220, 220, 220);
+      font-family: "Noto Sans", sans-serif;
+      line-height: 1.2;
+      color: rgb(255, 255, 255);
+      background-color: rgb(34, 38, 42);
+    }
     body {margin: 0;}  /* no remove top/bottom page margin */
     hr {margin: 1rem 0; border: 0; border-top: 1px solid; opacity:0.25;}  /* divider */
     h1, h5 {margin-top: 0; margin-bottom: 0; font-weight: 500;}
@@ -48,34 +57,71 @@
     .container {max-width: 67em; padding: 1rem;}
     .lead {font-size: 1.1rem; font-weight: 300;}
     .center {margin-left: auto; margin-right: auto; text-align: center;}
-    .gray {color: rgb(176, 176, 176)}
+    .gray {color: var(--muted)}
 
-    #map {position: relative; width: 100%; height: 55vh; border: 3px solid rgb(100, 100, 100);}
-    .popup table, .popup th, .popup td {font-size: 12.5px; border: 1px solid rgb(176, 176, 176); border-collapse: collapse; white-space: nowrap; margin: auto; padding: 2px;}
-    .popup .event-mark-checkbox {width: 1rem; height: 1rem; margin: 0; vertical-align: middle; cursor: pointer;}
+    #map {position: relative; width: 100%; height: 55vh; border: 3px solid var(--line);}
+    .leaflet-popup:has(.popup-timeline) .leaflet-popup-content-wrapper,
+    .leaflet-popup:has(.popup-timeline) .leaflet-popup-tip {background: #f6f4f1; border-radius: 14px;}
+    .leaflet-popup:has(.popup-timeline) .leaflet-popup-content {text-align: left; margin: 8px 10px; width: max-content; max-width: calc(100vw - 48px);}
+    .leaflet-popup:has(.popup-timeline) .leaflet-popup-content.leaflet-popup-scrolled {display: flex; flex-direction: column; overflow: hidden;}
+    .popup-timeline {display: flex; flex-direction: column; width: max-content; min-width: 240px; max-width: 100%; max-height: 100%; color: #1c2733; text-align: left;}
+    .leaflet-popup-scrolled > .popup-timeline {height: 100%; min-height: 0;}
+    .popup-timeline .popup-head {display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin: 0 0 6px;}
+    .popup-timeline .popup-head b {flex: 1 1 auto; min-width: 0; font-size: 15px; line-height: 1.2; text-align: left;}
+    .popup-timeline .popup-links {display: flex; gap: 2px; margin: 0; flex: 0 0 auto;}
+    .popup-timeline .popup-links a {display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px;}
+    .popup-timeline .popup-links svg {display: block; width: 16px; height: 16px;}
+    .popup-timeline .tl-scroll {flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; scrollbar-color: #b7aea3 transparent;}
+    .popup-timeline a {color: inherit;}
+    .popup-timeline .tl {position: relative; display: flex; flex-direction: column;}
+    .popup-timeline .tl::before {content: ""; position: absolute; left: 60px; top: 8px; bottom: 8px; width: 2px; background: #ddd6cc; border-radius: 1px;}
+    .popup-timeline .tl-item {display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 6px; align-items: center; padding: 1px 2px 1px 0;}
+    .popup-timeline .tl-row-link {display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 6px; align-items: center; min-width: 0; border-radius: 4px; text-decoration: none; color: inherit;}
+    .popup-timeline .tl-copy {display: flex; align-items: center; gap: 5px; min-width: 0; padding: 1px 6px; border-radius: 4px; background: #fff; line-height: 1.3;}
+    .popup-timeline a.tl-row-link:hover {background: #d9e8f6;}
+    .popup-timeline a.tl-row-link:hover .tl-copy {background: transparent;}
+    .popup-timeline .tl-item.is-saved .tl-copy {box-shadow: inset 3px 0 0 #f0c43a;}
+    .popup-timeline .tl-mark {display: grid; grid-template-columns: 1fr 7px; align-items: center; column-gap: 5px; position: relative; z-index: 1;}
+    .popup-timeline .tl-date {font-size: 11px; font-weight: 700; text-transform: uppercase; color: #6d6256; text-align: right; line-height: 1;}
+    .popup-timeline .tl-dot {width: 7px; height: 7px; border-radius: 50%; background: #3973ac; box-shadow: 0 0 0 2px #f6f4f1;}
+    .popup-timeline .tl-item.is-saved .tl-dot {background: #f0c43a;}
+    .popup-timeline .tl-dow {flex: 0 0 2.8em; width: 2.8em; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #3973ac;}
+    .popup-timeline .tl-host {flex: 0 1 auto; max-width: 16em; font-weight: 650; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+    .popup-timeline .tl-price {margin-left: auto; font-weight: 700; color: #157a42; font-size: 12px; white-space: nowrap;}
+    .popup-timeline .tl-meta {flex: 1 1 auto; min-width: 0; font-size: 12px; color: #5c6d7e; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+    .popup-timeline .event-save-star {appearance: none; box-sizing: border-box; width: 22px; height: 22px; margin: 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #b7aea3; cursor: pointer; display: grid; place-items: center; line-height: 0;}
+    .popup-timeline .event-save-star:hover {color: #e0b000; background: #fef6d8;}
+    .popup-timeline .event-save-star[aria-pressed="true"] {color: #f0c43a;}
+    .popup-timeline .event-save-star svg {width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round;}
+    .popup-timeline .event-save-star[aria-pressed="true"] svg {fill: currentColor;}
+    .popup-timeline .empty {padding: 8px 0 2px; color: #6d6256; font-size: 13px; text-align: center;}
+    .popup-timeline .hidden-note {display: block; margin-top: 6px; font-size: 10px; color: #8a7d70; text-align: center;}
     .leaflet-container {font-family: unset}
     .leaflet-popup-content-wrapper, .leaflet-popup-tip {background: rgb(240, 240, 240);}
     .leaflet-popup-content {text-align: center; padding-right: 5px; margin: 8px 5px 8px 5px;}
     .dragMe .leaflet-popup-content-wrapper {border-radius: 3px; background: rgba(255, 0, 0, 0.7); color: white; font-size: 0.5rem;}
     .dragMe .leaflet-popup-content {padding-right: 0px; margin: 0px 0px 0px 0px;}
     .dragMe .leaflet-popup-tip {width: 0px; height: 0px;}
+    .leaflet-pane > svg path.search-radius-handle {pointer-events: stroke; cursor: e-resize;}
+    .leaflet-container.travel-dragging,
+    .leaflet-container.travel-dragging .search-radius-handle {cursor: grabbing;}
 
-    .cld-day::-webkit-scrollbar-thumb, .leaflet-popup-scrolled::-webkit-scrollbar-thumb {background-color: rgb(176, 176, 176);}  /* slider color */
-    .cld-day::-webkit-scrollbar {width: 6px; height: 6px; background-color: rgb(220, 220, 220);}  /* calendar slider size, background */
-    .leaflet-popup-scrolled::-webkit-scrollbar {width: 3px; height: 3px; background-color: rgb(220, 220, 220);}  /* popup slider size, background */
+    .cld-day::-webkit-scrollbar-thumb, .leaflet-popup-scrolled::-webkit-scrollbar-thumb {background-color: var(--muted);}  /* slider color */
+    .cld-day::-webkit-scrollbar {width: 6px; height: 6px; background-color: var(--soft);}  /* calendar slider size, background */
+    .leaflet-popup-scrolled::-webkit-scrollbar {width: 3px; height: 3px; background-color: var(--soft);}  /* popup slider size, background */
 
     .cld-main {position: relative; width: 100%; height: 0; padding-bottom: 60%; }
     .cld-main a {color: rgb(255, 0, 0); text-decoration: none;}
     .cld-datetime {max-width: 250px; margin: auto; overflow: hidden;}
     .cld-datetime .today {position: relative; float: left; width: calc(100% - 40px); margin: auto; text-align: center;}
-    .cld-nav svg {fill: rgb(220, 220, 220);}
-    .cld-nav:hover svg {fill: rgb(57, 115, 172);}
+    .cld-nav svg {fill: var(--soft);}
+    .cld-nav:hover svg {fill: var(--accent);}
     .cld-nav:hover {cursor: pointer;}
     .cld-rwd {float: left;}
     .cld-fwd {float: right;}
     .cld-labels, .cld-days {padding-left: 0;}
     .cld-label, .cld-day {box-sizing: border-box; display: inline-block; width: calc(100%/7); text-align: center;}
-    .cld-day {display: block; float: left; position: relative; margin: 0; padding: 3px; height: 68px; border: 1px solid rgb(220, 220, 220); overflow-y: auto;}
+    .cld-day {display: block; float: left; position: relative; margin: 0; padding: 3px; height: 68px; border: 1px solid var(--soft); overflow-y: auto;}
     .cld-day.today {border: 1px solid rgb(255, 0, 0);}
     .cld-day.nextMonth, .cld-day.prevMonth {opacity: 0;}
     .cld-number {font-size: 12.5px; margin: 0; text-align: left;}
@@ -83,15 +129,15 @@
     .cld-day:hover {background: rgb(45, 51, 57);}
     .cld-number.eventday {font-weight: bold;}
     .cld-number.eventday:hover {background: rgb(45, 51, 57);}
-    .saved-calendar-event {color: rgb(34, 197, 94) !important; font-weight: bold;}
+    .saved-calendar-event {color: #f5d76e !important; font-weight: bold;}
 
     button {cursor: pointer;}
     input[type=range] {-webkit-appearance: none; opacity: 0.75;}
-    input[type=range]::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 1rem; height: 1rem; border-radius: 0.5rem; background: rgb(57, 115, 172); margin-top: -0.35rem;}
-    input[type=range]::-webkit-slider-runnable-track {height: 0.25rem; background-color: rgb(220, 220, 220); cursor: pointer;}
+    input[type=range]::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 1rem; height: 1rem; border-radius: 0.5rem; background: var(--accent); margin-top: -0.35rem;}
+    input[type=range]::-webkit-slider-runnable-track {height: 0.25rem; background-color: var(--soft); cursor: pointer;}
     input[type=range]:focus::-webkit-slider-thumb {box-shadow: 0 0 0 1px rgb(255, 255, 255), 0 0 0 0.2rem rgba(13, 110, 253, 0.2);}
-    input[type=checkbox] {accent-color: rgb(57, 115, 172);}
-    input[type=date] {background-color: rgb(220, 220, 220); font-family: "Noto Sans"; cursor: pointer;}
+    input[type=checkbox] {accent-color: var(--accent);}
+    input[type=date] {background-color: var(--soft); font-family: "Noto Sans"; cursor: pointer;}
 
     @media (max-width: 26em) {.mobileSqueeze > tbody > tr > td {display: block;}}
     @media (orientation:landscape) and (max-width: 800px) {#map {height: 80vh;}}
@@ -103,16 +149,17 @@
 
     button.colored {
       all: unset;
-      color: rgb(100, 100, 100);
-      border: 1px solid rgb(100, 100, 100);
+      color: var(--line);
+      border: 1px solid var(--line);
       box-sizing: border-box;  /* include border in width */
       text-align: center;
       cursor: pointer;
       transition: 0.3s;
     }
+    #showMiniEvents {display: none !important;}
     button.colored.on {
       color: rgb(255, 255, 255);
-      background-color: rgba(57, 115, 172, 0.5);
+      background-color: rgb(from var(--accent) r g b / 0.5);
     }
     button.colored.big {
       width: 7em;
@@ -140,6 +187,45 @@
     .flex-cell > * tr {
       height: 26px;
     }
+
+    .filter-label {font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);}
+    .segmented {display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%;}
+    .segmented button.colored {width: auto; flex: 0 0 auto; white-space: nowrap; padding: 0.35rem 0.8rem; line-height: 1.35; margin: 0; border-radius: 999px;}
+    button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
+    .btn-action {background: transparent; color: var(--soft); border: 1px solid var(--line); padding: 0.4rem 0.75rem; font: inherit; cursor: pointer;}
+    .btn-action:hover {border-color: var(--accent); color: white;}
+    .multiselect-dropdown {min-width: 0; width: 100%; box-sizing: border-box;}
+    .filter-bar {display: flex; flex-direction: column; align-items: stretch; gap: 12px; text-align: left; margin: 0 0 0.85rem; padding: 0.55rem 0 0.7rem; position: relative; z-index: 1100;}
+    .filter-bar .multiselect-dropdown {border-radius: 999px; padding: 0.35rem 0.8rem; line-height: 1.35; cursor: pointer;}
+    .filter-bar .multiselect-dropdown span.optext {background: transparent; color: white;}
+    .filter-bar .multiselect-dropdown:has(span.optext) {background-color: rgb(from var(--accent) r g b / 0.5);}
+    .filter-bar .multiselect-dropdown-list-wrapper {border-radius: 10px; top: calc(100% + 6px);}
+    .filter-bar input[type=date] {background: transparent; color: var(--soft); border: 1px solid var(--line); border-radius: 999px; box-sizing: border-box; font: inherit; font-size: 0.82rem; line-height: 1.35; padding: 0.32rem 0.2rem 0.32rem 0.6rem; color-scheme: dark; width: 7.5rem; flex: 0 0 auto;}
+    .filter-bar input[type=date]::-webkit-datetime-edit {padding: 0;}
+    .filter-bar input[type=date]::-webkit-calendar-picker-indicator {cursor: pointer; opacity: 0.8; margin: 0; padding: 0;}
+    .filter-bar .btn-action {border-radius: 999px; padding: 0.35rem 0.8rem; line-height: 1.35;}
+    .toggle-row, .secondary-row {display: flex; flex-wrap: wrap; align-items: flex-end; max-width: 100%;}
+    .toggle-row {gap: 14px 2.75rem;}
+    .secondary-row {gap: 14px 0.85rem; align-items: flex-start;}
+    .filter-group {display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 0 1 auto; max-width: 100%;}
+    .host-group {width: 14.5rem; max-width: 100%;}
+    .host-group .multiselect-dropdown,
+    .day-group .multiselect-dropdown {text-align: center;}
+    .day-group {width: auto;}
+    .date-row > .multiselect-dropdown {width: max-content; flex: 0 0 auto;}
+    .date-row > .multiselect-dropdown span.maxselected {width: auto;}
+    .date-row > .multiselect-dropdown .multiselect-dropdown-list-wrapper {width: 9.5rem; right: auto;}
+    .slider-stack {display: flex; flex-direction: column; gap: 4px; width: auto;}
+    .slider-row {display: grid; grid-template-columns: auto minmax(0, 5.25rem) auto; align-items: center; gap: 0.5rem; box-sizing: border-box; max-width: 100%; min-height: 34px; border: 1px solid var(--line); border-radius: 999px; padding: 0 0.75rem; color: var(--soft);}
+    .slider-row input[type=range] {width: 100%; margin: 0; opacity: 1;}
+    .slider-value {display: inline-block; min-width: 8ch; white-space: nowrap; font-variant-numeric: tabular-nums;}
+    .date-row {display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.35rem; max-width: 100%;}
+    .date-row > span {line-height: 1; color: var(--muted);}
+    #calendar {display: flow-root;}
+    .calendar-export {display: flex; justify-content: center; width: 100%; clear: both; margin: 0.85rem 0 0.2rem;}
+    .calendar-export .btn-action {border-radius: 999px; padding: 0.4rem 1.05rem; line-height: 1.35; font-size: 0.85rem;}
+    .pill-count {display: inline-grid; place-items: center; margin-left: 0.35rem; min-width: 3ch; box-sizing: content-box; padding: 0 0.35rem; border-radius: 999px; background: rgba(0, 0, 0, 0.28); font-size: 0.75rem; font-variant-numeric: tabular-nums; line-height: 1.45; text-align: center;}
+    button.colored:not(.on) .pill-count {background: rgba(255, 255, 255, 0.06);}
   </style>
 
   <script>
@@ -178,8 +264,11 @@
     let isGPSLocation = false;
     let searchRadius, minDate, maxDate;
     let lastOpenedTrack, selectedMonth;
+    let tracks;
     const infiniteRadius = 0;
-    const radiusValues = [50, 100, 150, 200, 250, 300, 400, 500, 750, infiniteRadius];
+    const radiusValues = [];
+    for (let miles = 50; miles <= 950; miles += 50) radiusValues.push(miles);
+    radiusValues.push(infiniteRadius);
     const vehicleTypeMap = {"M": "Moto", "S": "Sumo", "C": "Car"};
     const eventTypeMap = {"T": "TD", "S": "School", "R": "Race"};
     const homeImgMoto = `<svg xmlns="http://www.w3.org/2000/svg" fill="#ff0000" viewBox="0 0 64 64"><path d="M53 44a9 9 0 0 0-7 3l-1-1h1v-1l13-6a4 4 0 0 0-1-2c2-2 2-5 2-5v-2h-2l-6 1-3 1-1-3s-6-6-12-8c2-1 2-3 2-7 0-6-5-12-12-12a12 12 0 0 0-13 14c-1 0 1 6 3 6 2 5 4 6 6 6l4-1v4l-2 1-1-2h-1c-5 0-9 2-12 6l-2 4 1 2 2 1a10 10 0 0 0-6 2h1a9 9 0 0 0 5 17c4 0 8-3 9-6a3 3 0 0 0 3 3l19-3h1v-2a9 9 0 0 0 0-1 15 15 0 0 1 0-1 9 9 0 0 0 0 1c0 5 4 9 10 9s9-4 9-9-4-9-9-9m-8-5c4-3 1-5 8-7h5s0 4-3 5c-7 4-12 4-12 4l2-2m-7 5a4 4 0 0 1 1 2l-2 2 1-4M25 25l-3 1c-2 0-3-2-4-4l10-6 2-2-2-2-2 1-11 2a8 8 0 0 1 0-1c0-5 5-10 11-10s10 5 10 10 0 5-7 9a255 255 0 0 0-4 2m-1 12 1-1 6-2a2 2 0 0 0 0-2v-2l4 4h-1l-4 1-2 1-2 2v1a70 70 0 0 0-2-1v-1m10-1-1 4h-2a45 45 0 0 0-3-1v-1l1-1 5-1m-14-3a1 1 0 0 1 2 0v2c1 2 1 2-2 3h-1l-1-1c-1-2 0-3 1-3l1-1m-4 20h2a6 6 0 0 1-1 3l-1-1a5 5 0 0 1-1 1h2a7 7 0 0 1-2 2l-1-2a5 5 0 0 1-1 1l1 2a7 7 0 0 1-2 0v-2h-1v2a7 7 0 0 1-2 0l1-2a5 5 0 0 1-1-1l-1 2a7 7 0 0 1-2-2h2a5 5 0 0 1-1-1l-2 1a6 6 0 0 1 0-3h2v-1H5a6 6 0 0 1 0-2l2 1 1-1-2-1a7 7 0 0 1 2-2l1 2a5 5 0 0 1 1 0l-1-2a7 7 0 0 1 2-1v2h1v-2a7 7 0 0 1 2 1l-2 3a3 3 0 0 0-1 0c-1 0-2 1-2 3s1 3 2 3c2 0 3-2 3-3l-1-2 2-3 2 1-2 1 1 1 1-1 1 2h-2v1m25 1v1l-18 2-1-1-1-8-3-2-8-6 1-3a12 12 0 0 1 7-5v1l-2 2-1 1c0 1-2 2 0 2l2 1a3 3 0 0 0 2 1l2-1a56 56 0 0 1 11 3l-1 6h-1a4 4 0 0 0-1 0l-1-1-6-4h-1l1 1 4 3 2 1-2 2 8 2c1 1 2 0 2-1v-1c3 0 2-2 4-2h2l-1 6m0-9-1-1 4-1a25 25 0 0 0 3-1l-2 1-4 2m8 2v1h-1l1-1m8 6h2a6 6 0 0 1 0 3l-2-1a5 5 0 0 1-1 1h2a7 7 0 0 1-2 2l-1-2-1 1 2 2a7 7 0 0 1-3 0v-2h-1v2a7 7 0 0 1-2 0l1-2a5 5 0 0 1-1-1l-1 2a7 7 0 0 1-2-2h2a5 5 0 0 1-1-1l-1 1a6 6 0 0 1-1-3h1l4 2a3 3 0 0 0 2 1l2-3c0-2-1-3-2-3l-3-1h1l-1-2a7 7 0 0 1 2-1v2h1c1 0 0 0 0 0v-2a7 7 0 0 1 2 1l-1 2h1l1-2a7 7 0 0 1 2 2l-2 1 1 1 2-1v2h-2v1"/></svg>`
@@ -200,31 +289,34 @@
       homeMarker.setLatLng(locationDefault);
       searchCircle.setLatLng(locationDefault);
       map.setView(locationDefault, isGPSLocation ? 6 : 3);
-      radiusSliderElement.value = isGPSLocation ? "3" : "9";
+      radiusSliderElement.max = String(radiusValues.length - 1);
+      radiusSliderElement.value = String(isGPSLocation ? radiusValues.indexOf(200) : radiusValues.length - 1);
       L.popup(locationDefault, {"content": "<b>Drag Me</b>", "className": "dragMe", "autoPan": false, "closeButton": false, "offset": [0, 50]}).openOn(map);
 
       updateTrackDistances();
       updateSearchRadius(radiusValues[radiusSliderElement.value]);
-      updateTrackdaysVisibilityProperty();
-      updateTrackIcons(true);
-      updateTrackPopup();
       selectedMonth = undefined;  // updateCalendar updates to current month
-      updateCalendar();
-      updateDropdown();
+      refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
+    }
+
+    function milesBetween(lat1, lon1, lat2, lon2) {
+      function deg2rad(deg) {return deg * (Math.PI/180);}
+      let r = 6371;  // earth radius km
+      lat1 = deg2rad(lat1);
+      lat2 = deg2rad(lat2);
+      let deltaLat = lat2 - lat1;
+      let deltaLon = deg2rad(lon2 - lon1);
+      let a = Math.pow(Math.sin(deltaLat / 2), 2) + Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin(deltaLon / 2), 2);
+      let d = 2 * r * Math.asin(Math.sqrt(a));
+      return d * 0.621371;
+    }
+
+    function nearestTravelRadius(miles) {
+      let finite = radiusValues.filter((r) => r !== infiniteRadius);
+      return finite.reduce((best, r) => Math.abs(r - miles) < Math.abs(best - miles) ? r : best);
     }
 
     function updateTrackDistances() {
-      function milesBetween(lat1, lon1, lat2, lon2) {
-        function deg2rad(deg) {return deg * (Math.PI/180);}
-        let r = 6371;  // earth radius km
-        lat1 = deg2rad(lat1);
-        lat2 = deg2rad(lat2);
-        let deltaLat = lat2 - lat1;
-        let deltaLon = deg2rad(lon2 - lon1);
-        let a = Math.pow(Math.sin(deltaLat / 2), 2) + Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin(deltaLon / 2), 2);
-        let d = 2 * r * Math.asin(Math.sqrt(a));
-        return d * 0.621371;
-      }
       let {lat, lng} = homeMarker.getLatLng();
       Object.keys(tracks).forEach((track) => {
         tracks[track]["dist"] = milesBetween(lat, lng, tracks[track].lat, tracks[track].lon);
@@ -249,43 +341,60 @@
         }
       }
 
+      let tracksWithSavedEvents = new Set();
+      if (savedEventsSet.size) {
+        trackdays.forEach((td) => {
+          if (savedEventsSet.has(getEventKey(td))) tracksWithSavedEvents.add(td.track);
+        });
+      }
       allTracks.forEach((track) => {
         let withinRadius = (searchRadius === infiniteRadius || tracks[track].dist <= searchRadius);
-        let containsSavedEvent = trackdays.some((td) => td.track === track && savedEventsSet.has(getEventKey(td)));
-        opacityMultiplier = tracksWithEvents.has(track) ? 1.0 : 0.35;
-        if (withinRadius || containsSavedEvent) {
-          mapMarkers[track].setIcon(trackIconCheckered);
-          mapMarkers[track].setOpacity(0.8 * opacityMultiplier);
-        } else {
-          mapMarkers[track].setIcon(trackIconRed);
-          mapMarkers[track].setOpacity(0.6 * opacityMultiplier);
-        }
+        let containsSavedEvent = tracksWithSavedEvents.has(track);
+        let opacityMultiplier = tracksWithEvents.has(track) ? 1.0 : 0.35;
+        let inside = withinRadius || containsSavedEvent;
+        let icon = inside ? trackIconCheckered : trackIconRed;
+        let opacity = (inside ? 0.8 : 0.6) * opacityMultiplier;
+        let marker = mapMarkers[track];
+        if (marker.options.icon !== icon) marker.setIcon(icon);
+        if (marker.options.opacity !== opacity) marker.setOpacity(opacity);
       });
     }
 
     function updateSearchRadius(radiusMiles) {
       searchRadius = radiusMiles;
-      searchCircle.setRadius(searchRadius * 1609.34);
+      let meters = searchRadius * 1609.34;
+      searchCircle.setRadius(meters);
+      searchCircleHandle.setLatLng(homeMarker.getLatLng());
+      searchCircleHandle.setRadius(meters);
+      if (searchRadius === infiniteRadius) {
+        if (map.hasLayer(searchCircleHandle)) searchCircleHandle.remove();
+      } else if (!map.hasLayer(searchCircleHandle)) {
+        searchCircleHandle.addTo(map);
+      }
       document.getElementById("displayedRadius").innerText = (searchRadius === infiniteRadius ? `∞` : `${searchRadius}`);
     }
 
+    // minDate and maxDate are padded, so these exclusive comparisons include the chosen days
+    // an invalid bound means that side is open
+    function dateInRange(date) {
+      let afterMin = !minDate.isValid() || date.isAfter(minDate);
+      let beforeMax = !maxDate.isValid() || date.isBefore(maxDate);
+      return afterMin && beforeMax;
+    }
+
     function updateTrackdaysVisibilityProperty() {
-      let maxPrice = priceSliderElement.value;
       let selectedDays = new Set(Array.from(daySelectElement.options).filter(option => option.selected).map(option => option.value));
       trackdays.forEach((td) => {
         let withinRadius = (searchRadius === infiniteRadius || tracks[td.track].dist <= searchRadius);
-        let dateCheck = ((!minDate.isValid() && !maxDate.isValid()) || 
-                         (!minDate.isValid() && td.date.isBefore(maxDate)) || 
-                         (td.date.isAfter(minDate) && !maxDate.isValid()) || 
-                         (td.date.isAfter(minDate) && td.date.isBefore(maxDate)));
-        let priceCheck = (isNaN(maxPrice) || (td.price <= maxPrice));
+        let dateCheck = dateInRange(td.date);
         let dayCheck = selectedDays.has(dayjs(td.date).format("ddd"));
         let vehicleTypeCheck = [...td.vehicleType].some(t => selectedVehicleTypes.has(t));
         let eventTypeCheck = [...td.eventType].some(t => selectedEventTypes.has(t));
         let orgSelectCheck = orgs[td.org].dropdownSelected;
         let isSaved = savedEventsSet.has(getEventKey(td));
-        let passesFilters = dateCheck && priceCheck && dayCheck && vehicleTypeCheck && eventTypeCheck && orgSelectCheck;
+        let passesFilters = dateCheck && dayCheck && vehicleTypeCheck && eventTypeCheck && orgSelectCheck;
         td.visibilityDropdown = (withinRadius && vehicleTypeCheck && eventTypeCheck);
+        // saved events intentionally skip most filters (radius, price, date, weekday, host, vehicle type, event type)
         td.visibilityMap = isSaved || passesFilters;
         td.visibilityCalendar = isSaved || (passesFilters && withinRadius);
       });
@@ -295,18 +404,23 @@
       return [td.date.format("YYYY-MM-DD"), td.org, td.track, td.subtrack, td.eventType, td.vehicleType].join("|");
     }
 
-    function onEventSaveToggle(checkbox) {
-      let key = decodeURIComponent(checkbox.getAttribute("data-event-key"));
-      if (checkbox.checked) {
+    function onEventSaveToggle(btn) {
+      let key = decodeURIComponent(btn.getAttribute("data-event-key"));
+      let nowSaved = !savedEventsSet.has(key);
+      if (nowSaved) {
         savedEventsSet.add(key);
       } else {
         savedEventsSet.delete(key);
       }
       localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+      btn.setAttribute("aria-pressed", nowSaved ? "true" : "false");
+      btn.title = nowSaved ? "Unsave Event" : "Save Event";
+      btn.setAttribute("aria-label", nowSaved ? "Unsave Event" : "Save Event");
+      let item = btn.closest(".event-item");
+      if (item) item.classList.toggle("is-saved", nowSaved);
       if (typeof trackdays !== "undefined") {
-        updateTrackdaysVisibilityProperty();
-        updateTrackIcons(true);
-        updateCalendar();
+        // do not refresh the open popup, so an accidental unsave can be checked again
+        refresh({trackVisibility: true, calendar: true});
       }
     }
 
@@ -326,6 +440,24 @@
       localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
     }
 
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function safeHttpUrl(value) {
+      try {
+        let url = new URL(String(value));
+        if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+        return escapeHtml(url.href);
+      } catch (e) {
+        return "";
+      }
+    }
+
     function escapeICSValue(value) {
       return String(value || "")
         .replace(/\\/g, "\\\\")  // escape backslash
@@ -334,13 +466,32 @@
         .replace(/;/g, "\\;");  // escape semicolon
     }
 
+    function foldICSLine(line) {
+      // RFC 5545: fold at 75 octets. A continuation line starts with one space.
+      const maxOctets = 75;
+      const encoder = new TextEncoder();
+      if (encoder.encode(line).length <= maxOctets) return line;
+      let folded = "";
+      let budget = maxOctets;
+      for (const char of line) {
+        const size = encoder.encode(char).length;
+        if (size > budget) {
+          folded += "\r\n ";
+          budget = maxOctets - 1;
+        }
+        folded += char;
+        budget -= size;
+      }
+      return folded;
+    }
+
     function downloadSavedEventsICS() {
       if (typeof trackdays === "undefined") return;
       let savedEvents = trackdays
         .filter(td => savedEventsSet.has(getEventKey(td)))
         .sort((a, b) => (a.date > b.date ? 1 : -1));
       if (savedEvents.length === 0) {
-        alert("No saved events to export.");
+        alert("No saved events to export.\nOpen a track on the map and star events to save them.");
         return;
       }
 
@@ -353,7 +504,7 @@
         "METHOD:PUBLISH"
       ];
 
-      savedEvents.forEach((td, idx) => {
+      savedEvents.forEach((td) => {
         let startDate = td.date.format("YYYYMMDD");
         let endDate = td.date.add(1, "day").format("YYYYMMDD");
         let track = tracks[td.track];
@@ -373,7 +524,7 @@
 
         lines.push(
           "BEGIN:VEVENT",
-          `UID:${startDate}-${idx}-${escapeICSValue(getEventKey(td))}@trackdays.fyi`,
+          `UID:${escapeICSValue(getEventKey(td))}@trackdays.fyi`,
           `DTSTAMP:${nowStamp}`,
           `DTSTART;VALUE=DATE:${startDate}`,
           `DTEND;VALUE=DATE:${endDate}`,
@@ -386,7 +537,7 @@
       });
       lines.push("END:VCALENDAR");
 
-      let icsBlob = new Blob([lines.join("\r\n")], {type: "text/calendar;charset=utf-8"});
+      let icsBlob = new Blob([lines.map(foldICSLine).join("\r\n")], {type: "text/calendar;charset=utf-8"});
       let fileName = `trackdaysFYI-saved-events-${dayjs().format("YYYYMMDD")}.ics`;
       let url = URL.createObjectURL(icsBlob);
       let link = document.createElement("a");
@@ -405,50 +556,50 @@
       let numTrackdaysBeforeFilter = trackdaysFiltered.length;
       trackdaysFiltered = trackdaysFiltered.filter(td => td.visibilityMap);
       let numTrackdaysHidden = numTrackdaysBeforeFilter - trackdaysFiltered.length;
-      let hasSubtracks = trackdaysFiltered.some(td => td.subtrack);
       let multipleVehicleTypes = (selectedVehicleTypes.size > 1);
-      let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") & (selectedEventTypes.size > 1);
-      let hasPrices = trackdaysFiltered.some(td => td.price !== -1);
-      let hasNotes = trackdaysFiltered.some(td => td.note);
-      let tbody = trackdaysFiltered.map(td => {
+      let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") && (selectedEventTypes.size > 1);
+      const eventLabel = {"T": "Trackday", "S": "School", "R": "Race"};
+      function rowMain(td, meta, price, mark) {
+        let copy = `<span class="tl-copy"><span class="tl-dow">${td.date.format("ddd")}</span><span class="tl-host allowSelect">${escapeHtml(td.org)}</span>${meta ? `<span class="tl-meta">${meta}</span>` : ""}${price ? `<span class="tl-price">${price}</span>` : ""}</span>`;
+        let eventUrl = safeHttpUrl(td.url);
+        if (eventUrl) return `<a class="tl-row-link" href="${eventUrl}" target="_blank">${mark}${copy}</a>`;
+        return `<div class="tl-row-link">${mark}${copy}</div>`;
+      }
+      function saveBox(eventKey) {
+        let saved = savedEventsSet.has(eventKey);
+        return `<button type="button" class="event-save-star" title="${saved ? "Unsave Event" : "Save Event"}" aria-label="${saved ? "Unsave Event" : "Save Event"}" aria-pressed="${saved ? "true" : "false"}" data-event-key="${encodeURIComponent(eventKey)}" onclick="onEventSaveToggle(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.8 7 19l.9-5.6-4-3.9 5.6-.8z"/></svg></button>`;
+      }
+      function money(td) {
+        return td.price >= 0 ? "$" + escapeHtml(td.price) : "";
+      }
+      function detailText(td) {
+        let bits = [];
+        if (multipleVehicleTypes) bits.push([...td.vehicleType].map(t => vehicleTypeMap[t]).join("/"));
+        if (multipleEventTypes) bits.push([...td.eventType].map(t => eventLabel[t] || t).join("/"));
+        if (td.subtrack) bits.push(td.subtrack);
+        if (td.note) bits.push(td.note);
+        return bits.map(bit => escapeHtml(bit)).join(" · ");
+      }
+      let directionsUrl = "https://www.google.com/maps?q=" + encodeURIComponent("directions " + track.name);
+      let weatherUrl = "https://www.google.com/search?q=" + encodeURIComponent("weather " + track.name);
+      let videoUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(track.name + " track") + "&sp=CAISAhAB";
+      let nickname = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
+      let hiddenNote = numTrackdaysHidden ? `<span class="hidden-note">${numTrackdaysHidden} Filtered Events Hidden</span>` : "";
+      let head = `<div class="popup-head"><b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><div class="popup-links"><a href="${escapeHtml(directionsUrl)}" target="_blank" title="Directions">${directionImg}</a><a href="${escapeHtml(weatherUrl)}" target="_blank" title="Weather">${weatherImg}</a><a href="${escapeHtml(videoUrl)}" target="_blank" title="Videos">${videoImg}</a></div></div>`;
+      let lastDate = "";
+      let rows = trackdaysFiltered.map((td) => {
         let eventKey = getEventKey(td);
-        return `
-        <tr>
-          <td><input type="checkbox" class="event-mark-checkbox" title="Save" data-event-key="${encodeURIComponent(eventKey)}" ${savedEventsSet.has(eventKey) ? "checked" : ""} onchange="onEventSaveToggle(this)"></td>
-          <td><a href="${td.url}" target="_blank">${td.date.format("MM/DD")}</a></td>
-          <td>${td.date.format("ddd")}</td>
-          <td>${td.org}</td>
-          ${multipleVehicleTypes ? `<td>${[...td.vehicleType].map(t => vehicleTypeMap[t]).join("/")}</td>` : ""}
-          ${multipleEventTypes ? `<td>${[...td.eventType].map(t => eventTypeMap[t]).join("/")}</td>` : ""}
-          ${hasSubtracks ? `<td>${td.subtrack ? td.subtrack : "-"}</td>` : ""}
-          ${hasNotes ? `<td>${td.note ? td.note : "-"}</td>` : ""}
-          ${hasPrices ? `<td>${td.price >= 0 ? '$' + td.price : "-"}</td>` : ""}
-        </tr>
-      `;
+        let saved = savedEventsSet.has(eventKey) ? " is-saved" : "";
+        let dateKey = td.date.format("YYYY-MM-DD");
+        let showDate = dateKey !== lastDate;
+        lastDate = dateKey;
+        let meta = detailText(td);
+        let price = money(td);
+        let mark = `<span class="tl-mark"><span class="tl-date">${showDate ? escapeHtml(td.date.format("MMM D")) : ""}</span><span class="tl-dot"></span></span>`;
+        return `<div class="event-item tl-item${saved}">${rowMain(td, meta, price, mark)}${saveBox(eventKey)}</div>`;
       }).join("");
-      let tbl = (trackdaysFiltered.length === 0 ? `No Events Found<br>` :
-        `<table>
-          <thead><tr>
-          <th>✓</th>
-          <th>Date</th>
-          <th>Day</th>
-          <th>Host</th>
-          ${multipleVehicleTypes ? "<th>Vehicle</th>" : ""}
-          ${multipleEventTypes ? "<th>Type</th>" : ""}
-          ${hasSubtracks ? "<th>Circuit</th>" : ""}
-          ${hasNotes ? "<th>Note</th>" : ""}
-          ${hasPrices ? "<th>Price</th>" : ""}
-          </tr></thead>
-          <tbody>${tbody}</tbody>
-        </table>`);
-      mapMarkers[lastOpenedTrack].getPopup().setContent(
-        `<div class="popup">
-        <b class="allowSelect">${track.name}${track.showNickname ? " (" + track.nickname + ")" : ""}</b><br>
-        <a href="https://www.google.com/maps?q=directions+${track.name}" target="_blank" title="Directions">${directionImg}</a>
-        <a href="https://www.google.com/search?q=weather+${track.name}" target="_blank" title="Weather">${weatherImg}</a>
-        <a href="https://www.youtube.com/results?search_query=${track.name}+track&sp=CAISAhAB" target="_blank" title="Videos">${videoImg}</a>
-        <br>${tbl}${numTrackdaysHidden ? `<span style="font-size: 10px">${numTrackdaysHidden} Filtered Events Hidden</span>` : ""}
-        </div>`);
+      let list = trackdaysFiltered.length === 0 ? `<div class="empty">No Events Found</div>` : `<div class="tl">${rows}</div>`;
+      mapMarkers[lastOpenedTrack].getPopup().setContent(`<div class="popup popup-timeline">${head}<div class="tl-scroll">${list}${hiddenNote}</div></div>`);
     }
 
     function updateCalendar() {
@@ -457,25 +608,59 @@
       trackdays.forEach((td) => {
         if (td.visibilityCalendar) {
           let price = (td.price === -1 ? "" : "$" + td.price);
-          let priceStr = (price ? " - " + price : "");
-          let orgStr = (tracks[td.track].nickname === td.org ? "" : " - " + td.org)
+          let orgStr = (tracks[td.track].nickname === td.org ? "" : " - " + td.org);
           let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
           let noteStr = (td.note ? " (" + td.note + ")" : "");
           let savedClass = savedEventsSet.has(getEventKey(td)) ? "saved-calendar-event" : "";
-          let calendarStr = `<a class="${savedClass}" href=${td.url} target="_blank" title="${price}${subtrackStr}${noteStr}">• ${tracks[td.track].nickname}${orgStr}</a>`;
-          calendarEvents.push({Date: td.date.toDate(), Title: calendarStr});
+          let label = `• ${tracks[td.track].nickname}${orgStr}`;
+          let tooltip = `${price}${subtrackStr}${noteStr}`;
+          // caleandar wraps Title in <a href="Link">, so Title must not contain its own link
+          let calendarStr = `<span class="${savedClass}" title="${escapeHtml(tooltip)}">${escapeHtml(label)}</span>`;
+          calendarEvents.push({Date: td.date.toDate(), Title: calendarStr, Link: escapeHtml(td.url)});
         }
       });
-      calendar = document.getElementById("calendar");
+      let calendar = document.getElementById("calendar");
       if (selectedMonth === undefined) {
-        selectedMonth = dayjs().toDate();
-      } else {
-        let monthStr = calendar.getElementsByClassName("cld-datetime")[0].innerText  // get selected month from calendar html before deletion - super hacky, oh well
-        selectedMonth = dayjs(monthStr, "MMMM YYYY").toDate();
+        selectedMonth = dayjs().startOf("month").toDate();
       }
       calendar.innerHTML = "";  // delete old calendar
-      calendarObj = caleandar(calendar, calendarEvents, {Color: "#999999", LinkColor: "#ffffff", NavShow: true, DateTimeShow: true}, selectedMonth);
-      document.getElementById("numTrackdaysMatching").innerText = `${calendarEvents.length} matching events`
+      let calendarObj = caleandar(calendar, calendarEvents, {Color: "#999999", LinkColor: "#ffffff", NavShow: true, DateTimeShow: true}, selectedMonth);
+      updatePillCounts();
+    }
+
+    // caleandar moves between months on its own and replaces its markup, so track the month here
+    function shiftSelectedMonth(delta) {
+      if (selectedMonth === undefined) return;
+      selectedMonth = dayjs(selectedMonth).startOf("month").add(delta, "month").toDate();
+    }
+
+    function eventPassesSharedFilters(td) {
+      let selectedDays = new Set(Array.from(daySelectElement.options).filter(option => option.selected).map(option => option.value));
+      let withinRadius = (searchRadius === infiniteRadius || tracks[td.track].dist <= searchRadius);
+      let dateCheck = dateInRange(td.date);
+      let dayCheck = selectedDays.has(dayjs(td.date).format("ddd"));
+      let orgSelectCheck = orgs[td.org].dropdownSelected;
+      return withinRadius && dateCheck && dayCheck && orgSelectCheck;
+    }
+
+    function updatePillCounts() {
+      if (typeof trackdays === "undefined" || typeof tracks === "undefined") return;
+      let shared = trackdays.filter(eventPassesSharedFilters);
+      let hasVehicle = (td, code) => [...td.vehicleType].includes(code);
+      let hasEvent = (td, code) => [...td.eventType].includes(code);
+      let vehicleMatch = (td) => [...td.vehicleType].some(t => selectedVehicleTypes.has(t));
+      let eventMatch = (td) => [...td.eventType].some(t => selectedEventTypes.has(t));
+      document.getElementById("countCar").textContent = shared.filter(td => hasVehicle(td, "C") && eventMatch(td)).length;
+      document.getElementById("countMoto").textContent = shared.filter(td => hasVehicle(td, "M") && eventMatch(td)).length;
+      document.getElementById("countSumo").textContent = shared.filter(td => hasVehicle(td, "S") && eventMatch(td)).length;
+      document.getElementById("countTrackdays").textContent = shared.filter(td => hasEvent(td, "T") && vehicleMatch(td)).length;
+      document.getElementById("countSchools").textContent = shared.filter(td => hasEvent(td, "S") && vehicleMatch(td)).length;
+      document.getElementById("countRaces").textContent = shared.filter(td => hasEvent(td, "R") && vehicleMatch(td)).length;
+      let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityCalendar).map(td => td.track));
+      document.getElementById("countEmpty").textContent = Object.keys(tracks).filter((track) => {
+        let withinRadius = (searchRadius === infiniteRadius || tracks[track].dist <= searchRadius);
+        return withinRadius && !tracksWithEvents.has(track);
+      }).length;
     }
 
     function updateDropdown() {
@@ -491,12 +676,22 @@
       orgSelectElement.loadOptions();
     }
 
+    function refresh({trackVisibility = false, popup = false, calendar = false, dropdown = false} = {}) {
+      updateTrackdaysVisibilityProperty();
+      updateTrackIcons(trackVisibility);
+      if (popup) updateTrackPopup();
+      if (calendar) updateCalendar();
+      if (dropdown) updateDropdown();
+    }
+
     function updateMinDateVar() {
-      minDate = dayjs(minDateElement.value + " 00:00").subtract(1, "s");
-    } // str addition to avoid use of CustomParseFormat, add/subtract second for dayjs comparison
+      // explicit format parses as local midnight in every browser. isAfter is exclusive, so pad 1s to include this day
+      minDate = dayjs(minDateElement.value, "YYYY-MM-DD", true).subtract(1, "s");
+    }
 
     function updateMaxDateVar() {
-      maxDate = dayjs(maxDateElement.value + " 00:01");
+      // isBefore is exclusive, so pad 1 minute to include this day. an empty value stays invalid and means no end date
+      maxDate = dayjs(maxDateElement.value, "YYYY-MM-DD", true).add(1, "minute");
     }
 
     let showSyncInfo = false;
@@ -505,9 +700,13 @@
         document.getElementById("syncInfo").innerHTML = "";
         showSyncInfo = false;
       } else {
-        let tbody = Object.values(orgs).map(org => {return `
+        let tbody = Object.values(orgs).map(org => {
+          let orgUrl = safeHttpUrl(org.url);
+          let name = escapeHtml(org.org);
+          let nameCell = orgUrl ? `<a href="${orgUrl}" target="_blank" style="color:inherit;">${name}</a>` : name;
+          return `
           <tr>
-            <td><a href="${org.url}" target="_blank" style="color:inherit;">${org.org}</a></td>
+            <td>${nameCell}</td>
             <td>${org.numEvents}</td>
             <td>${dayjs().to(org.syncTimeUTC)}</td>
           </tr>
@@ -528,18 +727,17 @@
       }
     }
   </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MG8WTWEELF"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {dataLayer.push(arguments);}
+    gtag("js", new Date());
+    gtag("config", "G-MG8WTWEELF");
+  </script>
 </head>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-MG8WTWEELF"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag() {dataLayer.push(arguments);}
-  gtag("js", new Date());
-  gtag("config", "G-MG8WTWEELF");
-</script>
-
 <body onLoad="getGPSLocation();">
-<div id="fotosort-ad" style="background-color: rgba(57, 115, 172, 0.5); color: whitesmoke; padding: 10px; text-align: center; position: relative;">
+<div id="fotosort-ad" style="background-color: rgb(from var(--accent) r g b / 0.5); color: whitesmoke; padding: 10px; text-align: center; position: relative;">
   <span>Are you a trackday or race photographer? Try out <a href="https://fotosort.com/" target="_blank" style="color: whitesmoke; font-weight: bold; text-decoration: underline;">FotoSort.com</a></span>
   <button id="close-ad" style="position: absolute; top: 5px; right: 10px; background: none; border: none; color: whitesmoke; font-size: 26px; cursor: pointer;" title="Don't show again">&times;</button>
 </div>
@@ -572,84 +770,81 @@
     <p id="syncInfo"></p>
     <hr style="margin: 0rem;">
 
-    <table class="center mobileSqueeze control-font">
-      <td><button type="button" class="colored big on" id="showCarEvents">Car</button></td>
-      <td><button type="button" class="colored big on" id="showMotoEvents">Motorcycle</button></td>
-      <td><button type="button" class="colored big on" id="showSumoEvents">Supermoto</button></td>
-      <td style="display: none;"><button type="button" class="colored big" id="showMiniEvents">Minimoto</button></td>
-    </table>
+    <div class="filter-bar control-font">
+      <div class="toggle-row">
+      <div class="filter-group">
+        <span class="filter-label">Vehicle</span>
+        <div class="segmented">
+          <button type="button" class="colored on" id="showCarEvents">Car <span class="pill-count" id="countCar"></span></button>
+          <button type="button" class="colored on" id="showMotoEvents">Motorcycle <span class="pill-count" id="countMoto"></span></button>
+          <button type="button" class="colored on" id="showSumoEvents">Supermoto <span class="pill-count" id="countSumo"></span></button>
+          <button type="button" class="colored" id="showMiniEvents" hidden>Minimoto</button>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Event</span>
+        <div class="segmented">
+          <button type="button" class="colored on" id="showTrackdays">Trackdays <span class="pill-count" id="countTrackdays"></span></button>
+          <button type="button" class="colored on" id="showSchools">Schools <span class="pill-count" id="countSchools"></span></button>
+          <button type="button" class="colored on" id="showRaces">Races <span class="pill-count" id="countRaces"></span></button>
+          <button type="button" class="colored on" id="showTracksWithoutEvents">Empty Tracks <span class="pill-count" id="countEmpty"></span></button>
+        </div>
+      </div>
+      </div>
+
+      <div class="secondary-row">
+      <div class="filter-group day-group">
+        <span class="filter-label">When</span>
+        <div class="date-row">
+          <input id="minDateSearch" type="date" value="" min="" max="" aria-label="From date">
+          <span>to</span>
+          <input id="maxDateSearch" type="date" value="" min="" max="" aria-label="To date">
+          <select multiple id="daySelect" multiselect-search="false" multiselect-select-all="true"
+            data-txtNothingSelected="No Days Selected" data-txtSelectedSuffix="days selected" data-height="11.1rem">
+          <option selected value="Sun">Sunday</option>
+          <option selected value="Mon">Monday</option>
+          <option selected value="Tue">Tuesday</option>
+          <option selected value="Wed">Wednesday</option>
+          <option selected value="Thu">Thursday</option>
+          <option selected value="Fri">Friday</option>
+          <option selected value="Sat">Saturday</option>
+        </select>
+        </div>
+      </div>
+
+      <div class="filter-group host-group">
+        <span class="filter-label">Host</span>
+        <select multiple id="orgSelect" multiselect-search="true" multiselect-select-all="true"
+          data-txtNothingSelected="No Hosts Selected" data-txtNothingAvailable="No Hosts Found"
+          data-txtSelectedSuffix="hosts selected" data-txtSearch="Search Hosts" data-height="16rem"></select>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Limits</span>
+        <div class="slider-stack">
+          <div class="slider-row">
+            <span>Travel</span>
+            <input id="radiusSlider" type="range" min="0" value="39" max="39" step="1" aria-label="Travel radius">
+            <span class="slider-value">≤ <span id="displayedRadius"></span> mi</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label" aria-hidden="true">&nbsp;</span>
+        <button id="resetFilters" class="btn-action" type="button">Reset</button>
+      </div>
+      </div>
+    </div>
 
     <div id="map"></div>
 
-    <div class="flex-row control-font">
-      <table class="flex-cell">
-        <tr>
-          <td colspan="4"><select multiple id="orgSelect" multiselect-search="true" multiselect-select-all="true" 
-            data-txtNothingSelected="No Hosts Selected" data-txtNothingAvailable="No Hosts Found" 
-            data-txtSelectedSuffix="hosts selected" data-txtSearch="Search Hosts" data-height="16rem"></select></td>
-        </tr>
-        <tr>
-          <td>Travel</td>
-          <td><input id="radiusSlider" type="range" min="0" value="9" max="9" step="1" style="vertical-align: middle;"></td>
-          <td>≤</td>
-          <td style="white-space: nowrap;"><span id="displayedRadius" style="display: inline-block; width: 3ch;"></span> mi</td>
-        </tr>
-        <tr>
-          <td>Price</td>
-          <td><input id="priceSlider" type ="range" min="100" max="500" step="20" value="500" style="vertical-align: middle;"/></td>
-          <td>≤</td>
-          <td style="white-space: nowrap;">$<span id="displayedPrice" style="display: inline-block; width: 3ch;"></td>
-        </tr>
-      </table>
-
-      <table class="flex-cell">
-        <tr>
-          <td><input id="minDateSearch" type="date" value="" min="" max=""> - <input id="maxDateSearch" type="date" value="" min="" max=""></td>
-        </tr>
-        <tr>
-          <td><select multiple id="daySelect" multiselect-search="false" multiselect-select-all="true" style="width: 100%;"
-            data-txtNothingSelected="No Days Selected" data-txtSelectedSuffix="days selected" data-height="11.1rem">
-            <option selected value="Sun">Sunday</option>
-            <option selected value="Mon">Monday</option>
-            <option selected value="Tue">Tuesday</option>
-            <option selected value="Wed">Wednesday</option>
-            <option selected value="Thu">Thursday</option>
-            <option selected value="Fri">Friday</option>
-            <option selected value="Sat">Saturday</option>
-          </select></td>
-        </tr>
-        <tr>
-          <td><button type="button" class="colored on" id="showTracksWithoutEvents">Show Tracks without Events</button></td>
-        </tr>
-      </table>
-
-      <table class="flex-cell">
-        <tr>
-          <td><button type="button" class="colored on" id="showTrackdays">Show Trackdays</button></td>
-        </tr>
-        <tr>
-          <td><button type="button" class="colored on" id="showSchools">Show Track Schools</button></td>
-        </tr>
-        <tr>
-          <td><button type="button" class="colored on" id="showRaces">Show Races</button></td>
-        </tr>
-      </table>
-
-      <table class="flex-cell">
-        <tr>
-          <td><span id="numTrackdaysMatching"></span></td>
-        </tr>
-        <tr>
-          <td><button id="exportSavedEvents" type="button" title="Export Saved Events to ICS Calendar">Export Calendar</button></td>
-        </tr>
-        <tr>
-          <td><button id="resetFilters" type="button">Reset</button></td>
-        </tr>
-      </table>
-    </div>
-
     <hr>
     <div id="calendar"></div>
+    <div class="calendar-export">
+      <button id="exportSavedEvents" class="btn-action" type="button" title="Download saved events as an ICS calendar file">Export ICS Calendar</button>
+    </div>
     <hr>
   </main>
 
@@ -660,6 +855,12 @@
   </footer>
 
   <script>
+    document.getElementById("calendar").addEventListener("click", (event) => {
+      let nav = event.target.closest(".cld-rwd, .cld-fwd");
+      if (!nav) return;
+      shiftSelectedMonth(nav.classList.contains("cld-fwd") ? 1 : -1);
+    }, true);
+
     const headerAd = document.getElementById("fotosort-ad");
     const headerBuffer = document.getElementById("header-buffer");
     if (localStorage.getItem("headerAdClosed")) {
@@ -672,7 +873,7 @@
       localStorage.setItem("headerAdClosed", "true");
     });
 
-    var map = L.map("map", {doubleClickZoom: false, boxZoom: false, minZoom: 4, maxZoom: 15, worldCopyJump: true});
+    var map = L.map("map", {doubleClickZoom: false, boxZoom: false, minZoom: 3, maxZoom: 15, worldCopyJump: true});
     let tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", 
       {attribution: `<a style="font-size:9px" href="http://www.openstreetmap.org/copyright">&copy; OpenStreetMap</a>`}
     ).addTo(map);
@@ -680,6 +881,7 @@
 
     let homeMarker = L.marker(locationDefault, {icon: homeIconMoto, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
     let searchCircle = L.circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
+    let searchCircleHandle = L.circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0, weight: 22, fill: false, interactive: true, bubblingMouseEvents: false, radius: infiniteRadius, className: "search-radius-handle"});
 
     let showCarEventsButton = document.getElementById("showCarEvents");
     let showMotoEventsButton = document.getElementById("showMotoEvents");
@@ -687,8 +889,6 @@
     let showMiniEventsButton = document.getElementById("showMiniEvents");
     let orgSelectElement = document.getElementById("orgSelect");
     let radiusSliderElement = document.getElementById("radiusSlider");
-    let priceSliderElement = document.getElementById("priceSlider");
-    let displayedPriceElement = document.getElementById("displayedPrice");
     let minDateElement = document.getElementById("minDateSearch");
     let maxDateElement = document.getElementById("maxDateSearch");
     let daySelectElement = document.getElementById("daySelect");
@@ -722,12 +922,12 @@
     let orgs, trackdays;
     let selectedVehicleTypes = new Set();
     let selectedEventTypes = new Set();
-    let minObservedPrice, maxObservedPrice;
     let mapMarkers = new Object();
 
     async function visualizeData() {
       try {
         const res = await fetch("https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays");
+        if (!res.ok) throw new Error("unable to retrieve data");
         const data = await res.json();
         orgs = data["orgs"];
         tracks = data["tracks"];
@@ -744,7 +944,7 @@
         trackdays.sort((a, b) => (a.date > b.date ? 1 : -1));  // sort by date
 
         const idx = trackdays.findIndex(td => td.date >= dayjs().startOf("day"));  // remove trackdays prior to current day
-        trackdays = trackdays.slice(idx);
+        trackdays = idx === -1 ? [] : trackdays.slice(idx);
 
         orgs = orgs.map(({events, ...item}) => item);  // drop events key
         orgs = orgs.map(org => ({...org,
@@ -756,7 +956,7 @@
 
         let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
         document.getElementById("lastSyncMessage").innerText = dayjs().to(lastSync);
-        document.getElementById("numTrackdays").innerText = trackdays.length;
+        document.getElementById("numTrackdays").innerText = trackdays.reduce((sum, td) => sum + [...td.eventType].filter(t => eventTypeMap[t]).length, 0);  // an event tagged with 2 types counts twice
         document.getElementById("numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
 
         orgs = orgs.reduce((result, org) => {  // map org nickname -> org
@@ -764,51 +964,81 @@
           return result;
         }, {});
 
-        // update price slider limits
-        minObservedPrice = Math.min(...trackdays.map(td => td.price));
-        maxObservedPrice = Math.max(...trackdays.map(td => td.price));
-        minObservedPrice = Math.ceil(minObservedPrice / 20) * 20;  // round up 20
-        maxObservedPrice = Math.ceil(maxObservedPrice / 20) * 20;  // round up 20
-        priceSliderElement.min = minObservedPrice;
-        priceSliderElement.value = priceSliderElement.max = displayedPriceElement.innerText = maxObservedPrice;
-
         // create track markers
         Object.keys(tracks).forEach((trackName) => {
-          track = tracks[trackName];
+          let track = tracks[trackName];
           mapMarkers[trackName] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
-          mapMarkers[trackName].bindPopup("", {maxHeight: 300, maxWidth: 450, closeButton: false});  // popup content updated on click
+          mapMarkers[trackName].bindPopup("", {maxHeight: 300, minWidth: 240, maxWidth: 420, closeButton: false});  // popup content updated on click
           mapMarkers[trackName].on("mousedown", (e) => {
             lastOpenedTrack = e.target.options.title.toUpperCase();
             updateTrackPopup();
           });
+          // leaflet measures popup width before flex/scroll layout settles; remeasure after paint so text isn't truncated on first open
+          mapMarkers[trackName].on("popupopen", (e) => {
+            requestAnimationFrame(() => {
+              if (e.popup.isOpen()) e.popup.update();
+            });
+          });
         });
 
-        homeMarker.on("drag", (e) =>{
+        let homeDragFrame = 0;
+        let homeDragTick = 0;
+        homeMarker.on("dragstart", () => {
           map.closePopup();  // close "Drag Me" popup
-          searchCircle.setLatLng(e.latlng);
+          homeDragTick = 0;
+          if (homeDragFrame) cancelAnimationFrame(homeDragFrame);
+          homeDragFrame = requestAnimationFrame(function followHomeCircle() {
+            homeDragTick++;
+            if (homeDragTick % 3 === 0) searchCircle.setLatLng(homeMarker.getLatLng());
+            homeDragFrame = requestAnimationFrame(followHomeCircle);
+          });
+        });
+        homeMarker.on("dragend", () => {
+          if (homeDragFrame) {
+            cancelAnimationFrame(homeDragFrame);
+            homeDragFrame = 0;
+          }
+          let latlng = homeMarker.getLatLng();
+          searchCircle.setLatLng(latlng);
+          searchCircleHandle.setLatLng(latlng);
+          updateTrackDistances();
+          refresh({calendar: true, dropdown: true});
         });
 
-        homeMarker.on("dragend", () => {
-          updateTrackDistances();
-          updateTrackdaysVisibilityProperty();
-          updateTrackIcons(false);
-          updateCalendar();
-          updateDropdown();
+        let travelDrag = false;
+        function onTravelDrag(e) {
+          // circle and slider follow live; icons, calendar, and hosts wait until release
+          let center = homeMarker.getLatLng();
+          let miles = milesBetween(center.lat, center.lng, e.latlng.lat, e.latlng.lng);
+          let snapped = nearestTravelRadius(miles);
+          if (snapped === searchRadius) return;
+          radiusSliderElement.value = String(radiusValues.indexOf(snapped));
+          updateSearchRadius(snapped);
+        }
+        function endTravelDrag() {
+          if (!travelDrag) return;
+          travelDrag = false;
+          map.dragging.enable();
+          map.getContainer().classList.remove("travel-dragging");
+          map.off("mousemove", onTravelDrag);
+          L.DomEvent.off(document, "mouseup", endTravelDrag);
+          refresh({calendar: true, dropdown: true});
+        }
+        searchCircleHandle.on("mousedown", (e) => {
+          L.DomEvent.stop(e.originalEvent);
+          travelDrag = true;
+          map.dragging.disable();
+          map.getContainer().classList.add("travel-dragging");
+          map.on("mousemove", onTravelDrag);
+          L.DomEvent.on(document, "mouseup", endTravelDrag);
         });
 
         radiusSliderElement.addEventListener("input", () => {
           updateSearchRadius(radiusValues[radiusSliderElement.value]);
-          updateTrackIcons(false);
         });
 
         radiusSliderElement.addEventListener("change", () => {
-          updateTrackdaysVisibilityProperty();
-          updateCalendar();
-          updateDropdown();
-        });
-
-        priceSliderElement.addEventListener("input", () => {
-          displayedPriceElement.innerText = priceSliderElement.value;
+          refresh({calendar: true, dropdown: true});
         });
 
         minDateElement.addEventListener("input", () => {
@@ -823,10 +1053,7 @@
           Array.from(orgSelectElement.options).forEach((opt) => {
             orgs[opt.value].dropdownSelected = opt.selected;
           });
-          updateTrackdaysVisibilityProperty();
-          updateTrackIcons(true);
-          updateTrackPopup();
-          updateCalendar();
+          refresh({trackVisibility: true, popup: true, calendar: true});
         });
 
         if (!localStorage.getItem(STORAGE_KEY_USER_VEHICLE_TYPES)) {  // new user or all vehicle types unselected
@@ -836,8 +1063,14 @@
           localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, Object.keys(eventTypeMap).join(""));
         }
 
+        // pressed state is the .on class plus aria-pressed; the button text stays put.
+        function setFilterToggleLabel(buttonElement, enabled) {
+          buttonElement.setAttribute("aria-pressed", enabled ? "true" : "false");
+        }
+
         for (const [buttonElement, vehicleType] of [[showCarEventsButton, "C"], [showMotoEventsButton, "M"], [showSumoEventsButton, "S"]]) {
           (localStorage.getItem(STORAGE_KEY_USER_VEHICLE_TYPES) || "").includes(vehicleType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
+          setFilterToggleLabel(buttonElement, buttonElement.classList.contains("on"));
           if (buttonElement.classList.contains("on")) {
             selectedVehicleTypes.add(vehicleType);
           }
@@ -851,15 +1084,12 @@
               selectedVehicleTypes.delete(vehicleType);
               buttonElement.classList.remove("on");
             }
+            setFilterToggleLabel(buttonElement, nowEnabled);
             localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, [...selectedVehicleTypes].join(""));
             if (selectedVehicleTypes.size > 0) {
               homeMarker.setIcon(selectedVehicleTypes.has("C") ? homeIconCar : homeIconMoto);
             }
-            updateTrackdaysVisibilityProperty();
-            updateTrackIcons(true);
-            updateTrackPopup();
-            updateCalendar();
-            updateDropdown();
+            refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
           });
         }
         if (selectedVehicleTypes.size === 0 || selectedVehicleTypes.has("C")) {
@@ -867,7 +1097,9 @@
         }
 
         for (const [buttonElement, eventType] of [[showTrackdaysToggleElement, "T"], [showSchoolsToggleElement, "S"], [showRacesToggleElement, "R"]]) {
-          (localStorage.getItem(STORAGE_KEY_USER_EVENT_TYPES) || "").includes(eventType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
+          let enabled = (localStorage.getItem(STORAGE_KEY_USER_EVENT_TYPES) || "").includes(eventType);
+          enabled ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
+          setFilterToggleLabel(buttonElement, enabled);
           if (buttonElement.classList.contains("on")) {
             selectedEventTypes.add(eventType);
           }
@@ -876,27 +1108,19 @@
             if (nowEnabled) {
               selectedEventTypes.add(eventType);
               buttonElement.classList.add("on");
-              buttonElement.innerText = buttonElement.innerText.replace("Hide", "Show");
             } else {
               selectedEventTypes.delete(eventType);
               buttonElement.classList.remove("on");
-              buttonElement.innerText = buttonElement.innerText.replace("Show", "Hide");
             }
+            setFilterToggleLabel(buttonElement, nowEnabled);
             localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, [...selectedEventTypes].join(""));
-            updateTrackdaysVisibilityProperty();
-            updateTrackIcons(true);
-            updateTrackPopup();
-            updateCalendar();
-            updateDropdown();
+            refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
           });
         }
 
-        [priceSliderElement, minDateElement, maxDateElement, daySelectElement].forEach(elem => 
+        [minDateElement, maxDateElement, daySelectElement].forEach(elem => 
           elem.addEventListener("change", () => {
-            updateTrackdaysVisibilityProperty();
-            updateTrackIcons(true);
-            updateTrackPopup();
-            updateCalendar();
+            refresh({trackVisibility: true, popup: true, calendar: true});
           })
         );
 
@@ -904,13 +1128,13 @@
           let nowEnabled = !showTracksWithoutEventsToggleElement.classList.contains("on");
           if (nowEnabled) {
             showTracksWithoutEventsToggleElement.classList.add("on");
-            showTracksWithoutEventsToggleElement.innerText = showTracksWithoutEventsToggleElement.innerText.replace("Hide", "Show");
           } else {
             showTracksWithoutEventsToggleElement.classList.remove("on");
-            showTracksWithoutEventsToggleElement.innerText = showTracksWithoutEventsToggleElement.innerText.replace("Show", "Hide");
           }
-          updateTrackIcons(true);
+          setFilterToggleLabel(showTracksWithoutEventsToggleElement, nowEnabled);
+          refresh({trackVisibility: true});
         });
+        setFilterToggleLabel(showTracksWithoutEventsToggleElement, showTracksWithoutEventsToggleElement.classList.contains("on"));
 
         exportSavedEventsElement.addEventListener("click", () => {
           downloadSavedEventsICS();
@@ -933,26 +1157,44 @@
           showMotoEventsButton.classList.add("on");
           showSumoEventsButton.classList.add("on");
           showCarEventsButton.classList.add("on");
+          setFilterToggleLabel(showMotoEventsButton, true);
+          setFilterToggleLabel(showSumoEventsButton, true);
+          setFilterToggleLabel(showCarEventsButton, true);
           selectedVehicleTypes = new Set(Object.keys(vehicleTypeMap));
           localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(vehicleTypeMap).join(""));
 
           showTrackdaysToggleElement.classList.add("on");
           showSchoolsToggleElement.classList.add("on");
           showRacesToggleElement.classList.add("on");
+          setFilterToggleLabel(showTrackdaysToggleElement, true);
+          setFilterToggleLabel(showSchoolsToggleElement, true);
+          setFilterToggleLabel(showRacesToggleElement, true);
           selectedEventTypes = new Set(Object.keys(eventTypeMap));
           localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, Object.keys(eventTypeMap).join(""));
+          homeMarker.setIcon(homeIconCar);
 
           Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
           showTracksWithoutEventsToggleElement.classList.add("on");
+          setFilterToggleLabel(showTracksWithoutEventsToggleElement, true);
           Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
 
-          priceSliderElement.value = maxObservedPrice;
-          displayedPriceElement.innerText = priceSliderElement.value;
           minDateElement.value = dayjs().format("YYYY-MM-DD");
           maxDateElement.value = "";
           updateMinDateVar();
           updateMaxDateVar();
-          Array.from(daySelectElement.options).forEach((opt) => {opt.selected = true;});
+          Array.from(daySelectElement.options).forEach((opt) => {
+            opt.selected = true;
+            if (opt.listitemEl) {
+              opt.listitemEl.classList.add("checked");
+              opt.listitemEl.querySelector("input").checked = true;
+            }
+          });
+          let dayDropdown = daySelectElement.nextElementSibling;
+          if (dayDropdown) {
+            dayDropdown.refresh();
+            let daySelectAll = dayDropdown.querySelector(".multiselect-dropdown-all-selector input");
+            if (daySelectAll) daySelectAll.checked = true;
+          }
           resetHome();
         });
 
@@ -962,6 +1204,12 @@
         resetHome();
 
       } catch (error) {
+        document.getElementById("eventInfoText").style.display = "none";
+        const spinner = document.getElementById("eventInfoSpinner");
+        spinner.style.display = "block";
+        spinner.querySelector("span").innerText = "Unable to retrieve events.";
+        const loadingImg = spinner.querySelector("img");
+        if (loadingImg) loadingImg.style.display = "none";
         alert("Error: unable to retrieve data");
       }
     };
