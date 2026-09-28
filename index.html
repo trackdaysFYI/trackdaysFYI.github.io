@@ -60,8 +60,38 @@
     .gray {color: var(--muted)}
 
     #map {position: relative; width: 100%; height: 55vh; border: 3px solid var(--line);}
-    .popup table, .popup th, .popup td {font-size: 12.5px; border: 1px solid var(--muted); border-collapse: collapse; white-space: nowrap; margin: auto; padding: 2px;}
-    .popup .event-mark-checkbox {width: 1rem; height: 1rem; margin: 0; vertical-align: middle; cursor: pointer;}
+    .popup .event-mark-checkbox {width: 0.8rem; height: 0.8rem; margin: 0; vertical-align: middle; cursor: pointer;}
+    .leaflet-popup:has(.popup-timeline) .leaflet-popup-content-wrapper,
+    .leaflet-popup:has(.popup-timeline) .leaflet-popup-tip {background: #f6f4f1; border-radius: 14px;}
+    .leaflet-popup:has(.popup-timeline) .leaflet-popup-content {text-align: left; margin: 8px 10px; width: max-content; max-width: calc(100vw - 48px);}
+    .leaflet-popup:has(.popup-timeline) .leaflet-popup-content.leaflet-popup-scrolled {display: flex; flex-direction: column; overflow: hidden;}
+    .popup-timeline {display: flex; flex-direction: column; width: max-content; min-width: 240px; max-width: 100%; max-height: 100%; color: #1c2733; text-align: left;}
+    .leaflet-popup-scrolled > .popup-timeline {height: 100%; min-height: 0;}
+    .popup-timeline .popup-head {display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin: 0 0 6px;}
+    .popup-timeline .popup-head b {flex: 1 1 auto; min-width: 0; font-size: 15px; line-height: 1.2; text-align: left;}
+    .popup-timeline .popup-links {display: flex; gap: 2px; margin: 0; flex: 0 0 auto;}
+    .popup-timeline .popup-links a {display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px;}
+    .popup-timeline .popup-links svg {display: block; width: 16px; height: 16px;}
+    .popup-timeline .tl-scroll {flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; scrollbar-color: #b7aea3 transparent;}
+    .popup-timeline a {color: inherit;}
+    .popup-timeline .tl {position: relative; display: flex; flex-direction: column;}
+    .popup-timeline .tl::before {content: ""; position: absolute; left: 60px; top: 8px; bottom: 8px; width: 2px; background: #ddd6cc; border-radius: 1px;}
+    .popup-timeline .tl-item {display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 6px; align-items: center; padding: 1px 2px 1px 0;}
+    .popup-timeline .tl-row-link {display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 6px; align-items: center; min-width: 0; border-radius: 4px; text-decoration: none; color: inherit;}
+    .popup-timeline .tl-copy {display: flex; align-items: center; gap: 5px; min-width: 0; padding: 1px 6px; border-radius: 4px; background: #fff; line-height: 1.3;}
+    .popup-timeline a.tl-row-link:hover {background: #d9e8f6;}
+    .popup-timeline a.tl-row-link:hover .tl-copy {background: transparent;}
+    .popup-timeline .tl-item.is-saved .tl-copy {box-shadow: inset 3px 0 0 #22c55e;}
+    .popup-timeline .tl-mark {display: grid; grid-template-columns: 1fr 7px; align-items: center; column-gap: 5px; position: relative; z-index: 1;}
+    .popup-timeline .tl-date {font-size: 11px; font-weight: 700; text-transform: uppercase; color: #6d6256; text-align: right; line-height: 1;}
+    .popup-timeline .tl-dot {width: 7px; height: 7px; border-radius: 50%; background: #3973ac; box-shadow: 0 0 0 2px #f6f4f1;}
+    .popup-timeline .tl-item.is-saved .tl-dot {background: #22c55e;}
+    .popup-timeline .tl-dow {flex: 0 0 2.8em; width: 2.8em; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #3973ac;}
+    .popup-timeline .tl-host {flex: 0 1 auto; max-width: 16em; font-weight: 650; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+    .popup-timeline .tl-price {margin-left: auto; font-weight: 700; color: #157a42; font-size: 12px; white-space: nowrap;}
+    .popup-timeline .tl-meta {flex: 1 1 auto; min-width: 0; font-size: 12px; color: #5c6d7e; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+    .popup-timeline .empty {padding: 8px 0 2px; color: #6d6256; font-size: 13px; text-align: center;}
+    .popup-timeline .hidden-note {display: block; margin-top: 6px; font-size: 10px; color: #8a7d70; text-align: center;}
     .leaflet-container {font-family: unset}
     .leaflet-popup-content-wrapper, .leaflet-popup-tip {background: rgb(240, 240, 240);}
     .leaflet-popup-content {text-align: center; padding-right: 5px; margin: 8px 5px 8px 5px;}
@@ -378,6 +408,8 @@
         savedEventsSet.delete(key);
       }
       localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+      let item = checkbox.closest(".event-item");
+      if (item) item.classList.toggle("is-saved", checkbox.checked);
       if (typeof trackdays !== "undefined") {
         // do not refresh the open popup, so an accidental unsave can be checked again
         refresh({trackVisibility: true, calendar: true});
@@ -516,56 +548,50 @@
       let numTrackdaysBeforeFilter = trackdaysFiltered.length;
       trackdaysFiltered = trackdaysFiltered.filter(td => td.visibilityMap);
       let numTrackdaysHidden = numTrackdaysBeforeFilter - trackdaysFiltered.length;
-      let hasSubtracks = trackdaysFiltered.some(td => td.subtrack);
       let multipleVehicleTypes = (selectedVehicleTypes.size > 1);
       let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") && (selectedEventTypes.size > 1);
-      let hasPrices = trackdaysFiltered.some(td => td.price !== -1);
-      let hasNotes = trackdaysFiltered.some(td => td.note);
-      let tbody = trackdaysFiltered.map(td => {
-        let eventKey = getEventKey(td);
+      const eventLabel = {"T": "Trackday", "S": "School", "R": "Race"};
+      function rowMain(td, meta, price, mark) {
+        let copy = `<span class="tl-copy"><span class="tl-dow">${td.date.format("ddd")}</span><span class="tl-host allowSelect">${escapeHtml(td.org)}</span>${meta ? `<span class="tl-meta">${meta}</span>` : ""}${price ? `<span class="tl-price">${price}</span>` : ""}</span>`;
         let eventUrl = safeHttpUrl(td.url);
-        let dateCell = eventUrl ? `<a href="${eventUrl}" target="_blank">${td.date.format("MM/DD")}</a>` : td.date.format("MM/DD");
-        return `
-        <tr>
-          <td><input type="checkbox" class="event-mark-checkbox" title="Save" data-event-key="${encodeURIComponent(eventKey)}" ${savedEventsSet.has(eventKey) ? "checked" : ""} onchange="onEventSaveToggle(this)"></td>
-          <td>${dateCell}</td>
-          <td>${td.date.format("ddd")}</td>
-          <td>${escapeHtml(td.org)}</td>
-          ${multipleVehicleTypes ? `<td>${[...td.vehicleType].map(t => vehicleTypeMap[t]).join("/")}</td>` : ""}
-          ${multipleEventTypes ? `<td>${[...td.eventType].map(t => eventTypeMap[t]).join("/")}</td>` : ""}
-          ${hasSubtracks ? `<td>${td.subtrack ? escapeHtml(td.subtrack) : "-"}</td>` : ""}
-          ${hasNotes ? `<td>${td.note ? escapeHtml(td.note) : "-"}</td>` : ""}
-          ${hasPrices ? `<td>${td.price >= 0 ? "$" + escapeHtml(td.price) : "-"}</td>` : ""}
-        </tr>
-      `;
-      }).join("");
-      let tbl = (trackdaysFiltered.length === 0 ? `No Events Found<br>` :
-        `<table>
-          <thead><tr>
-          <th>✓</th>
-          <th>Date</th>
-          <th>Day</th>
-          <th>Host</th>
-          ${multipleVehicleTypes ? "<th>Vehicle</th>" : ""}
-          ${multipleEventTypes ? "<th>Type</th>" : ""}
-          ${hasSubtracks ? "<th>Circuit</th>" : ""}
-          ${hasNotes ? "<th>Note</th>" : ""}
-          ${hasPrices ? "<th>Price</th>" : ""}
-          </tr></thead>
-          <tbody>${tbody}</tbody>
-        </table>`);
+        if (eventUrl) return `<a class="tl-row-link" href="${eventUrl}" target="_blank">${mark}${copy}</a>`;
+        return `<div class="tl-row-link">${mark}${copy}</div>`;
+      }
+      function saveBox(eventKey) {
+        let saved = savedEventsSet.has(eventKey) ? "checked" : "";
+        return `<input type="checkbox" class="event-mark-checkbox" title="Save" data-event-key="${encodeURIComponent(eventKey)}" ${saved} onchange="onEventSaveToggle(this)">`;
+      }
+      function money(td) {
+        return td.price >= 0 ? "$" + escapeHtml(td.price) : "";
+      }
+      function detailText(td) {
+        let bits = [];
+        if (multipleVehicleTypes) bits.push([...td.vehicleType].map(t => vehicleTypeMap[t]).join("/"));
+        if (multipleEventTypes) bits.push([...td.eventType].map(t => eventLabel[t] || t).join("/"));
+        if (td.subtrack) bits.push(td.subtrack);
+        if (td.note) bits.push(td.note);
+        return bits.map(bit => escapeHtml(bit)).join(" · ");
+      }
       let directionsUrl = "https://www.google.com/maps?q=" + encodeURIComponent("directions " + track.name);
       let weatherUrl = "https://www.google.com/search?q=" + encodeURIComponent("weather " + track.name);
       let videoUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(track.name + " track") + "&sp=CAISAhAB";
       let nickname = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
-      mapMarkers[lastOpenedTrack].getPopup().setContent(
-        `<div class="popup">
-        <b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><br>
-        <a href="${escapeHtml(directionsUrl)}" target="_blank" title="Directions">${directionImg}</a>
-        <a href="${escapeHtml(weatherUrl)}" target="_blank" title="Weather">${weatherImg}</a>
-        <a href="${escapeHtml(videoUrl)}" target="_blank" title="Videos">${videoImg}</a>
-        <br>${tbl}${numTrackdaysHidden ? `<span style="font-size: 10px">${numTrackdaysHidden} Filtered Events Hidden</span>` : ""}
-        </div>`);
+      let hiddenNote = numTrackdaysHidden ? `<span class="hidden-note">${numTrackdaysHidden} Filtered Events Hidden</span>` : "";
+      let head = `<div class="popup-head"><b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><div class="popup-links"><a href="${escapeHtml(directionsUrl)}" target="_blank" title="Directions">${directionImg}</a><a href="${escapeHtml(weatherUrl)}" target="_blank" title="Weather">${weatherImg}</a><a href="${escapeHtml(videoUrl)}" target="_blank" title="Videos">${videoImg}</a></div></div>`;
+      let lastDate = "";
+      let rows = trackdaysFiltered.map((td) => {
+        let eventKey = getEventKey(td);
+        let saved = savedEventsSet.has(eventKey) ? " is-saved" : "";
+        let dateKey = td.date.format("YYYY-MM-DD");
+        let showDate = dateKey !== lastDate;
+        lastDate = dateKey;
+        let meta = detailText(td);
+        let price = money(td);
+        let mark = `<span class="tl-mark"><span class="tl-date">${showDate ? escapeHtml(td.date.format("MMM D")) : ""}</span><span class="tl-dot"></span></span>`;
+        return `<div class="event-item tl-item${saved}">${rowMain(td, meta, price, mark)}${saveBox(eventKey)}</div>`;
+      }).join("");
+      let list = trackdaysFiltered.length === 0 ? `<div class="empty">No Events Found</div>` : `<div class="tl">${rows}</div>`;
+      mapMarkers[lastOpenedTrack].getPopup().setContent(`<div class="popup popup-timeline">${head}<div class="tl-scroll">${list}${hiddenNote}</div></div>`);
     }
 
     function updateCalendar() {
@@ -934,10 +960,16 @@
         Object.keys(tracks).forEach((trackName) => {
           let track = tracks[trackName];
           mapMarkers[trackName] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
-          mapMarkers[trackName].bindPopup("", {maxHeight: 300, maxWidth: 450, closeButton: false});  // popup content updated on click
+          mapMarkers[trackName].bindPopup("", {maxHeight: 300, minWidth: 240, maxWidth: 420, closeButton: false});  // popup content updated on click
           mapMarkers[trackName].on("mousedown", (e) => {
             lastOpenedTrack = e.target.options.title.toUpperCase();
             updateTrackPopup();
+          });
+          // leaflet measures popup width before flex/scroll layout settles; remeasure after paint so text isn't truncated on first open
+          mapMarkers[trackName].on("popupopen", (e) => {
+            requestAnimationFrame(() => {
+              if (e.popup.isOpen()) e.popup.update();
+            });
           });
         });
 
