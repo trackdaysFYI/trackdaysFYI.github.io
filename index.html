@@ -557,21 +557,24 @@
           let savedClass = savedEventsSet.has(getEventKey(td)) ? "saved-calendar-event" : "";
           let label = `• ${tracks[td.track].nickname}${orgStr}`;
           let tooltip = `${price}${subtrackStr}${noteStr}`;
-          // caleandar wraps Title in <a href="Link">, so Title must not contain its own link.
+          // caleandar wraps Title in <a href="Link">, so Title must not contain its own link
           let calendarStr = `<span class="${savedClass}" title="${escapeHtml(tooltip)}">${escapeHtml(label)}</span>`;
           calendarEvents.push({Date: td.date.toDate(), Title: calendarStr, Link: escapeHtml(td.url)});
         }
       });
       calendar = document.getElementById("calendar");
       if (selectedMonth === undefined) {
-        selectedMonth = dayjs().toDate();
-      } else {
-        let monthStr = calendar.getElementsByClassName("cld-datetime")[0].innerText  // get selected month from calendar html before deletion - super hacky, oh well
-        selectedMonth = dayjs(monthStr, "MMMM YYYY").toDate();
+        selectedMonth = dayjs().startOf("month").toDate();
       }
       calendar.innerHTML = "";  // delete old calendar
       calendarObj = caleandar(calendar, calendarEvents, {Color: "#999999", LinkColor: "#ffffff", NavShow: true, DateTimeShow: true}, selectedMonth);
       updatePillCounts();
+    }
+
+    // caleandar moves between months on its own and replaces its markup, so track the month here
+    function shiftSelectedMonth(delta) {
+      if (selectedMonth === undefined) return;
+      selectedMonth = dayjs(selectedMonth).startOf("month").add(delta, "month").toDate();
     }
 
     function eventPassesSharedFilters(td) {
@@ -792,6 +795,12 @@
   </footer>
 
   <script>
+    document.getElementById("calendar").addEventListener("click", (event) => {
+      let nav = event.target.closest(".cld-rwd, .cld-fwd");
+      if (!nav) return;
+      shiftSelectedMonth(nav.classList.contains("cld-fwd") ? 1 : -1);
+    }, true);
+
     const headerAd = document.getElementById("fotosort-ad");
     const headerBuffer = document.getElementById("header-buffer");
     if (localStorage.getItem("headerAdClosed")) {
