@@ -251,12 +251,8 @@
 
       updateTrackDistances();
       updateSearchRadius(radiusValues[radiusSliderElement.value]);
-      updateTrackdaysVisibilityProperty();
-      updateTrackIcons(true);
-      updateTrackPopup();
       selectedMonth = undefined;  // updateCalendar updates to current month
-      updateCalendar();
-      updateDropdown();
+      refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
     }
 
     function milesBetween(lat1, lon1, lat2, lon2) {
@@ -368,10 +364,8 @@
       }
       localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
       if (typeof trackdays !== "undefined") {
-        updateTrackdaysVisibilityProperty();
-        updateTrackIcons(true);
-        updateCalendar();
         // do not refresh the open popup, so an accidental unsave can be checked again
+        refresh({trackVisibility: true, calendar: true});
       }
     }
 
@@ -618,6 +612,14 @@
         }
       });
       orgSelectElement.loadOptions();
+    }
+
+    function refresh({trackVisibility = false, popup = false, calendar = false, dropdown = false} = {}) {
+      updateTrackdaysVisibilityProperty();
+      updateTrackIcons(trackVisibility);
+      if (popup) updateTrackPopup();
+      if (calendar) updateCalendar();
+      if (dropdown) updateDropdown();
     }
 
     function updateMinDateVar() {
@@ -923,10 +925,7 @@
           searchCircle.setLatLng(latlng);
           searchCircleHandle.setLatLng(latlng);
           updateTrackDistances();
-          updateTrackdaysVisibilityProperty();
-          updateTrackIcons(false);
-          updateCalendar();
-          updateDropdown();
+          refresh({calendar: true, dropdown: true});
         });
 
         let travelDrag = false;
@@ -946,10 +945,7 @@
           map.getContainer().classList.remove("travel-dragging");
           map.off("mousemove", onTravelDrag);
           L.DomEvent.off(document, "mouseup", endTravelDrag);
-          updateTrackdaysVisibilityProperty();
-          updateTrackIcons(false);
-          updateCalendar();
-          updateDropdown();
+          refresh({calendar: true, dropdown: true});
         }
         searchCircleHandle.on("mousedown", (e) => {
           L.DomEvent.stop(e.originalEvent);
@@ -965,10 +961,7 @@
         });
 
         radiusSliderElement.addEventListener("change", () => {
-          updateTrackdaysVisibilityProperty();
-          updateTrackIcons(false);
-          updateCalendar();
-          updateDropdown();
+          refresh({calendar: true, dropdown: true});
         });
 
         minDateElement.addEventListener("input", () => {
@@ -983,10 +976,7 @@
           Array.from(orgSelectElement.options).forEach((opt) => {
             orgs[opt.value].dropdownSelected = opt.selected;
           });
-          updateTrackdaysVisibilityProperty();
-          updateTrackIcons(true);
-          updateTrackPopup();
-          updateCalendar();
+          refresh({trackVisibility: true, popup: true, calendar: true});
         });
 
         if (!localStorage.getItem(STORAGE_KEY_USER_VEHICLE_TYPES)) {  // new user or all vehicle types unselected
@@ -1022,11 +1012,7 @@
             if (selectedVehicleTypes.size > 0) {
               homeMarker.setIcon(selectedVehicleTypes.has("C") ? homeIconCar : homeIconMoto);
             }
-            updateTrackdaysVisibilityProperty();
-            updateTrackIcons(true);
-            updateTrackPopup();
-            updateCalendar();
-            updateDropdown();
+            refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
           });
         }
         if (selectedVehicleTypes.size === 0 || selectedVehicleTypes.has("C")) {
@@ -1051,20 +1037,13 @@
             }
             setFilterToggleLabel(buttonElement, nowEnabled);
             localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, [...selectedEventTypes].join(""));
-            updateTrackdaysVisibilityProperty();
-            updateTrackIcons(true);
-            updateTrackPopup();
-            updateCalendar();
-            updateDropdown();
+            refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
           });
         }
 
         [minDateElement, maxDateElement, daySelectElement].forEach(elem => 
           elem.addEventListener("change", () => {
-            updateTrackdaysVisibilityProperty();
-            updateTrackIcons(true);
-            updateTrackPopup();
-            updateCalendar();
+            refresh({trackVisibility: true, popup: true, calendar: true});
           })
         );
 
@@ -1076,7 +1055,7 @@
             showTracksWithoutEventsToggleElement.classList.remove("on");
           }
           setFilterToggleLabel(showTracksWithoutEventsToggleElement, nowEnabled);
-          updateTrackIcons(true);
+          refresh({trackVisibility: true});
         });
         setFilterToggleLabel(showTracksWithoutEventsToggleElement, showTracksWithoutEventsToggleElement.classList.contains("on"));
 
