@@ -657,9 +657,13 @@
         document.getElementById("syncInfo").innerHTML = "";
         showSyncInfo = false;
       } else {
-        let tbody = Object.values(orgs).map(org => {return `
+        let tbody = Object.values(orgs).map(org => {
+          let orgUrl = safeHttpUrl(org.url);
+          let name = escapeHtml(org.org);
+          let nameCell = orgUrl ? `<a href="${orgUrl}" target="_blank" style="color:inherit;">${name}</a>` : name;
+          return `
           <tr>
-            <td><a href="${org.url}" target="_blank" style="color:inherit;">${org.org}</a></td>
+            <td>${nameCell}</td>
             <td>${org.numEvents}</td>
             <td>${dayjs().to(org.syncTimeUTC)}</td>
           </tr>
