@@ -36,7 +36,16 @@
             -ms-user-select: text;
                 user-select: text;
     }
-    :root {font-family: "Noto Sans", sans-serif; line-height: 1.2; color:rgb(255, 255, 255); background-color: rgb(34,38,42);}
+    :root {
+      --accent: rgb(57, 115, 172);
+      --muted: rgb(176, 176, 176);
+      --line: rgb(100, 100, 100);
+      --soft: rgb(220, 220, 220);
+      font-family: "Noto Sans", sans-serif;
+      line-height: 1.2;
+      color: rgb(255, 255, 255);
+      background-color: rgb(34, 38, 42);
+    }
     body {margin: 0;}  /* no remove top/bottom page margin */
     hr {margin: 1rem 0; border: 0; border-top: 1px solid; opacity:0.25;}  /* divider */
     h1, h5 {margin-top: 0; margin-bottom: 0; font-weight: 500;}
@@ -48,10 +57,10 @@
     .container {max-width: 67em; padding: 1rem;}
     .lead {font-size: 1.1rem; font-weight: 300;}
     .center {margin-left: auto; margin-right: auto; text-align: center;}
-    .gray {color: rgb(176, 176, 176)}
+    .gray {color: var(--muted)}
 
-    #map {position: relative; width: 100%; height: 55vh; border: 3px solid rgb(100, 100, 100);}
-    .popup table, .popup th, .popup td {font-size: 12.5px; border: 1px solid rgb(176, 176, 176); border-collapse: collapse; white-space: nowrap; margin: auto; padding: 2px;}
+    #map {position: relative; width: 100%; height: 55vh; border: 3px solid var(--line);}
+    .popup table, .popup th, .popup td {font-size: 12.5px; border: 1px solid var(--muted); border-collapse: collapse; white-space: nowrap; margin: auto; padding: 2px;}
     .popup .event-mark-checkbox {width: 1rem; height: 1rem; margin: 0; vertical-align: middle; cursor: pointer;}
     .leaflet-container {font-family: unset}
     .leaflet-popup-content-wrapper, .leaflet-popup-tip {background: rgb(240, 240, 240);}
@@ -63,22 +72,22 @@
     .leaflet-container.travel-dragging,
     .leaflet-container.travel-dragging .search-radius-handle {cursor: grabbing;}
 
-    .cld-day::-webkit-scrollbar-thumb, .leaflet-popup-scrolled::-webkit-scrollbar-thumb {background-color: rgb(176, 176, 176);}  /* slider color */
-    .cld-day::-webkit-scrollbar {width: 6px; height: 6px; background-color: rgb(220, 220, 220);}  /* calendar slider size, background */
-    .leaflet-popup-scrolled::-webkit-scrollbar {width: 3px; height: 3px; background-color: rgb(220, 220, 220);}  /* popup slider size, background */
+    .cld-day::-webkit-scrollbar-thumb, .leaflet-popup-scrolled::-webkit-scrollbar-thumb {background-color: var(--muted);}  /* slider color */
+    .cld-day::-webkit-scrollbar {width: 6px; height: 6px; background-color: var(--soft);}  /* calendar slider size, background */
+    .leaflet-popup-scrolled::-webkit-scrollbar {width: 3px; height: 3px; background-color: var(--soft);}  /* popup slider size, background */
 
     .cld-main {position: relative; width: 100%; height: 0; padding-bottom: 60%; }
     .cld-main a {color: rgb(255, 0, 0); text-decoration: none;}
     .cld-datetime {max-width: 250px; margin: auto; overflow: hidden;}
     .cld-datetime .today {position: relative; float: left; width: calc(100% - 40px); margin: auto; text-align: center;}
-    .cld-nav svg {fill: rgb(220, 220, 220);}
-    .cld-nav:hover svg {fill: rgb(57, 115, 172);}
+    .cld-nav svg {fill: var(--soft);}
+    .cld-nav:hover svg {fill: var(--accent);}
     .cld-nav:hover {cursor: pointer;}
     .cld-rwd {float: left;}
     .cld-fwd {float: right;}
     .cld-labels, .cld-days {padding-left: 0;}
     .cld-label, .cld-day {box-sizing: border-box; display: inline-block; width: calc(100%/7); text-align: center;}
-    .cld-day {display: block; float: left; position: relative; margin: 0; padding: 3px; height: 68px; border: 1px solid rgb(220, 220, 220); overflow-y: auto;}
+    .cld-day {display: block; float: left; position: relative; margin: 0; padding: 3px; height: 68px; border: 1px solid var(--soft); overflow-y: auto;}
     .cld-day.today {border: 1px solid rgb(255, 0, 0);}
     .cld-day.nextMonth, .cld-day.prevMonth {opacity: 0;}
     .cld-number {font-size: 12.5px; margin: 0; text-align: left;}
@@ -90,11 +99,11 @@
 
     button {cursor: pointer;}
     input[type=range] {-webkit-appearance: none; opacity: 0.75;}
-    input[type=range]::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 1rem; height: 1rem; border-radius: 0.5rem; background: rgb(57, 115, 172); margin-top: -0.35rem;}
-    input[type=range]::-webkit-slider-runnable-track {height: 0.25rem; background-color: rgb(220, 220, 220); cursor: pointer;}
+    input[type=range]::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 1rem; height: 1rem; border-radius: 0.5rem; background: var(--accent); margin-top: -0.35rem;}
+    input[type=range]::-webkit-slider-runnable-track {height: 0.25rem; background-color: var(--soft); cursor: pointer;}
     input[type=range]:focus::-webkit-slider-thumb {box-shadow: 0 0 0 1px rgb(255, 255, 255), 0 0 0 0.2rem rgba(13, 110, 253, 0.2);}
-    input[type=checkbox] {accent-color: rgb(57, 115, 172);}
-    input[type=date] {background-color: rgb(220, 220, 220); font-family: "Noto Sans"; cursor: pointer;}
+    input[type=checkbox] {accent-color: var(--accent);}
+    input[type=date] {background-color: var(--soft); font-family: "Noto Sans"; cursor: pointer;}
 
     @media (max-width: 26em) {.mobileSqueeze > tbody > tr > td {display: block;}}
     @media (orientation:landscape) and (max-width: 800px) {#map {height: 80vh;}}
@@ -106,8 +115,8 @@
 
     button.colored {
       all: unset;
-      color: rgb(100, 100, 100);
-      border: 1px solid rgb(100, 100, 100);
+      color: var(--line);
+      border: 1px solid var(--line);
       box-sizing: border-box;  /* include border in width */
       text-align: center;
       cursor: pointer;
@@ -116,7 +125,7 @@
     #showMiniEvents {display: none !important;}
     button.colored.on {
       color: rgb(255, 255, 255);
-      background-color: rgba(57, 115, 172, 0.5);
+      background-color: rgb(from var(--accent) r g b / 0.5);
     }
     button.colored.big {
       width: 7em;
@@ -145,19 +154,19 @@
       height: 26px;
     }
 
-    .filter-label {font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: rgb(176, 176, 176);}
+    .filter-label {font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);}
     .segmented {display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%;}
     .segmented button.colored {width: auto; flex: 0 0 auto; white-space: nowrap; padding: 0.35rem 0.8rem; line-height: 1.35; margin: 0; border-radius: 999px;}
-    button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid rgb(57, 115, 172); outline-offset: 2px;}
-    .btn-action {background: transparent; color: rgb(220, 220, 220); border: 1px solid rgb(100, 100, 100); padding: 0.4rem 0.75rem; font: inherit; cursor: pointer;}
-    .btn-action:hover {border-color: rgb(57, 115, 172); color: white;}
+    button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
+    .btn-action {background: transparent; color: var(--soft); border: 1px solid var(--line); padding: 0.4rem 0.75rem; font: inherit; cursor: pointer;}
+    .btn-action:hover {border-color: var(--accent); color: white;}
     .multiselect-dropdown {min-width: 0; width: 100%; box-sizing: border-box;}
     .filter-bar {display: flex; flex-direction: column; align-items: stretch; gap: 12px; text-align: left; margin: 0 0 0.85rem; padding: 0.55rem 0 0.7rem; position: relative; z-index: 1100;}
     .filter-bar .multiselect-dropdown {border-radius: 999px; padding: 0.35rem 0.8rem; line-height: 1.35; cursor: pointer;}
     .filter-bar .multiselect-dropdown span.optext {background: transparent; color: white;}
-    .filter-bar .multiselect-dropdown:has(span.optext) {background-color: rgba(57, 115, 172, 0.5);}
+    .filter-bar .multiselect-dropdown:has(span.optext) {background-color: rgb(from var(--accent) r g b / 0.5);}
     .filter-bar .multiselect-dropdown-list-wrapper {border-radius: 10px; top: calc(100% + 6px);}
-    .filter-bar input[type=date] {background: transparent; color: rgb(220, 220, 220); border: 1px solid rgb(100, 100, 100); border-radius: 999px; box-sizing: border-box; font: inherit; font-size: 0.82rem; line-height: 1.35; padding: 0.32rem 0.2rem 0.32rem 0.6rem; color-scheme: dark; width: 7.5rem; flex: 0 0 auto;}
+    .filter-bar input[type=date] {background: transparent; color: var(--soft); border: 1px solid var(--line); border-radius: 999px; box-sizing: border-box; font: inherit; font-size: 0.82rem; line-height: 1.35; padding: 0.32rem 0.2rem 0.32rem 0.6rem; color-scheme: dark; width: 7.5rem; flex: 0 0 auto;}
     .filter-bar input[type=date]::-webkit-datetime-edit {padding: 0;}
     .filter-bar input[type=date]::-webkit-calendar-picker-indicator {cursor: pointer; opacity: 0.8; margin: 0; padding: 0;}
     .filter-bar .btn-action {border-radius: 999px; padding: 0.35rem 0.8rem; line-height: 1.35;}
@@ -173,11 +182,11 @@
     .date-row > .multiselect-dropdown span.maxselected {width: auto;}
     .date-row > .multiselect-dropdown .multiselect-dropdown-list-wrapper {width: 9.5rem; right: auto;}
     .slider-stack {display: flex; flex-direction: column; gap: 4px; width: auto;}
-    .slider-row {display: grid; grid-template-columns: auto minmax(0, 5.25rem) auto; align-items: center; gap: 0.5rem; box-sizing: border-box; max-width: 100%; min-height: 34px; border: 1px solid rgb(100, 100, 100); border-radius: 999px; padding: 0 0.75rem; color: rgb(220, 220, 220);}
+    .slider-row {display: grid; grid-template-columns: auto minmax(0, 5.25rem) auto; align-items: center; gap: 0.5rem; box-sizing: border-box; max-width: 100%; min-height: 34px; border: 1px solid var(--line); border-radius: 999px; padding: 0 0.75rem; color: var(--soft);}
     .slider-row input[type=range] {width: 100%; margin: 0; opacity: 1;}
     .slider-value {display: inline-block; min-width: 8ch; white-space: nowrap; font-variant-numeric: tabular-nums;}
     .date-row {display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.35rem; max-width: 100%;}
-    .date-row > span {line-height: 1; color: rgb(176, 176, 176);}
+    .date-row > span {line-height: 1; color: var(--muted);}
     #calendar {display: flow-root;}
     .calendar-export {display: flex; justify-content: center; width: 100%; clear: both; margin: 0.85rem 0 0.2rem;}
     .calendar-export .btn-action {border-radius: 999px; padding: 0.4rem 1.05rem; line-height: 1.35; font-size: 0.85rem;}
@@ -694,7 +703,7 @@
 </head>
 
 <body onLoad="getGPSLocation();">
-<div id="fotosort-ad" style="background-color: rgba(57, 115, 172, 0.5); color: whitesmoke; padding: 10px; text-align: center; position: relative;">
+<div id="fotosort-ad" style="background-color: rgb(from var(--accent) r g b / 0.5); color: whitesmoke; padding: 10px; text-align: center; position: relative;">
   <span>Are you a trackday or race photographer? Try out <a href="https://fotosort.com/" target="_blank" style="color: whitesmoke; font-weight: bold; text-decoration: underline;">FotoSort.com</a></span>
   <button id="close-ad" style="position: absolute; top: 5px; right: 10px; background: none; border: none; color: whitesmoke; font-size: 26px; cursor: pointer;" title="Don't show again">&times;</button>
 </div>
