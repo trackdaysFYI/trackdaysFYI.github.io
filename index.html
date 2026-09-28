@@ -221,6 +221,7 @@
     let isGPSLocation = false;
     let searchRadius, minDate, maxDate;
     let lastOpenedTrack, selectedMonth;
+    let tracks;
     const infiniteRadius = 0;
     const radiusValues = [];
     for (let miles = 50; miles <= 950; miles += 50) radiusValues.push(miles);
@@ -498,7 +499,7 @@
       let numTrackdaysHidden = numTrackdaysBeforeFilter - trackdaysFiltered.length;
       let hasSubtracks = trackdaysFiltered.some(td => td.subtrack);
       let multipleVehicleTypes = (selectedVehicleTypes.size > 1);
-      let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") & (selectedEventTypes.size > 1);
+      let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") && (selectedEventTypes.size > 1);
       let hasPrices = trackdaysFiltered.some(td => td.price !== -1);
       let hasNotes = trackdaysFiltered.some(td => td.note);
       let tbody = trackdaysFiltered.map(td => {
@@ -562,12 +563,12 @@
           calendarEvents.push({Date: td.date.toDate(), Title: calendarStr, Link: escapeHtml(td.url)});
         }
       });
-      calendar = document.getElementById("calendar");
+      let calendar = document.getElementById("calendar");
       if (selectedMonth === undefined) {
         selectedMonth = dayjs().startOf("month").toDate();
       }
       calendar.innerHTML = "";  // delete old calendar
-      calendarObj = caleandar(calendar, calendarEvents, {Color: "#999999", LinkColor: "#ffffff", NavShow: true, DateTimeShow: true}, selectedMonth);
+      let calendarObj = caleandar(calendar, calendarEvents, {Color: "#999999", LinkColor: "#ffffff", NavShow: true, DateTimeShow: true}, selectedMonth);
       updatePillCounts();
     }
 
@@ -906,7 +907,7 @@
 
         // create track markers
         Object.keys(tracks).forEach((trackName) => {
-          track = tracks[trackName];
+          let track = tracks[trackName];
           mapMarkers[trackName] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
           mapMarkers[trackName].bindPopup("", {maxHeight: 300, maxWidth: 450, closeButton: false});  // popup content updated on click
           mapMarkers[trackName].on("mousedown", (e) => {
