@@ -659,6 +659,10 @@
 
     function saveRecordDraft(form) {
       recordsUi.draft = readRecordForm(form);
+    }
+
+    function onRecordFormInput(form) {
+      saveRecordDraft(form);
       if (recordsUi.formMessage && recordsUi.formMessage.kind === "err") {
         recordsUi.formMessage = null;
         let msg = form.querySelector(".rec-form-msg");
@@ -779,7 +783,7 @@
       let message = recordsUi.formMessage ? `<div class="rec-form-msg ${recordsUi.formMessage.kind}">${escapeHtml(recordsUi.formMessage.text)}</div>` : "";
       let field = (label, inner) => `<label class="rec-field"><span>${label}</span>${inner}</label>`;
       let input = (name, value, attrs) => `<input name="${name}" value="${escapeHtml(value)}" ${attrs}>`;
-      return `<form id="lap-record-form" class="rec-form" autocomplete="off" novalidate oninput="saveRecordDraft(this)" onsubmit="submitLapRecord(event)">
+      return `<form id="lap-record-form" class="rec-form" autocomplete="off" novalidate oninput="onRecordFormInput(this)" onsubmit="submitLapRecord(event)">
         ${message}
         <input type="hidden" name="vehicleType" value="${escapeHtml(draft.vehicleType)}">
         <div class="rec-types">${typeButtons}</div>
@@ -920,6 +924,17 @@
       let popup = mapMarkers[lastOpenedTrack].getPopup();
       popup.options.maxHeight = SHOW_LAP_RECORDS && recordsUi.adding ? 480 : 300;
       popup.setContent(`<div class="popup popup-timeline">${head}${tabs}<div class="tl-scroll">${body}</div></div>`);
+      let holdForm = SHOW_LAP_RECORDS && recordsUi.adding;
+      popup.options.closeOnClick = holdForm ? false : undefined;
+      if (typeof map !== "undefined") {
+        if (holdForm) map.off("preclick", popup.close, popup);
+        else if (!map.listens("preclick", popup.close, popup)) map.on("preclick", popup.close, popup);
+        Object.values(mapMarkers).forEach((marker) => {
+          if (!marker._openPopup) return;
+          if (holdForm) marker.off("click", marker._openPopup);
+          else if (!marker.listens("click", marker._openPopup)) marker.on("click", marker._openPopup);
+        });
+      }
       if (recordsUi.adding || recordsUi.formMessage) {
         let popupEl = popup.getElement();
         if (popupEl) {
@@ -1300,6 +1315,10 @@
           mapMarkers[trackName] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
           mapMarkers[trackName].bindPopup("", {maxHeight: 300, minWidth: 240, maxWidth: 420, closeButton: false});  // popup content updated on click
           mapMarkers[trackName].on("mousedown", (e) => {
+            if (recordsUi.adding) {
+              L.DomEvent.stop(e);
+              return;
+            }
             let trackKey = e.target.options.title.toUpperCase();
             if (trackKey !== lastOpenedTrack) resetRecordForm();
             lastOpenedTrack = trackKey;
@@ -1537,7 +1556,10 @@
           resetHome();
         });
 
-        map.on("mousedown", () => {map.closePopup();});
+        map.on("mousedown", () => {
+          if (recordsUi.adding) return;
+          map.closePopup();
+        });
 
         alertOnMissingSavedEvents();
         resetHome();
