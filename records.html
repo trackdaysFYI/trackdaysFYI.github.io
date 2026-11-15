@@ -47,6 +47,7 @@
     th {position: sticky; top: 0; z-index: 1; background: rgb(34, 38, 42); color: var(--muted); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 650;}
     th[hidden] {display: none;}
     td.time {font-variant-numeric: tabular-nums;}
+    td.time .gap {margin-left: 0.45rem; color: var(--muted); font-size: 0.82rem;}
     td.vehicle {white-space: normal; min-width: 10rem;}
     tr.group td {padding-top: 0.9rem; border-bottom-color: transparent; color: var(--soft); font-size: 0.72rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase;}
     .empty {padding: 1.5rem 0.6rem; color: var(--muted); text-align: center;}
@@ -110,13 +111,14 @@
   </div>
   <script>
     const RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
-    const TRACKS_URL = "https://37lke1xhn3.execute-api.us-east-1.amazonaws.com/getTrackdaysTest";
+    const TRACKS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays?include=tracks";
     const VEHICLE_LABELS = {C: "Car", M: "Moto", S: "Sumo"};
     const LAP_TIME_RE = /^(?:\d{1,3}:[0-5]\d|[0-5]?\d)\.\d{1,3}$/;
 
     let records = [];
     let trackNames = {};
     let viewMode = "class";
+    let paramsApplied = false;
     const trackSelect = document.getElementById("track");
     const nameInput = document.getElementById("name");
     const vehicleSelect = document.getElementById("vehicle");
@@ -213,11 +215,37 @@
       });
     }
 
-    function setTrackParam(track) {
+    function syncParams() {
       let url = new URL(location.href);
-      if (track) url.searchParams.set("track", track);
-      else url.searchParams.delete("track");
+      let set = (key, value) => {
+        if (value) url.searchParams.set(key, value);
+        else url.searchParams.delete(key);
+      };
+      set("track", trackSelect.value);
+      set("vehicle", vehicleSelect.value);
+      set("class", classSelect.value);
+      set("subtrack", subtrackSelect.value);
+      set("q", nameInput.value.trim());
+      set("view", viewMode === "time" ? "time" : "class");
       history.replaceState(null, "", url);
+    }
+
+    function applyParams() {
+      let params = new URLSearchParams(location.search);
+      let vehicle = params.get("vehicle") || "";
+      if ([...vehicleSelect.options].some(option => option.value === vehicle)) vehicleSelect.value = vehicle;
+      nameInput.value = params.get("q") || "";
+      viewMode = params.get("view") === "time" ? "time" : "class";
+      viewClassButton.classList.toggle("on", viewMode === "class");
+      viewTimeButton.classList.toggle("on", viewMode === "time");
+    }
+
+    function applyDependentParams() {
+      let params = new URLSearchParams(location.search);
+      let vehicleClass = params.get("class") || "";
+      let subtrack = params.get("subtrack") || "";
+      if ([...classSelect.options].some(option => option.value === vehicleClass)) classSelect.value = vehicleClass;
+      if ([...subtrackSelect.options].some(option => option.value === subtrack)) subtrackSelect.value = subtrack;
     }
 
     function compareRecords(a, b) {
@@ -226,15 +254,25 @@
       return trackLabel(a.track).localeCompare(trackLabel(b.track)) || String(a.vehicleClass).localeCompare(String(b.vehicleClass));
     }
 
-    function recordRow(record, includeClass) {
+    function formatGap(ms) {
+      ms = Math.round(ms);
+      let minutes = Math.floor(ms / 60000);
+      let seconds = ((ms % 60000) / 1000).toFixed(3);
+      if (!minutes) return `+${seconds}`;
+      let [whole, frac] = seconds.split(".");
+      return `+${minutes}:${whole.padStart(2, "0")}.${frac}`;
+    }
+
+    function recordRow(record, includeClass, gapMs) {
       let detail = [record.vehicleYear, record.vehicleMake, record.vehicleModel].filter(value => value != null && value !== "").join(" ");
       let type = VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "";
       let vehicle = [type, detail].filter(Boolean).join(" · ");
       let evidence = safeHttpUrl(record.evidence);
       let evidenceCell = evidence ? `<a href="${escapeHtml(evidence)}" target="_blank" rel="noopener">View</a>` : "";
       let classCell = includeClass ? `<td>${escapeHtml(record.vehicleClass || "")}</td>` : "";
+      let gap = gapMs == null ? "" : ` <span class="gap">${formatGap(gapMs)}</span>`;
       return `<tr>
-        <td class="time">${escapeHtml(record.time || "")}</td>
+        <td class="time">${escapeHtml(record.time || "")}${gap}</td>
         <td>${escapeHtml(trackLabel(record.track))}</td>
         <td>${escapeHtml(record.subtrack || "")}</td>
         <td class="vehicle">${escapeHtml(vehicle)}</td>
@@ -248,7 +286,12 @@
     function classGroups(shown) {
       let groups = new Map();
       shown.forEach(record => {
-        let key = `${record.vehicleType || ""}\0${record.vehicleClass || ""}`;
+        let key = [
+          String(record.track || "").toUpperCase(),
+          record.subtrack || "",
+          record.vehicleType || "",
+          record.vehicleClass || "",
+        ].join("\0");
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(record);
       });
@@ -258,6 +301,18 @@
         if (byTime !== 0) return byTime;
         return a[0].localeCompare(b[0]);
       });
+    }
+
+    function groupLabel(key, flags) {
+      let [track, subtrack, typeCode, className] = key.split("\0");
+      let type = VEHICLE_LABELS[typeCode] || typeCode || "";
+      let parts = [];
+      if (flags.track) parts.push(trackLabel(track));
+      if (flags.type && type) parts.push(type);
+      if (className) parts.push(className);
+      else if (!(flags.type && type)) parts.push(type);
+      if (flags.subtrack && subtrack) parts.push(subtrack);
+      return parts.filter(Boolean).join(" · ");
     }
 
     function renderRows() {
@@ -275,38 +330,62 @@
         rowsEl.innerHTML = shown.sort(compareRecords).map(record => recordRow(record, true)).join("");
         return;
       }
-      let showType = new Set(shown.map(record => record.vehicleType)).size > 1;
+      let flags = {
+        track: new Set(shown.map(record => String(record.track || "").toUpperCase())).size > 1,
+        type: new Set(shown.map(record => record.vehicleType)).size > 1,
+        subtrack: new Set(shown.map(record => record.subtrack || "")).size > 1,
+      };
       rowsEl.innerHTML = classGroups(shown).map(([key, rows]) => {
-        let [typeCode, className] = key.split("\0");
-        let type = VEHICLE_LABELS[typeCode] || typeCode || "";
-        let label = showType && type ? [type, className].filter(Boolean).join(" · ") : (className || type);
+        let label = groupLabel(key, flags);
         let head = `<tr class="group"><td colspan="${colspan}">${escapeHtml(label)}</td></tr>`;
-        return head + rows.sort(compareRecords).map(record => recordRow(record, false)).join("");
+        rows.sort(compareRecords);
+        let best = timeToMs(rows[0].time);
+        return head + rows.map((record, index) => {
+          let ms = timeToMs(record.time);
+          let gap = index === 0 || ms === Number.MAX_SAFE_INTEGER || best === Number.MAX_SAFE_INTEGER ? null : ms - best;
+          return recordRow(record, false, gap);
+        }).join("");
       }).join("");
     }
 
     function render() {
+      if (!paramsApplied) applyParams();
       fillTrackSelect();
       fillDependentSelects();
+      if (!paramsApplied) {
+        applyDependentParams();
+        paramsApplied = true;
+      }
       renderRows();
     }
 
     trackSelect.addEventListener("change", () => {
-      setTrackParam(trackSelect.value);
       fillDependentSelects();
+      syncParams();
       renderRows();
     });
     vehicleSelect.addEventListener("change", () => {
       fillDependentSelects();
+      syncParams();
       renderRows();
     });
-    classSelect.addEventListener("change", renderRows);
-    subtrackSelect.addEventListener("change", renderRows);
-    nameInput.addEventListener("input", renderRows);
+    classSelect.addEventListener("change", () => {
+      syncParams();
+      renderRows();
+    });
+    subtrackSelect.addEventListener("change", () => {
+      syncParams();
+      renderRows();
+    });
+    nameInput.addEventListener("input", () => {
+      syncParams();
+      renderRows();
+    });
     function setView(mode) {
       viewMode = mode;
       viewClassButton.classList.toggle("on", mode === "class");
       viewTimeButton.classList.toggle("on", mode === "time");
+      syncParams();
       renderRows();
     }
     viewClassButton.addEventListener("click", () => setView("class"));
