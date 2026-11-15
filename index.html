@@ -637,7 +637,7 @@
       lapRecords.tracks[trackKey] = {records: [], loading: true, loaded: false, error: ""};
       if (lastOpenedTrack === trackKey) updateTrackPopup();
       try {
-        let res = await fetch(LAP_RECORDS_URL + "?track=" + encodeURIComponent(trackKey));
+        let res = await fetch(LAP_RECORDS_URL + "?track=" + encodeURIComponent(trackKey) + "&maxPerClass=3");
         if (recordLoads[trackKey] !== token) return;
         if (!res.ok) {
           let failure = new Error("HTTP " + res.status);
