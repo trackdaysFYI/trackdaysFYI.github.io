@@ -985,9 +985,9 @@
         body = recordsUi.open ? recordsListHtml(lastOpenedTrack) : (list + hiddenNote);
       }
       let popup = mapMarkers[lastOpenedTrack].getPopup();
-      popup.options.maxHeight = SHOW_LAP_RECORDS && recordsUi.adding ? 480 : 300;
+      let holdForm = SHOW_LAP_RECORDS && recordsUi.open && recordsUi.adding;
+      popup.options.maxHeight = holdForm ? 480 : 300;
       popup.setContent(`<div class="popup popup-timeline">${head}${tabs}<div class="tl-scroll">${body}</div></div>`);
-      let holdForm = SHOW_LAP_RECORDS && recordsUi.adding;
       popup.options.closeOnClick = holdForm ? false : undefined;
       if (typeof map !== "undefined") {
         if (holdForm) map.off("preclick", popup.close, popup);
@@ -1374,7 +1374,7 @@
           mapMarkers[trackName] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
           mapMarkers[trackName].bindPopup("", {maxHeight: 300, minWidth: 240, maxWidth: 420, closeButton: false});  // popup content updated on click
           mapMarkers[trackName].on("mousedown", (e) => {
-            if (recordsUi.adding) {
+            if (recordsUi.open && recordsUi.adding) {
               L.DomEvent.stop(e);
               return;
             }
@@ -1616,7 +1616,7 @@
         });
 
         map.on("mousedown", () => {
-          if (recordsUi.adding) return;
+          if (recordsUi.open && recordsUi.adding) return;
           map.closePopup();
         });
 
