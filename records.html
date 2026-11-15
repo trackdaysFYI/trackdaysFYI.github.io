@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Lap records from trackdays.fyi">
+  <title>Lap Records - Trackdays.fyi</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent: rgb(57, 115, 172);
+      --muted: rgb(176, 176, 176);
+      --line: rgb(100, 100, 100);
+      --soft: rgb(220, 220, 220);
+      font-family: "Noto Sans", sans-serif;
+      line-height: 1.35;
+      color: rgb(255, 255, 255);
+      background-color: rgb(34, 38, 42);
+    }
+    * {box-sizing: border-box;}
+    body {margin: 0;}
+    a {color: var(--accent);}
+    header {display: flex; align-items: center; gap: 1.25rem; padding: 1.1rem 1.25rem 0.4rem;}
+    a.brand {display: flex; align-items: center; gap: 0.55rem; color: var(--muted); text-decoration: none; font-size: 1.7rem; font-weight: 500; line-height: 1;}
+    a.brand:hover {color: white;}
+    a.brand svg {display: block; height: auto;}
+    a.brand b {font-weight: 650; color: var(--soft);}
+    h1 {margin: 0; font-size: 1.15rem; font-weight: 500; color: var(--muted);}
+    .filters {display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: end; padding: 0.6rem 1.25rem 0.9rem;}
+    label {display: flex; flex-direction: column; gap: 0.25rem; min-width: 9rem; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);}
+    label.search {flex: 1 1 14rem;}
+    input, select {width: 100%; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--soft); font: inherit; font-size: 0.9rem; letter-spacing: 0; text-transform: none; padding: 0.4rem 0.8rem;}
+    input:focus, select:focus {outline: 2px solid var(--accent); outline-offset: 2px;}
+    select option {color: #1c2733;}
+    .status {margin: 0; color: var(--muted); font-size: 0.85rem;}
+    .status.err {color: #e07a6a;}
+    .results-bar {display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 1.25rem 0.6rem;}
+    .view-switch {display: flex; gap: 4px;}
+    .view-switch button {border: 0; border-radius: 999px; padding: 0.25rem 0.7rem; font: inherit; font-size: 0.8rem; font-weight: 650; color: var(--muted); background: transparent; cursor: pointer;}
+    .view-switch button.on {color: white; background: var(--accent);}
+    .table-wrap {overflow: auto; max-height: calc(100vh - 11rem); padding: 0 1.25rem 1rem;}
+    table {width: 100%; border-collapse: collapse; font-size: 0.92rem;}
+    th, td {padding: 0.45rem 0.6rem; text-align: left; border-bottom: 1px solid rgb(54, 58, 64); white-space: nowrap;}
+    th {position: sticky; top: 0; z-index: 1; background: rgb(34, 38, 42); color: var(--muted); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 650;}
+    th[hidden] {display: none;}
+    td.time {font-variant-numeric: tabular-nums;}
+    td.vehicle {white-space: normal; min-width: 10rem;}
+    tr.group td {padding-top: 0.9rem; border-bottom-color: transparent; color: var(--soft); font-size: 0.72rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase;}
+    .empty {padding: 1.5rem 0.6rem; color: var(--muted); text-align: center;}
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="index.html">
+      <svg xmlns="http://www.w3.org/2000/svg" width="56" fill="#ff0000" fill-opacity="1.0" viewBox="0 162.7 950 624.6">
+        <path d="m949.9 741.3-.2-6.2-.3-6.3v-4.3h-.1v-.4l-.2-2.6-.8-10.5-.2-2.6-.4-3.5-.6-6.8-.7-6.8-.3-3.4-.4-3c-1.2-8.3-2.2-16.4-3.6-24.2l-2-11.5-2.3-10.9c-1.4-7-3.2-13.7-4.7-19.8L932 614l-1.2-4.3-2.2-7.9-2-6.8-1.9-5.9-2-6.4a5 5 0 0 0-6-3.2L756 625.2a5 5 0 0 0-3.5 5.7l.6 3.2.8 4 .7 4.7.8 5.4.5 3 .3 3c.5 4.2 1.1 8.6 1.4 13.5l.6 7.3.4 7.7c.3 5.2.3 10.7.4 16.1v3.9l-.2 3.6v3.6l-.1 1.8-.1 2.6-.5 10.5-.1 2.6v.4-1.6.2l-.1.5-.1 1-.4 4.1c0 1.4-.2 2.7-.3 4l-.5 4-1 8-1 7.5c-.5 2.4-1 4.8-1.3 7.1l-1.3 6.8-1.3 6.2a10470.2 10470.2 0 0 1-2 8.4l-.5 2.1-.3 1.2h196.4a5 5 0 0 0 5-4.7c0-3.7.3-7.4.4-11.3l.3-11.7v-12.1l-.1-6.2zm-51.1-206.2a5 5 0 0 0 2.6-6.7l-1.9-4A3091.8 3091.8 0 0 1 894 513l-4-8-2-4-2.3-4-4.6-8.5a30131.6 30131.6 0 0 1-8-13.7l-3-4.7-6.1-9.7c-4.4-6.5-8.7-13.2-13.6-19.8l-3.6-5-1.8-2.5-1.9-2.4-7.6-9.8c-2.5-3.3-5.2-6.5-7.8-9.6l-4-4.8-4-4.6-4-4.5-4-4.5-8.1-8.6-8-8a184 184 0 0 0-7.8-7.6l-7.5-7c-2.5-2.4-5-4.4-7.2-6.5l-6.7-5.8-6.1-5-5.5-4.5-4.6-3.7-5.2-4a5 5 0 0 0-6.8.8L652 437.4a5 5 0 0 0 .3 6.6l2.5 2.5c.9.9 2 1.8 3 3l3.4 3.6 3.9 4 4.1 4.7 4.5 5 4.6 5.7a105 105 0 0 1 4.8 6c1.6 2 3.3 4 4.9 6.3a44407.1 44407.1 0 0 1 7.2 10l2.4 3.6 2.4 3.5 2.3 3.6 4.6 7.3 4.4 7.4 1 1.8 1 1.9c.8 1.2 1.5 2.5 2.1 3.7 2.8 4.9 5.2 10 7.7 14.7 1 2.4 2.2 4.8 3.3 7.1l1.6 3.5 1.5 3.4 2.8 6.6 2.4 6.2 1.1 2.9 1 2.7 1.6 4.6 1.4 4 1.6 4.7 1.4 4.2a5 5 0 0 0 6.5 3l149.5-60zm-439-186.4 4.3.6 5 1c1.9.2 3.8.6 5.8 1 1.8.2 3.6.6 5.5 1L534.8 241l-8-1.2-5.3-.8-5.2-.6-10-1.2-9.4-.8c-3-.3-5.8-.6-8.6-.7l-7.7-.4c-2.5 0-4.7-.2-6.8-.3a44344.6 44344.6 0 0 0-12-.2 5 5 0 0 0-5 4.7l-5 103.6a5 5 0 0 0 4.2 5.1l3.8.5zM606 405.8l4.2 3 3.6 2.6 2 1.5 2 1.4 3.5 2.6a5 5 0 0 0 7-1.2l71-108.2a5 5 0 0 0-1.6-7l-3.8-2.2-2.1-1.2-2.5-1.4-6.6-3.6-7.4-4-7.9-4c-2.7-1.3-5.5-2.8-8.6-4.2l-9.2-4.2c-3.2-1.5-6.5-2.9-10-4.3-3.3-1.4-6.7-3-10.3-4.3l-2.7-1-30.7 133 4.9 3.2 5.2 3.5zm-241.6-57.6 4.1-.5a3448.5 3448.5 0 0 0 11.6-1.2l7.1-.5 3.4-.2 3.1-.2 5.5-.2 4.8-.1h9.4a5 5 0 0 0 5-5.3l-6.5-97.6a5 5 0 0 0-5.5-4.6l-4.4.6-5 .6-7.2 1-8 1.3-4.2.8-4.3.8-9 1.7-9.7 2.2-5 1.2-5.1 1.3-10.5 2.8-10.8 3.2-5.4 1.7-5.5 1.9-5.5 1.9c-1.8.6-3.7 1.2-5.5 2l-11 4.1-10.8 4.5-5.3 2.3-5.3 2.4-5.2 2.5-5.1 2.4-10 5c-3.2 1.6-6.3 3.5-9.4 5.1l-8.9 5-8.3 5-7.7 4.8-7 4.5c-2.2 1.5-4.2 3-6.2 4.2l-5.4 3.8c-1.7 1.1-3.1 2.3-4.5 3.3l-4.7 3.4a5 5 0 0 0-1.1 6.8l40.5 59.5a5 5 0 0 0 6.5 1.6l3.6-2.1c1.2-.7 2.5-1.5 4-2.2l4.8-2.5 5.4-2.8 6-3 6.7-3.1c2.4-1 4.8-2 7.2-3.2l7.7-3.1c2.6-1 5.2-2.2 8-3.2l8.4-3 4.3-1.4 4.3-1.4 4.4-1.4 4.4-1.3c3-.8 6-1.8 9-2.5l9-2.3 4.5-1 4.4-1 4.5-.8 4.4-.8 8.6-1.5 8.4-1.2zm-276.2 77-3.2 4.5-3.2 4.6-3.2 4.7-6.1 9.4-6 9.6-1.4 2.4-1.4 2.4-2.7 4.8c-3.7 6.4-7 12.9-10.3 19l-4.5 9.3-2.2 4.5-2 4.4-3.8 8.5-3.4 8-3 7.5a11856.4 11856.4 0 0 1-4.7 12.7l-1.7 5-1.8 5.2a5 5 0 0 0 3 6.2l37.6 14.4a5 5 0 0 0 6.3-2.4l2-4.1 2-4.3 2.6-5 3-5.7 3.4-6.2 3.7-6.7 4.3-7 2.2-3.7 2.4-3.7 4.9-7.6c3.5-5 7-10.3 11-15.4l2.8-3.9 1.5-2 1.5-1.9 6-7.6 6.3-7.4c1-1.3 2-2.5 3.2-3.7l3.2-3.6a10712.4 10712.4 0 0 0 6.4-7l6.4-6.6c2.1-2.2 4.3-4.2 6.4-6.2 2-2 4-4 6.2-5.9l6-5.4c1.8-1.8 3.8-3.3 5.6-5l5.2-4.4 4.7-3.7 4-3.2 2-1.5a1416.5 1416.5 0 0 1 5.5-4.1 5 5 0 0 0 .8-7.2l-43-50.3a5 5 0 0 0-7.1-.3c-1 .8-2 1.9-3.2 3l-1.7 1.7-2 2-4.8 4.7-5.4 5.5-5.5 6-6 6.6-6.2 7.2-6.4 7.7-6.5 8.2a19619.3 19619.3 0 0 0-9.7 13zm-78 176.4-1 4.3-1 5-1 6.2-1.3 7.2-.6 3.9-.6 4c-.7 5.4-1.6 11.3-2.1 17.6l-1 9.6-.7 10c-.5 6.9-.6 14-.8 21l-.1 2.8v2.6a220415.3 220415.3 0 0 1 0 10.9v2.7l.2 2.7.4 10.9.1 2.7v.8l.1.7.1 1.3.4 5.2.4 5.1.5 5.3.5 5.3.3 2.5c0 .9.2 1.7.3 2.6l1.3 9.8 1.4 9.5c.4 3 1 6 1.5 8.8l.2.7a5 5 0 0 0 4.8 4h13.3a5 5 0 0 0 5-5.2l-.2-2.3-.5-8.5-.3-9a40192 40192 0 0 1 0-11.8V748l.1-4.8.1-4.9.3-5.1.2-5.2v-1.3l.1-.7c0-.3 0 .1 0 0v-.4l.3-2.5.8-10.1.2-2.6.3-2.5.5-5 .6-5 .3-2.5.4-2.5c1-6.5 1.8-13 3.1-19.2l1.7-9.1 2-8.7c1.1-5.6 2.6-10.9 3.9-15.7l.9-3.6 1-3.3 1.8-6L50 622l1.6-4.8L53 613a5 5 0 0 0-3.4-6.3l-33.3-8.9a5 5 0 0 0-6.1 3.8zm377.1 172.7A76.4 76.4 0 0 0 490 739c2.6-5.3 4.5-11 5.8-16.5l77.6-336.7L603 257.6l18.3-79.4c2-9.2-5.3-15.5-12.6-15.5a12 12 0 0 0-11.1 7.1L560.2 246l-55 112.4-153.1 313.3c-18.6 38-2.8 84 35.2 102.6zm36.5-108.5a37.6 37.6 0 1 1 0 75.2 37.6 37.6 0 0 1 0-75.2z"/>
+      </svg>
+      <span class="brand-name"><b>Trackdays</b>.fyi</span>
+    </a>
+    <h1>Lap Records</h1>
+  </header>
+  <div class="filters">
+    <label>Track
+      <select id="track"></select>
+    </label>
+    <label class="search">Search
+      <input id="name" type="search" placeholder="Holder or vehicle" autocomplete="off">
+    </label>
+    <label>Vehicle
+      <select id="vehicle">
+        <option value="">All</option>
+        <option value="C">Car</option>
+        <option value="M">Moto</option>
+        <option value="S">Sumo</option>
+      </select>
+    </label>
+    <label>Class
+      <select id="class"></select>
+    </label>
+    <label>Subtrack
+      <select id="subtrack"></select>
+    </label>
+  </div>
+  <div class="results-bar">
+    <p id="status" class="status">Loading lap records...</p>
+    <div class="view-switch" role="group" aria-label="Arrange records">
+      <button type="button" id="view-class" class="on">Class</button>
+      <button type="button" id="view-time">Time</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Track</th>
+          <th>Subtrack</th>
+          <th>Vehicle</th>
+          <th id="class-col">Class</th>
+          <th>Holder</th>
+          <th>Date</th>
+          <th>Evidence</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <script>
+    const RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
+    const TRACKS_URL = "https://37lke1xhn3.execute-api.us-east-1.amazonaws.com/getTrackdaysTest";
+    const VEHICLE_LABELS = {C: "Car", M: "Moto", S: "Sumo"};
+    const LAP_TIME_RE = /^(?:\d{1,3}:[0-5]\d|[0-5]?\d)\.\d{1,3}$/;
+
+    let records = [];
+    let trackNames = {};
+    let viewMode = "class";
+    const trackSelect = document.getElementById("track");
+    const nameInput = document.getElementById("name");
+    const vehicleSelect = document.getElementById("vehicle");
+    const classSelect = document.getElementById("class");
+    const subtrackSelect = document.getElementById("subtrack");
+    const classCol = document.getElementById("class-col");
+    const viewClassButton = document.getElementById("view-class");
+    const viewTimeButton = document.getElementById("view-time");
+    const statusEl = document.getElementById("status");
+    const rowsEl = document.getElementById("rows");
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      }[ch]));
+    }
+
+    function safeHttpUrl(value) {
+      try {
+        let url = new URL(String(value));
+        if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+        return url.href;
+      } catch (e) {
+        return "";
+      }
+    }
+
+    function timeToMs(time) {
+      let text = String(time).trim();
+      if (!LAP_TIME_RE.test(text)) return Number.MAX_SAFE_INTEGER;
+      let colon = text.indexOf(":");
+      let minutes = 0;
+      let seconds = text;
+      if (colon !== -1) {
+        minutes = Number(text.slice(0, colon));
+        seconds = text.slice(colon + 1);
+      }
+      return minutes * 60000 + Number(seconds) * 1000;
+    }
+
+    function trackKey() {
+      return trackSelect.value;
+    }
+
+    function trackLabel(key) {
+      return trackNames[key] || key;
+    }
+
+    function scopedRecords() {
+      let vehicle = vehicleSelect.value;
+      let track = trackKey();
+      return records.filter(record => {
+        if (track && String(record.track).toUpperCase() !== track) return false;
+        if (vehicle && record.vehicleType !== vehicle) return false;
+        return true;
+      });
+    }
+
+    function fillSelect(select, values, allLabel) {
+      let current = select.value;
+      let options = values.map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("");
+      select.innerHTML = `<option value="">${escapeHtml(allLabel)}</option>${options}`;
+      select.value = values.includes(current) ? current : "";
+    }
+
+    function fillTrackSelect() {
+      let current = trackKey() || (new URLSearchParams(location.search).get("track") || "").trim().toUpperCase();
+      let keys = [...new Set(records.map(record => String(record.track).toUpperCase()))];
+      if (current && !keys.includes(current)) keys.push(current);
+      keys.sort((a, b) => trackLabel(a).localeCompare(trackLabel(b)) || a.localeCompare(b));
+      let options = keys.map(key => `<option value="${escapeHtml(key)}">${escapeHtml(trackLabel(key))}</option>`).join("");
+      trackSelect.innerHTML = `<option value="">All tracks</option>${options}`;
+      trackSelect.value = keys.includes(current) ? current : "";
+    }
+
+    function fillDependentSelects() {
+      let scoped = scopedRecords();
+      let classes = [...new Set(scoped.map(record => record.vehicleClass || "").filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      let subtracks = [...new Set(scoped.map(record => record.subtrack || "").filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      fillSelect(classSelect, classes, "All classes");
+      fillSelect(subtrackSelect, subtracks, "All subtracks");
+    }
+
+    function filteredRecords() {
+      let query = nameInput.value.trim().toLowerCase();
+      let vehicleClass = classSelect.value;
+      let subtrack = subtrackSelect.value;
+      return scopedRecords().filter(record => {
+        if (vehicleClass && (record.vehicleClass || "") !== vehicleClass) return false;
+        if (subtrack && (record.subtrack || "") !== subtrack) return false;
+        if (!query) return true;
+        let name = [record.holder, record.vehicleYear, record.vehicleMake, record.vehicleModel].join(" ").toLowerCase();
+        return name.includes(query);
+      });
+    }
+
+    function setTrackParam(track) {
+      let url = new URL(location.href);
+      if (track) url.searchParams.set("track", track);
+      else url.searchParams.delete("track");
+      history.replaceState(null, "", url);
+    }
+
+    function compareRecords(a, b) {
+      let byTime = timeToMs(a.time) - timeToMs(b.time);
+      if (byTime !== 0) return byTime;
+      return trackLabel(a.track).localeCompare(trackLabel(b.track)) || String(a.vehicleClass).localeCompare(String(b.vehicleClass));
+    }
+
+    function recordRow(record, includeClass) {
+      let detail = [record.vehicleYear, record.vehicleMake, record.vehicleModel].filter(value => value != null && value !== "").join(" ");
+      let type = VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "";
+      let vehicle = [type, detail].filter(Boolean).join(" · ");
+      let evidence = safeHttpUrl(record.evidence);
+      let evidenceCell = evidence ? `<a href="${escapeHtml(evidence)}" target="_blank" rel="noopener">View</a>` : "";
+      let classCell = includeClass ? `<td>${escapeHtml(record.vehicleClass || "")}</td>` : "";
+      return `<tr>
+        <td class="time">${escapeHtml(record.time || "")}</td>
+        <td>${escapeHtml(trackLabel(record.track))}</td>
+        <td>${escapeHtml(record.subtrack || "")}</td>
+        <td class="vehicle">${escapeHtml(vehicle)}</td>
+        ${classCell}
+        <td>${escapeHtml(record.holder || "")}</td>
+        <td>${escapeHtml(record.date || "")}</td>
+        <td>${evidenceCell}</td>
+      </tr>`;
+    }
+
+    function classGroups(shown) {
+      let groups = new Map();
+      shown.forEach(record => {
+        let key = `${record.vehicleType || ""}\0${record.vehicleClass || ""}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(record);
+      });
+      return [...groups.entries()].sort((a, b) => {
+        let best = rows => Math.min(...rows.map(record => timeToMs(record.time)));
+        let byTime = best(a[1]) - best(b[1]);
+        if (byTime !== 0) return byTime;
+        return a[0].localeCompare(b[0]);
+      });
+    }
+
+    function renderRows() {
+      let shown = filteredRecords();
+      let byClass = viewMode === "class";
+      classCol.hidden = byClass;
+      let colspan = byClass ? 7 : 8;
+      statusEl.className = "status";
+      statusEl.textContent = `${shown.length} record${shown.length === 1 ? "" : "s"}`;
+      if (!shown.length) {
+        rowsEl.innerHTML = `<tr><td class="empty" colspan="${colspan}">No records match</td></tr>`;
+        return;
+      }
+      if (!byClass) {
+        rowsEl.innerHTML = shown.sort(compareRecords).map(record => recordRow(record, true)).join("");
+        return;
+      }
+      let showType = new Set(shown.map(record => record.vehicleType)).size > 1;
+      rowsEl.innerHTML = classGroups(shown).map(([key, rows]) => {
+        let [typeCode, className] = key.split("\0");
+        let type = VEHICLE_LABELS[typeCode] || typeCode || "";
+        let label = showType && type ? [type, className].filter(Boolean).join(" · ") : (className || type);
+        let head = `<tr class="group"><td colspan="${colspan}">${escapeHtml(label)}</td></tr>`;
+        return head + rows.sort(compareRecords).map(record => recordRow(record, false)).join("");
+      }).join("");
+    }
+
+    function render() {
+      fillTrackSelect();
+      fillDependentSelects();
+      renderRows();
+    }
+
+    trackSelect.addEventListener("change", () => {
+      setTrackParam(trackSelect.value);
+      fillDependentSelects();
+      renderRows();
+    });
+    vehicleSelect.addEventListener("change", () => {
+      fillDependentSelects();
+      renderRows();
+    });
+    classSelect.addEventListener("change", renderRows);
+    subtrackSelect.addEventListener("change", renderRows);
+    nameInput.addEventListener("input", renderRows);
+    function setView(mode) {
+      viewMode = mode;
+      viewClassButton.classList.toggle("on", mode === "class");
+      viewTimeButton.classList.toggle("on", mode === "time");
+      renderRows();
+    }
+    viewClassButton.addEventListener("click", () => setView("class"));
+    viewTimeButton.addEventListener("click", () => setView("time"));
+
+    function showError(message) {
+      statusEl.className = "status err";
+      statusEl.textContent = message;
+      rowsEl.innerHTML = "";
+    }
+
+    async function loadPage() {
+      let recordsResult;
+      let tracksResult;
+      try {
+        recordsResult = await fetch(RECORDS_URL);
+        if (!recordsResult.ok) throw new Error("HTTP " + recordsResult.status);
+        records = await recordsResult.json();
+        if (!Array.isArray(records)) throw new Error("Unable to load lap records.");
+      } catch (err) {
+        records = [];
+        showError(err && err.message && err.message.startsWith("HTTP ") ? err.message : "Unable to load lap records.");
+        return;
+      }
+      try {
+        tracksResult = await fetch(TRACKS_URL);
+        if (tracksResult.ok) {
+          let data = await tracksResult.json();
+          (data.tracks || []).forEach(track => {
+            if (!track.nickname) return;
+            trackNames[String(track.nickname).toUpperCase()] = track.name || track.nickname;
+          });
+        }
+      } catch (err) {
+        trackNames = {};
+      }
+      render();
+    }
+
+    loadPage();
+  </script>
+</body>
+</html>
