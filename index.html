@@ -116,8 +116,11 @@
     .popup-timeline .rec-tabs {display: flex; gap: 4px; margin: 0 0 6px;}
     .popup-timeline .rec-tabs button {flex: 1; border: 0; border-radius: 8px; padding: 4px 8px; font: inherit; font-size: 12px; font-weight: 650; color: #5c6d7e; background: transparent; cursor: pointer;}
     .popup-timeline .rec-tabs button.on {background: #fff; color: #1c2733;}
-    .popup-timeline .rec-add {margin-left: auto; border: 0; border-radius: 999px; padding: 2px 8px; font: inherit; font-size: 11px; font-weight: 650; color: #3973ac; background: transparent; cursor: pointer; white-space: nowrap;}
-    .popup-timeline .rec-add:hover {background: #fff;}
+    .popup-timeline .rec-actions {margin-left: auto; display: flex; gap: 2px; align-items: center;}
+    .popup-timeline .rec-add,
+    .popup-timeline a.rec-all {border: 0; border-radius: 999px; padding: 2px 8px; font: inherit; font-size: 11px; font-weight: 650; color: #3973ac; background: transparent; cursor: pointer; white-space: nowrap; text-decoration: none;}
+    .popup-timeline .rec-add:hover,
+    .popup-timeline a.rec-all:hover {background: #fff;}
     .popup-timeline .rec-form {display: flex; flex-direction: column; gap: 6px; min-width: 260px;}
     .popup-timeline .rec-form .rec-types {margin: 0;}
     .popup-timeline .rec-form-grid {display: grid; grid-template-columns: 1fr 1fr; gap: 6px;}
@@ -939,11 +942,13 @@
       if (recordsUi.adding) return recordFormHtml(trackKey);
       let notice = recordsUi.formMessage ? `<div class="rec-form-msg ${recordsUi.formMessage.kind}">${escapeHtml(recordsUi.formMessage.text)}</div>` : "";
       let add = `<button type="button" class="rec-add" onclick="openRecordForm()">Add a Lap Record</button>`;
+      let allRecords = `<a class="rec-all" href="records.html?track=${encodeURIComponent(trackKey)}" target="_blank" rel="noopener">All records</a>`;
+      let actions = `<span class="rec-actions">${allRecords}${add}</span>`;
       let entry = lapRecords.tracks && lapRecords.tracks[trackKey];
       let records = trackRecords(trackKey);
-      if (entry && entry.loading && !records.length) return `${notice}<div class="rec-types">${add}</div><div class="empty">Loading lap records...</div>`;
-      if (entry && entry.error && !records.length) return `${notice}<div class="rec-types">${add}</div><div class="empty">${escapeHtml(entry.error)}</div>`;
-      if (!records.length) return `${notice}<div class="rec-types">${add}</div><div class="empty">No Lap Records</div>`;
+      if (entry && entry.loading && !records.length) return `${notice}<div class="rec-types">${actions}</div><div class="empty">Loading lap records...</div>`;
+      if (entry && entry.error && !records.length) return `${notice}<div class="rec-types">${actions}</div><div class="empty">${escapeHtml(entry.error)}</div>`;
+      if (!records.length) return `${notice}<div class="rec-types">${actions}</div><div class="empty">No Lap Records</div>`;
       let types = typesInRecords(records);
       if (!types.includes(recordsUi.type)) recordsUi.type = preferredRecordType(types);
       let pills = types.map(code => `<button type="button" class="rec-type${recordsUi.type === code ? " on" : ""}" onclick="setRecordsType('${code}')">${escapeHtml(recordTypeLabel(code))}</button>`).join("");
@@ -991,7 +996,7 @@
         }).join("");
         return heading + body;
       }).join("");
-      return `<div class="rec-panel">${notice}<div class="rec-types">${pills}${add}</div>${groups}</div>`;
+      return `<div class="rec-panel">${notice}<div class="rec-types">${pills}${actions}</div>${groups}</div>`;
     }
 
     function updateTrackPopup({preserveDraft = true} = {}) {
