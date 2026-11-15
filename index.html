@@ -658,7 +658,7 @@
           error: err && err.status ? "HTTP " + err.status : "Unable to load lap records.",
         };
       }
-      if (lastOpenedTrack === trackKey && recordsUi.open && !recordsUi.adding) updateTrackPopup();
+      if (lastOpenedTrack === trackKey && recordsUi.open) updateTrackPopup();
     }
 
     function recordTypeLabel(code) {
@@ -694,6 +694,34 @@
     function recordClasses(code) {
       let info = lapRecords.vehicleTypes && lapRecords.vehicleTypes[code];
       return info && Array.isArray(info.classes) ? info.classes : [];
+    }
+
+    // hardcoded suggestions stay available - classes already on this track are ordered by their fastest lap; suggestions with no time yet follow in their original order
+    function formClasses(code, trackKey) {
+      let suggested = recordClasses(code);
+      let bestMs = new Map();
+      trackRecords(trackKey).forEach(record => {
+        if (record.vehicleType !== code) return;
+        let name = record.vehicleClass || record.class || "";
+        if (!name) return;
+        let ms = timeToMs(record.time);
+        if (!bestMs.has(name) || ms < bestMs.get(name)) bestMs.set(name, ms);
+      });
+      let suggestedIndex = new Map(suggested.map((name, index) => [name, index]));
+      let names = [...new Set([...suggested, ...bestMs.keys()])];
+      let noTime = Number.MAX_SAFE_INTEGER;
+      names.sort((a, b) => {
+        let aMs = bestMs.has(a) ? bestMs.get(a) : noTime;
+        let bMs = bestMs.has(b) ? bestMs.get(b) : noTime;
+        if (aMs !== bMs) return aMs - bMs;
+        if (aMs === noTime) {
+          let aIndex = suggestedIndex.has(a) ? suggestedIndex.get(a) : suggested.length;
+          let bIndex = suggestedIndex.has(b) ? suggestedIndex.get(b) : suggested.length;
+          if (aIndex !== bIndex) return aIndex - bIndex;
+        }
+        return a.localeCompare(b);
+      });
+      return names;
     }
 
     function resetRecordForm() {
@@ -755,7 +783,7 @@
       recordsUi.formMessage = null;
       recordsUi.draft = {
         vehicleType: type,
-        vehicleClass: recordClasses(type)[0] || "",
+        vehicleClass: formClasses(type, lastOpenedTrack)[0] || "",
         classIsCustom: false,
         vehicleYear: "",
         vehicleMake: "",
@@ -781,7 +809,7 @@
         saveRecordDraft(form);
       }
       if (!recordsUi.draft) return;
-      let classes = recordClasses(code);
+      let classes = formClasses(code, lastOpenedTrack);
       if (!classes.includes(recordsUi.draft.vehicleClass)) {
         recordsUi.draft.vehicleClass = classes[0] || "";
         recordsUi.draft.classIsCustom = false;
@@ -795,7 +823,7 @@
       if (draft.classIsCustom) {
         let name = draft.vehicleClass.trim();
         if (!name || name.length > 40) return "Enter a class";
-      } else if (!classes.includes(draft.vehicleClass)) {
+      } else if (!formClasses(draft.vehicleType, lastOpenedTrack).includes(draft.vehicleClass)) {
         return "Choose a class.";
       }
       let year = Number(draft.vehicleYear);
@@ -820,7 +848,7 @@
         vehicleMake: draft.vehicleMake.trim(),
         vehicleModel: draft.vehicleModel.trim(),
         subtrack: draft.subtrack.trim(),
-        time: draft.time.trim(),
+        time: formatLapTime(draft.time),
         holder: draft.holder.trim(),
         date: draft.date,
       };
@@ -865,7 +893,7 @@
 
     function recordFormHtml(trackKey) {
       let draft = recordsUi.draft || {};
-      let classes = recordClasses(draft.vehicleType);
+      let classes = formClasses(draft.vehicleType, trackKey);
       let customSelected = !!draft.classIsCustom;
       let typeButtons = ["C", "M"].filter(code => recordClasses(code).length).map(code => `<button type="button" class="rec-type${draft.vehicleType === code ? " on" : ""}" onclick="setRecordFormType('${code}')">${escapeHtml(recordTypeLabel(code))}</button>`).join("");
       let classOptions = classes.map(name => `<option value="${escapeHtml(name)}"${!customSelected && name === draft.vehicleClass ? " selected" : ""}>${escapeHtml(name)}</option>`).join("");
