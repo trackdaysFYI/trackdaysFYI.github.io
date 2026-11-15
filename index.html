@@ -676,8 +676,12 @@
 
     function setRecordsOpen(open) {
       recordsUi.open = open;
-      if (open) recordsUi.type = preferredRecordType();
-      updateTrackPopup();
+      if (open) {
+        recordsUi.type = preferredRecordType();
+        loadTrackRecords(lastOpenedTrack);
+      } else {
+        updateTrackPopup();
+      }
     }
 
     function setRecordsType(code) {
@@ -1381,7 +1385,8 @@
             let trackKey = e.target.options.title.toUpperCase();
             if (trackKey !== lastOpenedTrack) resetRecordForm();
             lastOpenedTrack = trackKey;
-            loadTrackRecords(trackKey);
+            if (recordsUi.open) loadTrackRecords(trackKey);
+            else updateTrackPopup();
           });
           // leaflet measures popup width before flex/scroll layout settles; remeasure after paint so text isn't truncated on first open
           mapMarkers[trackName].on("popupopen", (e) => {
