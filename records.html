@@ -51,6 +51,19 @@
     td.vehicle {white-space: normal; min-width: 10rem;}
     tr.group td {padding-top: 0.9rem; border-bottom-color: transparent; color: var(--soft); font-size: 0.72rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase;}
     .empty {padding: 1.5rem 0.6rem; color: var(--muted); text-align: center;}
+    .loading {display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem; min-height: calc(100vh - 6rem); color: var(--muted); font-size: 0.95rem; font-weight: 300; text-align: center;}
+    .loading-bar {width: 7.5rem; height: 2px; border-radius: 999px; background: var(--line); overflow: hidden;}
+    .loading-bar::before {content: ""; display: block; width: 40%; height: 100%; border-radius: inherit; background: var(--accent); animation: loading-slide 1.1s ease-in-out infinite;}
+    .loading.err {color: #e07a6a;}
+    .loading.err .loading-bar {display: none;}
+    .loading[hidden], #content[hidden] {display: none;}
+    #content {animation: records-in 220ms ease;}
+    @keyframes loading-slide {from {transform: translateX(-120%);} to {transform: translateX(280%);}}
+    @keyframes records-in {from {opacity: 0;} to {opacity: 1;}}
+    @media (prefers-reduced-motion: reduce) {
+      #content {animation: none;}
+      .loading-bar::before {animation: none; width: 100%; transform: none; opacity: 0.65;}
+    }
   </style>
 </head>
 <body>
@@ -63,6 +76,11 @@
     </a>
     <h1>Lap Records</h1>
   </header>
+  <div id="loading" class="loading" role="status" aria-live="polite">
+    <span class="loading-bar"></span>
+    <p>Loading lap records...</p>
+  </div>
+  <div id="content" hidden>
   <div class="filters">
     <label>Track
       <select id="track"></select>
@@ -86,7 +104,7 @@
     </label>
   </div>
   <div class="results-bar">
-    <p id="status" class="status">Loading lap records...</p>
+    <p id="status" class="status"></p>
     <div class="view-switch" role="group" aria-label="Arrange records">
       <button type="button" id="view-class" class="on">Class</button>
       <button type="button" id="view-time">Time</button>
@@ -109,6 +127,7 @@
       <tbody id="rows"></tbody>
     </table>
   </div>
+  </div>
   <script>
     const RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
     const TRACKS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays?include=tracks";
@@ -129,6 +148,8 @@
     const viewTimeButton = document.getElementById("view-time");
     const statusEl = document.getElementById("status");
     const rowsEl = document.getElementById("rows");
+    const loadingEl = document.getElementById("loading");
+    const contentEl = document.getElementById("content");
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, (ch) => ({
@@ -203,15 +224,15 @@
     }
 
     function filteredRecords() {
-      let query = nameInput.value.trim().toLowerCase();
+      let terms = nameInput.value.toLowerCase().split(",").map(term => term.trim()).filter(Boolean);
       let vehicleClass = classSelect.value;
       let subtrack = subtrackSelect.value;
       return scopedRecords().filter(record => {
         if (vehicleClass && (record.vehicleClass || "") !== vehicleClass) return false;
         if (subtrack && (record.subtrack || "") !== subtrack) return false;
-        if (!query) return true;
+        if (!terms.length) return true;
         let name = [record.holder, record.vehicleYear, record.vehicleMake, record.vehicleModel].join(" ").toLowerCase();
-        return name.includes(query);
+        return terms.some(term => name.includes(term));
       });
     }
 
@@ -391,10 +412,17 @@
     viewClassButton.addEventListener("click", () => setView("class"));
     viewTimeButton.addEventListener("click", () => setView("time"));
 
+    function showResults() {
+      loadingEl.hidden = true;
+      contentEl.hidden = false;
+    }
+
     function showError(message) {
       statusEl.className = "status err";
       statusEl.textContent = message;
       rowsEl.innerHTML = "";
+      loadingEl.classList.add("err");
+      loadingEl.querySelector("p").textContent = message;
     }
 
     async function loadPage() {
@@ -423,6 +451,7 @@
         trackNames = {};
       }
       render();
+      showResults();
     }
 
     loadPage();
