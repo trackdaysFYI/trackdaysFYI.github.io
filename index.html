@@ -96,10 +96,9 @@
     .popup-timeline .event-save-star[aria-pressed="true"] svg {fill: currentColor;}
     .popup-timeline .empty {padding: 8px 0 2px; color: #6d6256; font-size: 13px; text-align: center;}
     .popup-timeline .hidden-note {display: block; margin-top: 6px; font-size: 10px; color: #8a7d70; text-align: center;}
-    .popup-timeline .rec-types {display: flex; gap: 4px; margin: 0 0 6px; flex-wrap: wrap; align-items: center;}
-    .popup-timeline .rec-type {border: 0; border-radius: 999px; padding: 2px 8px; font: inherit; font-size: 11px; font-weight: 650; color: #5c6d7e; background: #ebe6df; cursor: pointer;}
-    .popup-timeline .rec-type.on {color: #fff; background: #3973ac;}
     .popup-timeline .rec-subhead {margin: 6px 0 2px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #8a7d70;}
+    .popup-timeline .rec-typehead {margin: 8px 0 2px; padding-top: 6px; border-top: 1px solid #e0d9d0; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #5c6d7e;}
+    .popup-timeline .rec-typehead.first {margin-top: 0; padding-top: 0; border-top: 0;}
     .popup-timeline .rec-row {display: grid; grid-template-columns: 6em 1em minmax(7em, 1fr) auto 16px; column-gap: 4px; align-items: center; padding: 2px 0; font-size: 12px;}
     .popup-timeline .rec-row.rec-follow {padding-top: 0;}
     .popup-timeline .rec-class {font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
@@ -116,28 +115,53 @@
     .popup-timeline .rec-tabs {display: flex; gap: 4px; margin: 0 0 6px;}
     .popup-timeline .rec-tabs button {flex: 1; border: 0; border-radius: 8px; padding: 4px 8px; font: inherit; font-size: 12px; font-weight: 650; color: #5c6d7e; background: transparent; cursor: pointer;}
     .popup-timeline .rec-tabs button.on {background: #fff; color: #1c2733;}
-    .popup-timeline .rec-actions {margin-left: auto; display: flex; gap: 2px; align-items: center;}
-    .popup-timeline .rec-add,
-    .popup-timeline a.rec-all {border: 0; border-radius: 999px; padding: 2px 8px; font: inherit; font-size: 11px; font-weight: 650; color: #3973ac; background: transparent; cursor: pointer; white-space: nowrap; text-decoration: none;}
-    .popup-timeline .rec-add:hover,
-    .popup-timeline a.rec-all:hover {background: #fff;}
-    .popup-timeline .rec-form {display: flex; flex-direction: column; gap: 6px; min-width: 260px;}
-    .popup-timeline .rec-form .rec-types {margin: 0;}
-    .popup-timeline .rec-form-grid {display: grid; grid-template-columns: 1fr 1fr; gap: 6px;}
-    .popup-timeline .rec-field {display: flex; flex-direction: column; gap: 2px; min-width: 0;}
-    .popup-timeline .rec-custom-class[hidden] {display: none;}
-    .popup-timeline .rec-field span {font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #8a7d70;}
-    .popup-timeline .rec-field input,
-    .popup-timeline .rec-field select {width: 100%; box-sizing: border-box; border: 0; border-radius: 6px; padding: 4px 6px; font: inherit; font-size: 12px; color: #1c2733; background: #fff;}
-    .popup-timeline .rec-form input[type=date] {background: #fff; color: #1c2733; color-scheme: light; font-family: inherit;}
-    .popup-timeline .rec-form-actions {display: flex; gap: 4px;}
-    .popup-timeline .rec-form-actions button {flex: 1; border: 0; border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 12px; font-weight: 650; cursor: pointer;}
-    .popup-timeline .rec-submit {color: #fff; background: #3973ac;}
-    .popup-timeline .rec-submit:disabled {opacity: 0.6; cursor: default;}
-    .popup-timeline .rec-cancel {color: #5c6d7e; background: #ebe6df;}
-    .popup-timeline .rec-form-msg {margin: 0 0 6px; font-size: 12px; text-align: center;}
-    .popup-timeline .rec-form-msg.ok {color: #157a42;}
-    .popup-timeline .rec-form-msg.err {color: #9a3b2f;}
+    .popup-timeline .rec-footer {position: relative; height: 1.3em; margin-top: 8px;}
+    .popup-timeline .rec-footer .rec-add,
+    .popup-timeline .rec-footer a.rec-all {position: absolute; top: 0; left: 70%; transform: translateX(-50%); border: 0; padding: 0; background: transparent; font: inherit; font-size: 11px; font-weight: 650; line-height: 1.3; color: #3973ac; text-decoration: none; cursor: pointer; white-space: nowrap;}
+    .popup-timeline .rec-footer a.rec-all {left: 30%;}
+    .popup-timeline .rec-footer .rec-add:only-child {left: 50%;}
+    .popup-timeline .rec-footer .rec-add:hover,
+    .popup-timeline .rec-footer a.rec-all:hover {text-decoration: underline;}
+    a.suggest-link {color: inherit; cursor: pointer; text-decoration-thickness: 1px;}
+    .popup-timeline .missing-event-link {display: block; width: 100%; margin-top: 6px; border: 0; padding: 0; background: transparent; font: inherit; font-size: 11px; font-weight: 650; color: #3973ac; text-align: center; cursor: pointer;}
+    .popup-timeline .missing-event-link:hover {text-decoration: underline;}
+    .suggest-dialog {width: min(26rem, calc(100vw - 2rem)); padding: 14px 14px 12px; border: 0; border-radius: 14px; background: #f6f4f1; color: #1c2733; text-align: left; box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);}
+    .suggest-dialog::backdrop {background: rgba(20, 22, 26, 0.55);}
+    .suggest-dialog, .suggest-dialog input, .suggest-dialog textarea, .suggest-dialog select {-webkit-user-select: text; -ms-user-select: text; user-select: text;}
+    .suggest-head {display: flex; align-items: center; gap: 8px; margin: 0 0 8px;}
+    .suggest-head b {flex: 1; font-size: 15px; font-weight: 650;}
+    .suggest-close {border: 0; border-radius: 8px; width: 28px; height: 28px; padding: 0; font: inherit; font-size: 18px; line-height: 1; color: #5c6d7e; background: transparent; cursor: pointer;}
+    .suggest-close:hover {background: #fff;}
+    .suggest-dialog .rec-form {display: flex; flex-direction: column; gap: 6px; position: relative;}
+    .suggest-dialog .rec-types {display: flex; gap: 4px; margin: 0; flex-wrap: wrap; align-items: center;}
+    .suggest-dialog .rec-type {border: 0; border-radius: 999px; padding: 2px 8px; font: inherit; font-size: 11px; font-weight: 650; color: #5c6d7e; background: #ebe6df; cursor: pointer;}
+    .suggest-dialog .rec-type.on {color: #fff; background: #3973ac;}
+    .suggest-dialog .rec-field {display: flex; flex-direction: column; gap: 2px; min-width: 0; position: relative;}
+    .suggest-dialog .rec-field[hidden] {display: none;}
+    .suggest-dialog .rec-field span {font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #8a7d70;}
+    .suggest-dialog .rec-field input,
+    .suggest-dialog .rec-field textarea,
+    .suggest-dialog .rec-field select {width: 100%; box-sizing: border-box; border: 0; border-radius: 6px; padding: 4px 6px; font: inherit; font-size: 12px; color: #1c2733; background: #fff;}
+    .suggest-dialog .rec-form-grid {display: grid; grid-template-columns: 1fr 1fr; gap: 6px;}
+    .suggest-dialog .rec-field input[type=date] {color-scheme: light;}
+    .suggest-dialog .suggest-date-row {display: flex; align-items: center; gap: 8px;}
+    .suggest-dialog .suggest-date-row input[type=date] {flex: 1 1 auto; width: auto; min-width: 0;}
+    .suggest-dialog .suggest-multi {display: flex; align-items: center; gap: 4px; flex: 0 0 auto; margin: 0; font-size: 12px; font-weight: 650; letter-spacing: 0; text-transform: none; color: #1c2733; white-space: nowrap; cursor: pointer;}
+    .suggest-dialog .suggest-multi input {width: auto; margin: 0; accent-color: #3973ac;}
+    .suggest-dialog .suggest-matches {display: flex; flex-direction: column; max-height: 7.5rem; overflow: auto; background: #fff; border-radius: 6px;}
+    .suggest-dialog .suggest-matches.overlay {position: absolute; top: 100%; left: 0; right: 0; z-index: 2; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);}
+    .suggest-dialog .suggest-matches[hidden] {display: none;}
+    .suggest-dialog .suggest-matches button {border: 0; background: transparent; text-align: left; padding: 3px 6px; font: inherit; font-size: 12px; color: #1c2733; cursor: pointer;}
+    .suggest-dialog .suggest-matches button:hover {background: #ebe6df;}
+    .suggest-dialog .rec-field textarea {resize: vertical; min-height: 2.6rem;}
+    .suggest-dialog .rec-form-actions {display: flex; gap: 4px; margin-top: 2px;}
+    .suggest-dialog .rec-form-actions button {flex: 1; border: 0; border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 12px; font-weight: 650; cursor: pointer;}
+    .suggest-dialog .rec-submit {color: #fff; background: #3973ac;}
+    .suggest-dialog .rec-submit:disabled {opacity: 0.6; cursor: default;}
+    .suggest-dialog .rec-cancel {color: #5c6d7e; background: #ebe6df;}
+    .suggest-dialog .rec-form-msg {margin: 0; font-size: 12px; text-align: center;}
+    .suggest-dialog .rec-form-msg.ok {color: #157a42;}
+    .suggest-dialog .rec-form-msg.err {color: #9a3b2f;}
     .leaflet-container {font-family: unset}
     .leaflet-popup-content-wrapper, .leaflet-popup-tip {background: rgb(240, 240, 240);}
     .leaflet-popup-content {text-align: center; padding-right: 5px; margin: 8px 5px 8px 5px;}
@@ -600,10 +624,12 @@
       tracks: {},
     };
     let recordLoads = {};
-    let recordsUi = {open: false, type: "C", adding: false, submitting: false, draft: null, formMessage: null};
     const SHOW_LAP_RECORDS = false;
+    let recordsUi = {open: false, submitting: false, submitId: 0};
     const LAP_RECORD_SUBMIT_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/submitLapRecord";
     const LAP_RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
+    const SUGGESTION_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/submitSuggestion";
+    let suggestUi = {kind: "track", submitting: false, submitId: 0, eventType: "T"};
 
     // m:ss.s–m:ss.sss, or ss.s–ss.sss when the lap is under a minute
     const LAP_TIME_RE = /^(?:\d{1,3}:[0-5]\d|[0-5]?\d)\.\d{1,3}$/;
@@ -632,6 +658,10 @@
     function trackRecords(trackKey) {
       let entry = lapRecords.tracks && lapRecords.tracks[trackKey];
       return entry && entry.records ? entry.records : [];
+    }
+
+    function recordClassName(record) {
+      return record.vehicleClass || record.class || "";
     }
 
     async function loadTrackRecords(trackKey) {
@@ -669,16 +699,15 @@
         };
       }
       if (lastOpenedTrack === trackKey && recordsUi.open) updateTrackPopup();
+      let recordFormEl = recordForm();
+      if (recordFormEl && recordTrackKey(recordFormEl) === trackKey) syncRecordDialog();
     }
 
     function recordTypeLabel(code) {
       let info = lapRecords.vehicleTypes && lapRecords.vehicleTypes[code];
-      return info ? info.label : code;
-    }
-
-    function typesInRecords(records) {
-      let present = new Set(records.map(r => r.vehicleType));
-      return ["C", "M", "S"].filter(code => present.has(code));
+      if (info) return info.label;
+      if (code === "S") return "Supermoto";
+      return code;
     }
 
     function preferredRecordType(types) {
@@ -689,16 +718,10 @@
     function setRecordsOpen(open) {
       recordsUi.open = open;
       if (open) {
-        recordsUi.type = preferredRecordType();
         loadTrackRecords(lastOpenedTrack);
       } else {
         updateTrackPopup();
       }
-    }
-
-    function setRecordsType(code) {
-      recordsUi.type = code;
-      updateTrackPopup();
     }
 
     function recordClasses(code) {
@@ -712,7 +735,7 @@
       let bestMs = new Map();
       trackRecords(trackKey).forEach(record => {
         if (record.vehicleType !== code) return;
-        let name = record.vehicleClass || record.class || "";
+        let name = recordClassName(record);
         if (!name) return;
         let ms = timeToMs(record.time);
         if (!bestMs.has(name) || ms < bestMs.get(name)) bestMs.set(name, ms);
@@ -734,11 +757,190 @@
       return names;
     }
 
+    function recordDialog() {
+      return document.getElementById("recordDialog");
+    }
+
+    function recordForm() {
+      return document.getElementById("lap-record-form");
+    }
+
+    function setFormMessage(el, message) {
+      if (!el) return;
+      if (!message) {
+        el.hidden = true;
+        el.textContent = "";
+        el.className = "rec-form-msg";
+        return;
+      }
+      el.hidden = false;
+      el.textContent = message.text;
+      el.className = "rec-form-msg " + message.kind;
+    }
+
+    function setFormSubmitting(state, form, submitting) {
+      state.submitting = submitting;
+      let button = form.querySelector(".rec-submit");
+      if (!button) return;
+      button.disabled = submitting;
+      button.textContent = submitting ? "Submitting..." : "Submit for Review";
+    }
+
+    function closeReviewDialog(state, dialogId) {
+      if (state.submitting) return;
+      let dialog = document.getElementById(dialogId);
+      if (dialog && dialog.open) dialog.close();
+    }
+
+    function focusReviewField(root) {
+      let focus = [...root.querySelectorAll("input, textarea, select")].find((el) => el.type !== "hidden" && !el.closest("[hidden]"));
+      if (focus) focus.focus();
+    }
+
+    async function postReview(url, payload) {
+      let res = await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        let failure = new Error("HTTP " + res.status);
+        failure.status = res.status;
+        throw failure;
+      }
+    }
+
+    async function submitReviewForm(event, state, submit) {
+      event.preventDefault();
+      if (state.submitting) return;
+      let form = event.target;
+      let message = form.querySelector(".rec-form-msg");
+      let error = submit.validate(form);
+      if (error) {
+        setFormMessage(message, {kind: "err", text: error});
+        return;
+      }
+      let started = state.submitId;
+      setFormSubmitting(state, form, true);
+      setFormMessage(message, null);
+      try {
+        await postReview(submit.url, submit.payload(form));
+        if (state.submitId !== started) return;
+        submit.reset(form);
+        setFormMessage(message, {kind: "ok", text: "Submitted for review."});
+      } catch (err) {
+        if (state.submitId !== started) return;
+        setFormMessage(message, {kind: "err", text: err && err.status ? "HTTP " + err.status : "Unable to submit."});
+      }
+      if (state.submitId === started) setFormSubmitting(state, form, false);
+    }
+
+    function showRecordCustomClass(form, show) {
+      let custom = form.querySelector(".rec-custom-class");
+      if (custom) custom.hidden = !show;
+    }
+
+    function recordTrackKey(form) {
+      let selected = form && form.elements.track && form.elements.track.value;
+      return selected || lastOpenedTrack || "";
+    }
+
+    function trackOptionLabel(track, key) {
+      let name = (track && (track.name || track.nickname)) || key;
+      if (track && track.showNickname && track.nickname && track.nickname !== track.name) name += ` (${track.nickname})`;
+      return name;
+    }
+
+    function fillRecordTracks(form, selectedKey) {
+      let select = form.elements.track;
+      if (!select) return;
+      let entries = [];
+      if (typeof tracks !== "undefined" && tracks) {
+        Object.keys(tracks).forEach(key => entries.push({key, label: trackOptionLabel(tracks[key], key)}));
+      }
+      if (selectedKey && !entries.some(entry => entry.key === selectedKey)) entries.push({key: selectedKey, label: selectedKey});
+      entries.sort((a, b) => a.label.localeCompare(b.label));
+      select.replaceChildren();
+      entries.forEach(entry => {
+        let option = document.createElement("option");
+        option.value = entry.key;
+        option.textContent = entry.label;
+        select.appendChild(option);
+      });
+      if (selectedKey) select.value = selectedKey;
+    }
+
+    function fillRecordClassOptions(form, type, selectedValue) {
+      let classes = formClasses(type, recordTrackKey(form));
+      let select = form.elements.vehicleClass;
+      select.replaceChildren();
+      classes.forEach(name => {
+        let option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+      let other = document.createElement("option");
+      other.value = CUSTOM_CLASS_VALUE;
+      other.textContent = "Other";
+      select.appendChild(other);
+      let choice = classes[0] || CUSTOM_CLASS_VALUE;
+      if (selectedValue === CUSTOM_CLASS_VALUE) choice = CUSTOM_CLASS_VALUE;
+      else if (classes.includes(selectedValue)) choice = selectedValue;
+      select.value = choice;
+      showRecordCustomClass(form, choice === CUSTOM_CLASS_VALUE);
+    }
+
+    // missingClass: "reset" drops an unknown class, "named" keeps Other only when the typed name is a class, "refresh" keeps the current selection
+    function refillRecordClasses(form, type, missingClass) {
+      let classes = formClasses(type, recordTrackKey(form));
+      let selected = form.elements.vehicleClass.value;
+      let customText = form.elements.customClass.value;
+      let next;
+      let clearCustom = false;
+      if (selected === CUSTOM_CLASS_VALUE && (missingClass !== "named" || classes.includes(customText))) {
+        next = CUSTOM_CLASS_VALUE;
+      } else if (selected !== CUSTOM_CLASS_VALUE && (classes.includes(selected) || missingClass === "refresh")) {
+        next = selected;
+      } else {
+        next = classes[0] || "";
+        clearCustom = true;
+      }
+      fillRecordClassOptions(form, type, next);
+      if (next === CUSTOM_CLASS_VALUE) form.elements.customClass.value = customText;
+      else if (clearCustom) form.elements.customClass.value = "";
+    }
+
+    function fillRecordSubtracks(form, trackKey) {
+      let list = form.querySelector("#rec-subtracks");
+      if (!list) return;
+      let known = [...new Set(trackRecords(trackKey).map(r => r.subtrack).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      list.replaceChildren();
+      known.forEach(name => {
+        let option = document.createElement("option");
+        option.value = name;
+        list.appendChild(option);
+      });
+    }
+
+    function applyRecordType(form, code) {
+      form.elements.vehicleType.value = code;
+      form.querySelectorAll("[data-record-type]").forEach(btn => btn.classList.toggle("on", btn.dataset.recordType === code));
+    }
+
+    function syncRecordDialog() {
+      let dialog = recordDialog();
+      let form = recordForm();
+      if (!dialog || !dialog.open || !form) return;
+      refillRecordClasses(form, form.elements.vehicleType.value, "refresh");
+      fillRecordSubtracks(form, recordTrackKey(form));
+    }
+
     function resetRecordForm() {
-      recordsUi.adding = false;
       recordsUi.submitting = false;
-      recordsUi.draft = null;
-      recordsUi.formMessage = null;
+      recordsUi.submitId += 1;
+      let dialog = recordDialog();
+      if (dialog && dialog.open) dialog.close();
     }
 
     function readRecordForm(form) {
@@ -746,6 +948,7 @@
       let selectedClass = String(data.get("vehicleClass") || "");
       let classIsCustom = selectedClass === CUSTOM_CLASS_VALUE;
       return {
+        track: form.elements.track ? form.elements.track.value : "",
         vehicleType: String(data.get("vehicleType") || ""),
         vehicleClass: classIsCustom ? String(data.get("customClass") || "") : selectedClass,
         classIsCustom,
@@ -760,80 +963,67 @@
       };
     }
 
+    function onRecordTrackChange(select) {
+      let form = select.form;
+      let trackKey = select.value;
+      if (form.elements.subtrack) form.elements.subtrack.value = "";
+      fillRecordSubtracks(form, trackKey);
+      refillRecordClasses(form, form.elements.vehicleType.value, "reset");
+      if (trackKey) loadTrackRecords(trackKey);
+    }
+
     function onRecordClassChange(select) {
       let form = select.form;
-      let custom = form.querySelector(".rec-custom-class");
       let show = select.value === CUSTOM_CLASS_VALUE;
-      if (custom) custom.hidden = !show;
-      if (show) {
-        let input = form.elements.customClass;
-        if (input) input.focus();
-      }
-      saveRecordDraft(form);
+      showRecordCustomClass(form, show);
+      if (show && form.elements.customClass) form.elements.customClass.focus();
     }
 
-    function saveRecordDraft(form) {
-      recordsUi.draft = readRecordForm(form);
-    }
-
-    function onRecordFormInput(form) {
-      saveRecordDraft(form);
-      if (recordsUi.formMessage && recordsUi.formMessage.kind === "err") {
-        recordsUi.formMessage = null;
-        let msg = form.querySelector(".rec-form-msg");
-        if (msg) msg.remove();
-      }
+    function prepareRecordForm(form, trackKey, type) {
+      form.reset();
+      applyRecordType(form, type);
+      form.elements.customClass.value = "";
+      fillRecordTracks(form, trackKey);
+      fillRecordClassOptions(form, type, formClasses(type, trackKey)[0] || "");
+      fillRecordSubtracks(form, trackKey);
+      let date = form.elements.date;
+      if (date) date.max = dayjs().format("YYYY-MM-DD");
     }
 
     function openRecordForm() {
+      let dialog = recordDialog();
+      let form = recordForm();
+      if (!dialog || !form) return;
       let types = ["C", "M"].filter(code => recordClasses(code).length);
-      let type = types.includes(recordsUi.type) ? recordsUi.type : (types[0] || "C");
-      recordsUi.adding = true;
+      let type = preferredRecordType(types);
       recordsUi.submitting = false;
-      recordsUi.formMessage = null;
-      recordsUi.draft = {
-        vehicleType: type,
-        vehicleClass: formClasses(type, lastOpenedTrack)[0] || "",
-        classIsCustom: false,
-        vehicleYear: "",
-        vehicleMake: "",
-        vehicleModel: "",
-        subtrack: "",
-        time: "",
-        holder: "",
-        date: "",
-        evidence: "",
-      };
-      updateTrackPopup();
+      prepareRecordForm(form, lastOpenedTrack, type);
+      setFormSubmitting(recordsUi, form, false);
+      setFormMessage(form.querySelector(".rec-form-msg"), null);
+      if (!dialog.open) dialog.showModal();
+      focusReviewField(form);
     }
 
     function closeRecordForm() {
-      resetRecordForm();
-      updateTrackPopup();
+      closeReviewDialog(recordsUi, "recordDialog");
     }
 
     function setRecordFormType(code) {
-      let form = document.getElementById("lap-record-form");
-      if (form) {
-        form.elements.vehicleType.value = code;
-        saveRecordDraft(form);
-      }
-      if (!recordsUi.draft) return;
-      let classes = formClasses(code, lastOpenedTrack);
-      if (!classes.includes(recordsUi.draft.vehicleClass)) {
-        recordsUi.draft.vehicleClass = classes[0] || "";
-        recordsUi.draft.classIsCustom = false;
-      }
-      updateTrackPopup({preserveDraft: false});
+      let form = recordForm();
+      if (!form || !recordClasses(code).length) return;
+      applyRecordType(form, code);
+      refillRecordClasses(form, code, "named");
+      setFormMessage(form.querySelector(".rec-form-msg"), null);
     }
 
     function validateLapRecord(draft) {
+      if (!draft.track || draft.track.length > 40) return "Choose a track.";
       let classes = recordClasses(draft.vehicleType);
       if (!classes.length) return "Choose a vehicle type.";
       if (draft.classIsCustom) {
         let name = draft.vehicleClass.trim();
         if (!name || name.length > 40) return "Enter a class";
-      } else if (!formClasses(draft.vehicleType, lastOpenedTrack).includes(draft.vehicleClass)) {
+      } else if (!formClasses(draft.vehicleType, draft.track).includes(draft.vehicleClass)) {
         return "Choose a class.";
       }
       let year = Number(draft.vehicleYear);
@@ -868,141 +1058,322 @@
     }
 
     async function submitLapRecord(event) {
-      event.preventDefault();
-      if (recordsUi.submitting) return;
       let form = event.target;
-      saveRecordDraft(form);
-      let error = validateLapRecord(recordsUi.draft);
-      if (error) {
-        recordsUi.formMessage = {kind: "err", text: error};
-        updateTrackPopup();
-        return;
-      }
-      recordsUi.submitting = true;
-      recordsUi.formMessage = null;
-      updateTrackPopup();
-      try {
-        let res = await fetch(LAP_RECORD_SUBMIT_URL, {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify(lapRecordPayload(recordsUi.draft, lastOpenedTrack)),
-        });
-        if (!res.ok) {
-          let failure = new Error("HTTP " + res.status);
-          failure.status = res.status;
-          throw failure;
-        }
-        resetRecordForm();
-        recordsUi.formMessage = {kind: "ok", text: "Submitted for review."};
-      } catch (err) {
-        recordsUi.submitting = false;
-        recordsUi.formMessage = {kind: "err", text: err && err.status ? "HTTP " + err.status : "Unable to submit."};
-      }
-      updateTrackPopup();
-    }
-
-    function recordFormHtml(trackKey) {
-      let draft = recordsUi.draft || {};
-      let classes = formClasses(draft.vehicleType, trackKey);
-      let customSelected = !!draft.classIsCustom;
-      let typeButtons = ["C", "M"].filter(code => recordClasses(code).length).map(code => `<button type="button" class="rec-type${draft.vehicleType === code ? " on" : ""}" onclick="setRecordFormType('${code}')">${escapeHtml(recordTypeLabel(code))}</button>`).join("");
-      let classOptions = classes.map(name => `<option value="${escapeHtml(name)}"${!customSelected && name === draft.vehicleClass ? " selected" : ""}>${escapeHtml(name)}</option>`).join("");
-      classOptions += `<option value="${CUSTOM_CLASS_VALUE}"${customSelected ? " selected" : ""}>Other</option>`;
-      let knownSubs = [...new Set(trackRecords(trackKey).map(r => r.subtrack).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-      let subOptions = knownSubs.map(name => `<option value="${escapeHtml(name)}"></option>`).join("");
-      let message = recordsUi.formMessage ? `<div class="rec-form-msg ${recordsUi.formMessage.kind}">${escapeHtml(recordsUi.formMessage.text)}</div>` : "";
-      let field = (label, inner) => `<label class="rec-field"><span>${label}</span>${inner}</label>`;
-      let input = (name, value, attrs) => `<input name="${name}" value="${escapeHtml(value)}" ${attrs}>`;
-      return `<form id="lap-record-form" class="rec-form" autocomplete="off" novalidate oninput="onRecordFormInput(this)" onsubmit="submitLapRecord(event)">
-        ${message}
-        <input type="hidden" name="vehicleType" value="${escapeHtml(draft.vehicleType)}">
-        <div class="rec-types">${typeButtons}</div>
-        ${field("Class", `<select name="vehicleClass" onchange="onRecordClassChange(this)">${classOptions}</select>`)}
-        <label class="rec-field rec-custom-class"${customSelected ? "" : " hidden"}><span>Other class</span>${input("customClass", customSelected ? draft.vehicleClass : "", 'maxlength="40"')}</label>
-        <div class="rec-form-grid">
-          ${field("Year", input("vehicleYear", draft.vehicleYear, 'inputmode="numeric" maxlength="4"'))}
-          ${field("Make", input("vehicleMake", draft.vehicleMake, 'maxlength="40"'))}
-        </div>
-        ${field("Model", input("vehicleModel", draft.vehicleModel, 'maxlength="60"'))}
-        ${field("Subtrack (optional)", `${input("subtrack", draft.subtrack, 'maxlength="40" list="rec-subtracks"')}<datalist id="rec-subtracks">${subOptions}</datalist>`)}
-        <div class="rec-form-grid">
-          ${field("Time", input("time", draft.time, 'placeholder="1:23.456" inputmode="decimal"'))}
-          ${field("Date", input("date", draft.date, 'type="date"'))}
-        </div>
-        ${field("Holder", input("holder", draft.holder, 'maxlength="80"'))}
-        ${field("Evidence (optional)", input("evidence", draft.evidence, 'type="url" placeholder="https://" maxlength="300"'))}
-        <div class="rec-form-actions">
-          <button type="button" class="rec-cancel" onclick="closeRecordForm()">Cancel</button>
-          <button type="submit" class="rec-submit"${recordsUi.submitting ? " disabled" : ""}>${recordsUi.submitting ? "Submitting..." : "Submit for Review"}</button>
-        </div>
-      </form>`;
+      let draft = readRecordForm(form);
+      let trackKey = draft.track;
+      let type = draft.vehicleType;
+      await submitReviewForm(event, recordsUi, {
+        url: LAP_RECORD_SUBMIT_URL,
+        validate: () => validateLapRecord(draft),
+        payload: () => lapRecordPayload(draft, trackKey),
+        reset(current) {
+          prepareRecordForm(current, trackKey, type);
+        },
+      });
     }
 
     function recordsListHtml(trackKey) {
-      if (recordsUi.adding) return recordFormHtml(trackKey);
-      let notice = recordsUi.formMessage ? `<div class="rec-form-msg ${recordsUi.formMessage.kind}">${escapeHtml(recordsUi.formMessage.text)}</div>` : "";
       let add = `<button type="button" class="rec-add" onclick="openRecordForm()">Add a Lap Record</button>`;
-      let allRecords = `<a class="rec-all" href="records.html?track=${encodeURIComponent(trackKey)}" target="_blank" rel="noopener">All records</a>`;
-      let actions = `<span class="rec-actions">${allRecords}${add}</span>`;
       let entry = lapRecords.tracks && lapRecords.tracks[trackKey];
       let records = trackRecords(trackKey);
-      if (entry && entry.loading && !records.length) return `${notice}<div class="rec-types">${actions}</div><div class="empty">Loading lap records...</div>`;
-      if (entry && entry.error && !records.length) return `${notice}<div class="rec-types">${actions}</div><div class="empty">${escapeHtml(entry.error)}</div>`;
-      if (!records.length) return `${notice}<div class="rec-types">${actions}</div><div class="empty">No Lap Records</div>`;
-      let types = typesInRecords(records);
-      if (!types.includes(recordsUi.type)) recordsUi.type = preferredRecordType(types);
-      let pills = types.map(code => `<button type="button" class="rec-type${recordsUi.type === code ? " on" : ""}" onclick="setRecordsType('${code}')">${escapeHtml(recordTypeLabel(code))}</button>`).join("");
-      let shown = records.filter(r => r.vehicleType === recordsUi.type);
-      let bySub = new Map();
-      shown.forEach(r => {
-        let sub = r.subtrack || "";
-        if (!bySub.has(sub)) bySub.set(sub, []);
-        bySub.get(sub).push(r);
-      });
-      let groups = [...bySub.entries()].map(([sub, rows]) => {
-        let bestByClass = new Map();
-        rows.forEach(r => {
-          let vehicleClass = r.vehicleClass || r.class || "";
-          let ms = timeToMs(r.time);
-          if (!bestByClass.has(vehicleClass) || ms < bestByClass.get(vehicleClass)) bestByClass.set(vehicleClass, ms);
+      let allRecords = records.length ? `<a class="rec-all" href="records.html?track=${encodeURIComponent(trackKey)}" target="_blank" rel="noopener">All records</a>` : "";
+      let footer = `<div class="rec-footer">${allRecords}${add}</div>`;
+      if (entry && entry.loading && !records.length) return `<div class="empty">Loading lap records...</div>${footer}`;
+      if (entry && entry.error && !records.length) return `<div class="empty">${escapeHtml(entry.error)}</div>${footer}`;
+      let shown = records.filter(r => selectedVehicleTypes.has(r.vehicleType));
+      let emptyMessage = records.length ? "No lap records for the selected vehicles" : "No Lap Records";
+      if (!shown.length) return `<div class="empty">${emptyMessage}</div>${footer}`;
+      function groupsHtml(typeRows) {
+        let bySub = new Map();
+        typeRows.forEach(r => {
+          let sub = r.subtrack || "";
+          if (!bySub.has(sub)) bySub.set(sub, []);
+          bySub.get(sub).push(r);
         });
-        rows.sort((a, b) => {
-          let classA = a.vehicleClass || a.class || "";
-          let classB = b.vehicleClass || b.class || "";
-          if (classA !== classB) {
-            let d = bestByClass.get(classA) - bestByClass.get(classB);
-            if (d !== 0) return d;
-            return classA.localeCompare(classB);
-          }
-          return timeToMs(a.time) - timeToMs(b.time);
-        });
-        let heading = sub ? `<div class="rec-subhead">${escapeHtml(sub)}</div>` : "";
-        let lastClass = null;
-        let rank = 0;
-        let body = rows.map(r => {
-          let vehicleClass = r.vehicleClass || r.class || "";
-          let vehicleModel = [r.vehicleYear, r.vehicleMake, r.vehicleModel].filter(v => v != null && v !== "").join(" ");
-          if (vehicleClass !== lastClass) {
-            lastClass = vehicleClass;
-            rank = 1;
-          } else {
-            rank += 1;
-          }
-          let evidence = r.evidence ? `<a class="rec-evidence" href="${escapeHtml(r.evidence)}" target="_blank" title="Evidence">▶</a>` : `<span></span>`;
-          let meta = [r.holder, vehicleModel].filter(Boolean).map(escapeHtml).join(" · ");
-          let classLabel = rank === 1 ? escapeHtml(vehicleClass) : "";
-          let follow = rank > 1 ? " rec-follow" : "";
-          return `<div class="rec-row${follow}"><span class="rec-class">${classLabel}</span><span class="rec-rank">${rank}</span><span class="rec-meta">${meta}</span><span class="rec-time">${escapeHtml(formatLapTime(r.time))}</span>${evidence}</div>`;
+        return [...bySub.entries()].map(([sub, rows]) => {
+          let bestByClass = new Map();
+          rows.forEach(r => {
+            let vehicleClass = recordClassName(r);
+            let ms = timeToMs(r.time);
+            if (!bestByClass.has(vehicleClass) || ms < bestByClass.get(vehicleClass)) bestByClass.set(vehicleClass, ms);
+          });
+          rows.sort((a, b) => {
+            let classA = recordClassName(a);
+            let classB = recordClassName(b);
+            if (classA !== classB) {
+              let d = bestByClass.get(classA) - bestByClass.get(classB);
+              if (d !== 0) return d;
+              return classA.localeCompare(classB);
+            }
+            return timeToMs(a.time) - timeToMs(b.time);
+          });
+          let heading = sub ? `<div class="rec-subhead">${escapeHtml(sub)}</div>` : "";
+          let lastClass = null;
+          let rank = 0;
+          let body = rows.map(r => {
+            let vehicleClass = recordClassName(r);
+            let vehicleModel = [r.vehicleYear, r.vehicleMake, r.vehicleModel].filter(v => v != null && v !== "").join(" ");
+            if (vehicleClass !== lastClass) {
+              lastClass = vehicleClass;
+              rank = 1;
+            } else {
+              rank += 1;
+            }
+            let evidence = r.evidence ? `<a class="rec-evidence" href="${escapeHtml(r.evidence)}" target="_blank" title="Evidence">▶</a>` : `<span></span>`;
+            let meta = [r.holder, vehicleModel].filter(Boolean).map(escapeHtml).join(" · ");
+            let classLabel = rank === 1 ? escapeHtml(vehicleClass) : "";
+            let follow = rank > 1 ? " rec-follow" : "";
+            return `<div class="rec-row${follow}"><span class="rec-class">${classLabel}</span><span class="rec-rank">${rank}</span><span class="rec-meta">${meta}</span><span class="rec-time">${escapeHtml(formatLapTime(r.time))}</span>${evidence}</div>`;
+          }).join("");
+          return heading + body;
         }).join("");
-        return heading + body;
+      }
+      let typeSections = ["C", "M", "S"].filter(code => shown.some(r => r.vehicleType === code));
+      let groups = typeSections.map((code, index) => {
+        let heading = typeSections.length > 1 ? `<div class="rec-typehead${index ? "" : " first"}">${escapeHtml(recordTypeLabel(code))}</div>` : "";
+        return heading + groupsHtml(shown.filter(r => r.vehicleType === code));
       }).join("");
-      return `<div class="rec-panel">${notice}<div class="rec-types">${pills}${actions}</div>${groups}</div>`;
+      return `<div class="rec-panel">${groups}${footer}</div>`;
     }
 
-    function updateTrackPopup({preserveDraft = true} = {}) {
+    function validHttpUrl(value) {
+      let trimmed = String(value || "").trim();
+      if (!trimmed || trimmed.length > 300) return false;
+      return !!safeHttpUrl(trimmed);
+    }
+
+    function suggestEventDateBounds() {
+      let today = dayjs.utc().startOf("day");
+      return {min: today.subtract(1, "day"), max: today.add(18, "month")};
+    }
+
+    function missingEventDateError(value) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "Enter the event date";
+      let parsed = dayjs.utc(value, "YYYY-MM-DD", true);
+      if (!parsed.isValid() || parsed.format("YYYY-MM-DD") !== value) return "Enter the event date";
+      let bounds = suggestEventDateBounds();
+      if (parsed.isBefore(bounds.min) || parsed.isAfter(bounds.max)) return "Enter the event date";
+      return "";
+    }
+
+    function suggestVehicleTypes() {
+      let selected = new Set();
+      document.querySelectorAll("#suggestDialog [data-vehicle].on").forEach((btn) => selected.add(btn.dataset.vehicle));
+      return ["C", "M", "S"].filter((code) => selected.has(code)).join("");
+    }
+
+    function suggestHosts(input) {
+      suggestField(input, typeof orgs === "undefined" ? null : orgs, "org");
+    }
+
+    function suggestTracks(input) {
+      suggestField(input, typeof tracks === "undefined" ? null : tracks, "name");
+    }
+
+    function suggestField(input, items, key) {
+      let box = input.parentElement.querySelector(".suggest-matches");
+      if (!box) return;
+      let query = input.value.trim().toLowerCase();
+      let names = [];
+      if (query && items) {
+        let seen = new Set();
+        Object.values(items).forEach(item => {
+          let name = item && item[key];
+          if (!name || seen.has(name) || !String(name).toLowerCase().includes(query)) return;
+          seen.add(name);
+          names.push(name);
+        });
+      }
+      names.sort((a, b) => a.localeCompare(b));
+      names = names.slice(0, 6);
+      box.replaceChildren();
+      names.forEach(name => {
+        let button = document.createElement("button");
+        button.type = "button";
+        button.textContent = name;
+        button.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          input.value = name;
+          box.hidden = true;
+        });
+        box.append(button);
+      });
+      box.classList.remove("overlay");
+      box.style.maxHeight = "";
+      box.hidden = true;
+      if (!names.length) return;
+      let dialog = document.getElementById("suggestDialog");
+      let room = Math.floor(window.innerHeight - dialog.getBoundingClientRect().bottom) - 10;
+      if (room < 28) {
+        box.classList.add("overlay");
+        box.style.maxHeight = "7.5rem";
+      } else {
+        box.style.maxHeight = Math.min(120, room) + "px";
+      }
+      box.hidden = false;
+    }
+
+    function setSuggestKind(kind) {
+      if (kind !== "track" && kind !== "missing_event") return;
+      suggestUi.kind = kind;
+      let dialog = document.getElementById("suggestDialog");
+      setFormMessage(dialog.querySelector(".rec-form-msg"), null);
+      dialog.querySelectorAll("[data-kind]").forEach((btn) => btn.classList.toggle("on", btn.dataset.kind === kind));
+      dialog.querySelectorAll("[data-suggest]").forEach((el) => {el.hidden = !el.dataset.suggest.split(" ").includes(kind);});
+      let titles = {track: "Report a missing track", missing_event: "Report a missing event"};
+      let urlLabels = {track: "Website (optional)", missing_event: "Event link (optional)"};
+      document.getElementById("suggestTitle").textContent = titles[kind];
+      document.getElementById("suggestUrlLabel").textContent = urlLabels[kind];
+      if (kind === "missing_event") {
+        let date = dialog.querySelector("input[name=eventDate]");
+        if (date) {
+          let bounds = suggestEventDateBounds();
+          date.min = bounds.min.format("YYYY-MM-DD");
+          date.max = bounds.max.format("YYYY-MM-DD");
+        }
+      }
+    }
+
+    function setSuggestEventType(code) {
+      if (!["T", "S", "R"].includes(code)) return;
+      suggestUi.eventType = code;
+      document.querySelectorAll("#suggestDialog [data-event]").forEach((btn) => btn.classList.toggle("on", btn.dataset.event === code));
+    }
+
+    function matchedTrackNickname(name) {
+      if (typeof tracks === "undefined" || !tracks) return "";
+      let needle = name.trim().toLowerCase();
+      let matches = Object.values(tracks).filter((track) => track.name.toLowerCase() === needle || String(track.nickname).toLowerCase() === needle);
+      return matches.length === 1 ? matches[0].nickname : "";
+    }
+
+    function toggleSuggestVehicle(button) {
+      button.classList.toggle("on");
+    }
+
+    function pinSuggestDialog(dialog) {
+      let top = Math.max(8, dialog.getBoundingClientRect().top);
+      dialog.style.top = top + "px";
+      dialog.style.bottom = "auto";
+      dialog.style.marginTop = "0";
+      dialog.style.maxHeight = (window.innerHeight - top - 8) + "px";
+      dialog.style.overflowY = "auto";
+    }
+
+    function unpinSuggestDialog(dialog) {
+      dialog.style.top = "";
+      dialog.style.bottom = "";
+      dialog.style.marginTop = "";
+      dialog.style.maxHeight = "";
+      dialog.style.overflowY = "";
+    }
+
+    function openSuggestDialog(kind, trackName) {
+      let dialog = document.getElementById("suggestDialog");
+      setSuggestKind(kind || "track");
+      if (trackName) {
+        let input = dialog.querySelector("input[name=trackName]");
+        if (input) input.value = trackName;
+      }
+      if (dialog.open) {
+        focusReviewField(dialog);
+        return;
+      }
+      dialog.showModal();
+      pinSuggestDialog(dialog);
+      focusReviewField(dialog);
+    }
+
+    function reportMissingEvent() {
+      if (typeof tracks === "undefined" || !tracks || !tracks[lastOpenedTrack]) return;
+      openSuggestDialog("missing_event", tracks[lastOpenedTrack].name);
+    }
+
+    function closeSuggestDialog() {
+      closeReviewDialog(suggestUi, "suggestDialog");
+    }
+
+    function validateSuggestForm(form) {
+      let note = form.elements.note.value.trim();
+      if (note.length > 300) return "Note is too long";
+      if (suggestUi.kind === "missing_event") {
+        let trackName = form.elements.trackName.value.trim();
+        if (!trackName) return "Enter a track";
+        if (trackName.length > 80) return "Track name is too long";
+        let org = form.elements.org.value.trim();
+        if (!org) return "Enter the host";
+        if (org.length > 80) return "Host is too long";
+        let date = form.elements.eventDate.value.trim();
+        let multipleDates = form.elements.multipleDates.checked;
+        if (!date && !multipleDates) return "Enter a date or choose multiple dates";
+        if (date) {
+          let dateError = missingEventDateError(date);
+          if (dateError) return dateError;
+        }
+        if (!["T", "S", "R"].includes(suggestUi.eventType)) return "Choose an event type";
+        let eventUrl = form.elements.url.value.trim();
+        if (eventUrl && !validHttpUrl(eventUrl)) return "Link must be an http(s) URL";
+        return "";
+      }
+      let name = form.elements.name.value.trim();
+      if (!name) return "Enter a name";
+      if (name.length > 80) return "Name is too long";
+      let url = form.elements.url.value.trim();
+      if (url && !validHttpUrl(url)) return "Link must be an http(s) URL";
+      return "";
+    }
+
+    function suggestFormPayload(form) {
+      let note = form.elements.note.value.trim();
+      if (suggestUi.kind === "missing_event") {
+        let trackName = form.elements.trackName.value.trim();
+        let payload = {
+          kind: "missing_event",
+          trackName,
+          org: form.elements.org.value.trim(),
+          eventType: suggestUi.eventType,
+        };
+        let eventDate = form.elements.eventDate.value.trim();
+        if (eventDate) payload.date = eventDate;
+        if (form.elements.multipleDates.checked) payload.multipleDates = true;
+        let nickname = matchedTrackNickname(trackName);
+        if (nickname && nickname.length <= 40) payload.track = nickname;
+        let eventUrl = form.elements.url.value.trim();
+        if (eventUrl) payload.url = eventUrl;
+        if (note) payload.note = note;
+        return payload;
+      }
+      let payload = {
+        kind: suggestUi.kind,
+        name: form.elements.name.value.trim(),
+      };
+      let url = form.elements.url.value.trim();
+      if (url) payload.url = url;
+      if (note) payload.note = note;
+      if (suggestUi.kind === "track") {
+        let vehicleTypes = suggestVehicleTypes();
+        if (vehicleTypes) payload.vehicleTypes = vehicleTypes;
+      }
+      return payload;
+    }
+
+    async function submitSuggestForm(event) {
+      let kind = suggestUi.kind;
+      await submitReviewForm(event, suggestUi, {
+        url: SUGGESTION_URL,
+        validate: validateSuggestForm,
+        payload: suggestFormPayload,
+        reset(form) {
+          form.reset();
+          form.querySelectorAll("[data-vehicle]").forEach((btn) => btn.classList.remove("on"));
+          setSuggestEventType("T");
+          setSuggestKind(kind);
+        },
+      });
+    }
+
+    function updateTrackPopup() {
       if (lastOpenedTrack === undefined) {return;}
-      let openForm = document.getElementById("lap-record-form");
-      if (preserveDraft && openForm && recordsUi.adding) saveRecordDraft(openForm);
       let track = tracks[lastOpenedTrack];
       let trackdaysFiltered = trackdays.filter(td => td.track === lastOpenedTrack);
       let numTrackdaysBeforeFilter = trackdaysFiltered.length;
@@ -1051,32 +1422,16 @@
         return `<div class="event-item tl-item${saved}">${rowMain(td, meta, price, mark)}${saveBox(eventKey)}</div>`;
       }).join("");
       let list = trackdaysFiltered.length === 0 ? `<div class="empty">No Events Found</div>` : `<div class="tl">${rows}</div>`;
+      let report = `<button type="button" class="missing-event-link" onclick="reportMissingEvent()">Missing an event?</button>`;
+      let eventsBody = list + hiddenNote + report;
       let tabs = "";
-      let body = list + hiddenNote;
+      let body = eventsBody;
       if (SHOW_LAP_RECORDS) {
         tabs = `<div class="rec-tabs"><button type="button" class="${recordsUi.open ? "" : "on"}" onclick="setRecordsOpen(false)">Events</button><button type="button" class="${recordsUi.open ? "on" : ""}" onclick="setRecordsOpen(true)">Records</button></div>`;
-        body = recordsUi.open ? recordsListHtml(lastOpenedTrack) : (list + hiddenNote);
+        body = recordsUi.open ? recordsListHtml(lastOpenedTrack) : eventsBody;
       }
       let popup = mapMarkers[lastOpenedTrack].getPopup();
-      let holdForm = SHOW_LAP_RECORDS && recordsUi.open && recordsUi.adding;
-      popup.options.maxHeight = holdForm ? 480 : 300;
       popup.setContent(`<div class="popup popup-timeline">${head}${tabs}<div class="tl-scroll">${body}</div></div>`);
-      popup.options.closeOnClick = holdForm ? false : undefined;
-      if (typeof map !== "undefined") {
-        if (holdForm) map.off("preclick", popup.close, popup);
-        else if (!map.listens("preclick", popup.close, popup)) map.on("preclick", popup.close, popup);
-        Object.values(mapMarkers).forEach((marker) => {
-          if (!marker._openPopup) return;
-          if (holdForm) marker.off("click", marker._openPopup);
-          else if (!marker.listens("click", marker._openPopup)) marker.on("click", marker._openPopup);
-        });
-      }
-      if (recordsUi.adding || recordsUi.formMessage) {
-        let popupEl = popup.getElement();
-        if (popupEl) {
-          popupEl.querySelectorAll(".leaflet-popup-content, .tl-scroll").forEach(el => {el.scrollTop = 0;});
-        }
-      }
     }
 
     function updateCalendar() {
@@ -1327,11 +1682,115 @@
 
   <footer class="gray" style="margin: 0; font-size: 0.7rem;">
     <p>No guarantee of event availability, pricing accuracy, or completeness. Contact hosts for up-to-date information.</p>
-    <p>To report inaccuracies or bugs: <b class="allowSelect">trackdaysFYI@gmail.com</b></p>
+    <p>To report inaccuracies or bugs: <b class="allowSelect">trackdaysFYI@gmail.com</b> · <a class="suggest-link" href="javascript:void(0);" onclick="openSuggestDialog('track'); return false;">Report a missing track or event</a></p>
     <p>© 2023-2026 Trackdays.fyi</p>
   </footer>
 
+  <dialog id="suggestDialog" class="suggest-dialog" closedby="closerequest" aria-labelledby="suggestTitle">
+    <form id="suggest-form" class="rec-form" autocomplete="off" novalidate onsubmit="submitSuggestForm(event)">
+      <div class="suggest-head">
+        <b id="suggestTitle">Report a missing track</b>
+        <button type="button" class="suggest-close" onclick="closeSuggestDialog()" aria-label="Close">×</button>
+      </div>
+      <div id="suggestMessage" class="rec-form-msg" hidden></div>
+      <div class="rec-types">
+        <button type="button" class="rec-type on" data-kind="track" onclick="setSuggestKind('track')">Missing track</button>
+        <button type="button" class="rec-type" data-kind="missing_event" onclick="setSuggestKind('missing_event')">Missing event</button>
+      </div>
+      <label class="rec-field" data-suggest="track"><span>Name</span><input name="name" maxlength="80"></label>
+      <label class="rec-field" data-suggest="missing_event" hidden><span>Track</span><input name="trackName" maxlength="80" oninput="suggestTracks(this)" onblur="this.parentElement.querySelector('.suggest-matches').hidden = true"><div class="suggest-matches" hidden></div></label>
+      <label class="rec-field" data-suggest="missing_event" hidden><span>Host</span><input name="org" maxlength="80" oninput="suggestHosts(this)" onblur="this.parentElement.querySelector('.suggest-matches').hidden = true"><div class="suggest-matches" hidden></div></label>
+      <div class="rec-field" data-suggest="missing_event" hidden>
+        <span>Date</span>
+        <div class="suggest-date-row">
+          <input name="eventDate" type="date">
+          <label class="suggest-multi"><input name="multipleDates" type="checkbox">Multiple dates</label>
+        </div>
+      </div>
+      <div class="rec-field" data-suggest="missing_event" hidden>
+        <span>Event</span>
+        <div class="rec-types">
+          <button type="button" class="rec-type on" data-event="T" onclick="setSuggestEventType('T')">Trackday/HPDE</button>
+          <button type="button" class="rec-type" data-event="S" onclick="setSuggestEventType('S')">School</button>
+          <button type="button" class="rec-type" data-event="R" onclick="setSuggestEventType('R')">Race</button>
+        </div>
+      </div>
+      <label class="rec-field"><span id="suggestUrlLabel">Website or calendar (optional)</span><input name="url" type="url" maxlength="300" placeholder="https://"></label>
+      <div class="rec-field" data-suggest="track">
+        <span>Vehicles (optional)</span>
+        <div class="rec-types">
+          <button type="button" class="rec-type" data-vehicle="C" onclick="toggleSuggestVehicle(this)">Car</button>
+          <button type="button" class="rec-type" data-vehicle="M" onclick="toggleSuggestVehicle(this)">Motorcycle</button>
+          <button type="button" class="rec-type" data-vehicle="S" onclick="toggleSuggestVehicle(this)">Supermoto</button>
+        </div>
+      </div>
+      <label class="rec-field"><span>Note (optional)</span><textarea name="note" maxlength="300" rows="2"></textarea></label>
+      <div class="rec-form-actions">
+        <button type="button" class="rec-cancel" onclick="closeSuggestDialog()">Cancel</button>
+        <button type="submit" class="rec-submit">Submit for Review</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="recordDialog" class="suggest-dialog" closedby="closerequest" aria-labelledby="recordTitle">
+    <form id="lap-record-form" class="rec-form" autocomplete="off" novalidate onsubmit="submitLapRecord(event)">
+      <div class="suggest-head">
+        <b id="recordTitle">Add a Lap Record</b>
+        <button type="button" class="suggest-close" onclick="closeRecordForm()" aria-label="Close">×</button>
+      </div>
+      <div id="recordMessage" class="rec-form-msg" hidden></div>
+      <input type="hidden" name="vehicleType" value="C">
+      <div class="rec-types">
+        <button type="button" class="rec-type on" data-record-type="C" onclick="setRecordFormType('C')">Car</button>
+        <button type="button" class="rec-type" data-record-type="M" onclick="setRecordFormType('M')">Motorcycle</button>
+      </div>
+      <label class="rec-field"><span>Class</span><select name="vehicleClass" onchange="onRecordClassChange(this)"></select></label>
+      <label class="rec-field rec-custom-class" hidden><span>Other class</span><input name="customClass" maxlength="40"></label>
+      <div class="rec-form-grid">
+        <label class="rec-field"><span>Year</span><input name="vehicleYear" inputmode="numeric" maxlength="4"></label>
+        <label class="rec-field"><span>Make</span><input name="vehicleMake" maxlength="40"></label>
+      </div>
+      <label class="rec-field"><span>Model</span><input name="vehicleModel" maxlength="60"></label>
+      <label class="rec-field"><span>Track</span><select name="track" onchange="onRecordTrackChange(this)"></select></label>
+      <label class="rec-field"><span>Subtrack (optional)</span><input name="subtrack" maxlength="40" list="rec-subtracks"><datalist id="rec-subtracks"></datalist></label>
+      <div class="rec-form-grid">
+        <label class="rec-field"><span>Time</span><input name="time" placeholder="1:23.456" inputmode="decimal"></label>
+        <label class="rec-field"><span>Date</span><input name="date" type="date"></label>
+      </div>
+      <label class="rec-field"><span>Holder</span><input name="holder" maxlength="80"></label>
+      <label class="rec-field"><span>Evidence (optional)</span><input name="evidence" type="url" placeholder="https://" maxlength="300"></label>
+      <div class="rec-form-actions">
+        <button type="button" class="rec-cancel" onclick="closeRecordForm()">Cancel</button>
+        <button type="submit" class="rec-submit">Submit for Review</button>
+      </div>
+    </form>
+  </dialog>
+
   <script>
+    function blockCancelWhileSubmitting(dialog, state) {
+      dialog.addEventListener("cancel", (event) => {
+        if (state.submitting) event.preventDefault();
+      });
+    }
+    blockCancelWhileSubmitting(document.getElementById("suggestDialog"), suggestUi);
+    blockCancelWhileSubmitting(document.getElementById("recordDialog"), recordsUi);
+    document.querySelectorAll(".suggest-dialog form").forEach((form) => {
+      form.addEventListener("input", () => {
+        let el = form.querySelector(".rec-form-msg");
+        if (el && !el.hidden && el.classList.contains("err")) setFormMessage(el, null);
+      });
+    });
+    document.getElementById("suggestDialog").addEventListener("close", () => {
+      let dialog = document.getElementById("suggestDialog");
+      unpinSuggestDialog(dialog);
+      dialog.querySelectorAll(".suggest-matches").forEach(box => { box.hidden = true; });
+    });
+    window.addEventListener("resize", () => {
+      let dialog = document.getElementById("suggestDialog");
+      if (!dialog.open) return;
+      unpinSuggestDialog(dialog);
+      pinSuggestDialog(dialog);
+    });
     document.getElementById("calendar").addEventListener("click", (event) => {
       let nav = event.target.closest(".cld-rwd, .cld-fwd");
       if (!nav) return;
@@ -1447,10 +1906,6 @@
           mapMarkers[trackName] = L.marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
           mapMarkers[trackName].bindPopup("", {maxHeight: 300, minWidth: 240, maxWidth: 420, closeButton: false});  // popup content updated on click
           mapMarkers[trackName].on("mousedown", (e) => {
-            if (recordsUi.open && recordsUi.adding) {
-              L.DomEvent.stop(e);
-              return;
-            }
             let trackKey = e.target.options.title.toUpperCase();
             if (trackKey !== lastOpenedTrack) resetRecordForm();
             lastOpenedTrack = trackKey;
@@ -1579,7 +2034,6 @@
             if (selectedVehicleTypes.size > 0) {
               homeMarker.setIcon(selectedVehicleTypes.has("C") ? homeIconCar : homeIconMoto);
             }
-            if (recordsUi.open) recordsUi.type = preferredRecordType();
             refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
           });
         }
@@ -1690,7 +2144,6 @@
         });
 
         map.on("mousedown", () => {
-          if (recordsUi.open && recordsUi.adding) return;
           map.closePopup();
         });
 
