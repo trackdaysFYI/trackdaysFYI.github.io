@@ -323,7 +323,15 @@
     .pill-count {display: inline-grid; place-items: center; margin-left: 0.35rem; min-width: 3ch; box-sizing: content-box; padding: 0 0.35rem; border-radius: 999px; background: rgba(0, 0, 0, 0.28); font-size: 0.75rem; font-variant-numeric: tabular-nums; line-height: 1.45; text-align: center;}
     button.colored:not(.on) .pill-count {background: rgba(255, 255, 255, 0.06);}
 
-    .site-ad {background-color: var(--accent-soft); color: whitesmoke; padding: 10px; text-align: center; position: relative;}
+    .site-ad {
+      width: 100vw;
+      margin: 0 0 1rem calc(50% - 50vw);
+      background-color: rgb(from var(--accent) r g b / 0.28);
+      color: whitesmoke;
+      padding: 10px;
+      text-align: center;
+      position: relative;
+    }
     .site-ad a {color: whitesmoke; font-weight: bold; text-decoration: underline;}
     .site-ad-close {position: absolute; top: 5px; right: 10px; background: none; border: none; color: whitesmoke; font-size: 26px; cursor: pointer;}
     .container > header {margin-top: 1rem; margin-bottom: 1rem;}
@@ -1664,10 +1672,6 @@
 </head>
 
 <body onLoad="getGPSLocation();">
-<div id="fotosort-ad" class="site-ad">
-  <span>Are you a trackday or race photographer? Try out <a href="https://fotosort.com/" target="_blank">FotoSort.com</a></span>
-  <button id="close-ad" class="site-ad-close" type="button" title="Don't show again">&times;</button>
-</div>
 <div class="center container">
   <header>
     <div>
@@ -1678,6 +1682,10 @@
       <h5>One stop to find trackdays near you</h5>
     </div>
   </header>
+  <div id="fotosort-ad" class="site-ad">
+    <span>Are you a trackday or race photographer? Try out <a href="https://fotosort.com/" target="_blank">FotoSort.com</a></span>
+    <button id="close-ad" class="site-ad-close" type="button" title="Don't show again">&times;</button>
+  </div>
 
   <main>
     <div class="lead">
