@@ -986,6 +986,23 @@
       el.className = "rec-form-msg " + message.kind;
     }
 
+    function closeReviewDialog(state, dialog) {
+      if (state.submitting) return;
+      if (dialog.open) dialog.close();
+    }
+
+    function wireReviewDialog(dialog, { state, form, messageEl, close }) {
+      form.querySelectorAll(".suggest-close, .rec-cancel").forEach(el => {
+        el.addEventListener("click", close);
+      });
+      dialog.addEventListener("cancel", (event) => {
+        if (state.submitting) event.preventDefault();
+      });
+      form.addEventListener("input", () => {
+        if (!messageEl.hidden && messageEl.classList.contains("err")) setFormMessage(messageEl, null);
+      });
+    }
+
     function setFormSubmitting(state, form, submitting, extraEls) {
       state.submitting = submitting;
       let button = form.querySelector(".rec-submit");
@@ -1087,8 +1104,7 @@
     }
 
     function closeChangeDialog() {
-      if (changeUi.submitting) return;
-      if (changeDialog.open) changeDialog.close();
+      closeReviewDialog(changeUi, changeDialog);
     }
 
     function readChangeDraft() {
@@ -1163,19 +1179,17 @@
     }
 
     changeForm.addEventListener("submit", submitChangeForm);
-    changeForm.addEventListener("input", () => {
-      if (!changeMessage.hidden && changeMessage.classList.contains("err")) setFormMessage(changeMessage, null);
-    });
     changeForm.querySelectorAll(".rec-type[data-action]").forEach(btn => {
       btn.addEventListener("click", () => {
         if (changeUi.submitting) return;
         setChangeAction(btn.getAttribute("data-action"));
       });
     });
-    document.getElementById("change-close").addEventListener("click", closeChangeDialog);
-    document.getElementById("change-cancel").addEventListener("click", closeChangeDialog);
-    changeDialog.addEventListener("cancel", (event) => {
-      if (changeUi.submitting) event.preventDefault();
+    wireReviewDialog(changeDialog, {
+      state: changeUi,
+      form: changeForm,
+      messageEl: changeMessage,
+      close: closeChangeDialog,
     });
 
     function suggestedClasses(code) {
@@ -1348,8 +1362,7 @@
     }
 
     function closeRecordForm() {
-      if (recordsUi.submitting) return;
-      if (recordDialog.open) recordDialog.close();
+      closeReviewDialog(recordsUi, recordDialog);
     }
 
     function readCreateDraft(form) {
@@ -1426,9 +1439,6 @@
 
     addRecordButton.addEventListener("click", openRecordForm);
     recordForm.addEventListener("submit", submitCreateForm);
-    recordForm.addEventListener("input", () => {
-      if (!recordMessage.hidden && recordMessage.classList.contains("err")) setFormMessage(recordMessage, null);
-    });
     recordForm.elements.track.addEventListener("change", () => {
       recordForm.elements.subtrack.value = "";
       fillRecordSubtracks(recordForm, recordForm.elements.track.value);
@@ -1443,10 +1453,11 @@
       showRecordCustomClass(recordForm, show);
       if (show) recordForm.elements.customClass.focus();
     });
-    document.getElementById("record-close").addEventListener("click", closeRecordForm);
-    document.getElementById("record-cancel").addEventListener("click", closeRecordForm);
-    recordDialog.addEventListener("cancel", (event) => {
-      if (recordsUi.submitting) event.preventDefault();
+    wireReviewDialog(recordDialog, {
+      state: recordsUi,
+      form: recordForm,
+      messageEl: recordMessage,
+      close: closeRecordForm,
     });
 
     function showResults() {
