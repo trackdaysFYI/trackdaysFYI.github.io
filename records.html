@@ -182,10 +182,21 @@
     td.time {
       z-index: 1; font-size: 0.95rem; background: var(--bg);
     }
+    /* Opaque sticky bg so horizontally scrolled cells do not show through */
+    tbody tr.ref td.time {
+      background:
+        linear-gradient(rgba(57, 115, 172, 0.16), rgba(57, 115, 172, 0.16)),
+        var(--bg);
+    }
     tr.group td {padding-top: 0.75rem; font-size: 0.64rem; white-space: normal;}
     td.vehicle {min-width: 8rem;}
     @media (hover: hover) {
       tbody tr:hover td.time {background: rgb(36, 42, 48);}
+      tbody tr.ref:hover td.time {
+        background:
+          linear-gradient(rgba(57, 115, 172, 0.22), rgba(57, 115, 172, 0.22)),
+          var(--bg);
+      }
     }
   }
   @media (prefers-reduced-motion: reduce) {
