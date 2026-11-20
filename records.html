@@ -871,6 +871,15 @@
       return parts.filter(Boolean).join(" · ");
     }
 
+    function visibleColumnCount({ byClass, includeTrack, includeSubtrack }) {
+      // Always: Time, Holder, Vehicle, Date, Evidence, Actions
+      let count = 6;
+      if (includeTrack) count += 1;
+      if (includeSubtrack) count += 1;
+      if (!byClass) count += 1; // Class
+      return count;
+    }
+
     function renderRows() {
       let shown = filteredRecords();
       if (referenceKey && !shown.some(record => recordKey(record) === referenceKey)) referenceKey = null;
@@ -881,7 +890,7 @@
       let refRecord = referenceKey && shown.find(record => recordKey(record) === referenceKey);
       let refMs = refRecord ? timeToMs(refRecord.time) : null;
       classCol.hidden = byClass;
-      let colspan = 9 - (byClass ? 1 : 0) - (includeTrack ? 0 : 1) - (includeSubtrack ? 0 : 1);
+      let colspan = visibleColumnCount({ byClass, includeTrack, includeSubtrack });
       statusEl.className = "status";
       statusEl.textContent = `${shown.length} record${shown.length === 1 ? "" : "s"}`;
       exportCsvButton.disabled = !shown.length;
