@@ -916,8 +916,18 @@
 
     function fillRecordSubtracks(form, trackKey) {
       let list = form.querySelector("#rec-subtracks");
+      let field = form.elements.subtrack ? form.elements.subtrack.closest(".rec-field") : null;
       if (!list) return;
-      let known = [...new Set(trackRecords(trackKey).map(r => r.subtrack).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      let track = typeof tracks !== "undefined" && tracks ? tracks[trackKey] : null;
+      let known;
+      if (track && Array.isArray(track.subtracks)) {
+        known = track.subtracks.map(name => String(name).trim()).filter(Boolean);
+        if (field) field.hidden = !known.length;
+        if (!known.length && form.elements.subtrack) form.elements.subtrack.value = "";
+      } else {
+        known = [...new Set(trackRecords(trackKey).map(r => r.subtrack).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+        if (field) field.hidden = false;
+      }
       list.replaceChildren();
       known.forEach(name => {
         let option = document.createElement("option");
