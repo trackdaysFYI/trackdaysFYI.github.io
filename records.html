@@ -88,7 +88,11 @@
   .results-bar {display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.55rem;}
   .status {margin: 0; color: var(--muted); font-size: 0.85rem;}
   .status.err {color: var(--err);}
-  .export-actions {display: flex; justify-content: flex-end; gap: 0.35rem; margin-top: 0.75rem;}
+  .export-actions {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+  .export-actions .export-buttons {display: flex; gap: 0.35rem;}
   .export-actions button {
     border: 1px solid var(--panel-border); border-radius: 10px; min-height: 2.2rem;
     padding: 0.35rem 0.85rem; font: inherit; font-size: 0.8rem; font-weight: 700;
@@ -97,15 +101,6 @@
   .export-actions button:disabled {opacity: 0.45; cursor: default;}
   @media (hover: hover) {
     .export-actions button:not(:disabled):hover {border-color: var(--accent); color: var(--text);}
-  }
-  .results-actions {display: flex; flex: 0 0 auto; align-items: center; gap: 0.55rem;}
-  .add-record {
-    border: 1px solid var(--panel-border); border-radius: 999px; min-height: 2.2rem;
-    padding: 0.35rem 0.9rem; font: inherit; font-size: 0.8rem; font-weight: 700;
-    color: var(--soft); background: transparent; cursor: pointer;
-  }
-  @media (hover: hover) {
-    .add-record:hover {border-color: var(--accent); color: var(--text);}
   }
   .view-switch {display: flex; flex: 0 0 auto; gap: 0.35rem; padding: 0.2rem; border-radius: 999px; background: var(--switch-bg);}
   .view-switch button {border: 0; border-radius: 999px; min-height: 2.2rem; padding: 0.35rem 0.9rem; font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--muted); background: transparent; cursor: pointer;}
@@ -341,12 +336,9 @@
   </div>
   <div class="results-bar">
     <p id="status" class="status"></p>
-    <div class="results-actions">
-      <button type="button" class="add-record" id="add-record">Add lap record</button>
-      <div class="view-switch" role="group" aria-label="Arrange records">
-        <button type="button" id="view-class" class="on">Class</button>
-        <button type="button" id="view-time">Time</button>
-      </div>
+    <div class="view-switch" role="group" aria-label="Arrange records">
+      <button type="button" id="view-class" class="on">Class</button>
+      <button type="button" id="view-time">Time</button>
     </div>
   </div>
   <div class="table-wrap">
@@ -368,8 +360,11 @@
     </table>
   </div>
   <div class="export-actions">
-    <button type="button" id="print-records" disabled>Print</button>
-    <button type="button" id="export-csv" disabled>Export CSV</button>
+    <button type="button" class="add-record" id="add-record">Add lap record</button>
+    <div class="export-buttons">
+      <button type="button" id="print-records" disabled>Print</button>
+      <button type="button" id="export-csv" disabled>Export CSV</button>
+    </div>
   </div>
   </div>
   </div>
