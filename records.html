@@ -4,69 +4,144 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Lap records from trackdays.fyi">
-  <title>Lap Records - Trackdays.fyi</title>
+  <title>Lap Records · Scoreboard - Trackdays.fyi</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <style>
     :root {
+
       --accent: rgb(57, 115, 172);
       --muted: rgb(176, 176, 176);
       --line: rgb(100, 100, 100);
       --soft: rgb(220, 220, 220);
-      --page-gutter: clamp(1.5rem, 5vw, 4rem);
-      font-family: "Noto Sans", sans-serif;
-      line-height: 1.35;
-      color: rgb(255, 255, 255);
-      background-color: rgb(34, 38, 42);
-    }
-    * {box-sizing: border-box;}
-    body {margin: 0; padding: 0 var(--page-gutter);}
-    a {color: var(--accent);}
-    header {display: flex; align-items: center; gap: 1.25rem; padding: 1.1rem 0 0.4rem;}
-    a.brand {display: flex; align-items: center; gap: 0.55rem; color: var(--muted); text-decoration: none; font-size: 1.7rem; font-weight: 500; line-height: 1;}
-    a.brand svg {display: block; height: auto;}
-    a.brand b {font-weight: 650; color: inherit;}
-    h1 {margin: 0; font-size: 1.15rem; font-weight: 500; color: var(--muted);}
-    .filters {display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: end; padding: 0.6rem 0 0.9rem;}
-    label {display: flex; flex-direction: column; gap: 0.25rem; min-width: 9rem; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);}
-    label.search {flex: 1 1 14rem;}
-    input, select {width: 100%; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--soft); font: inherit; font-size: 0.9rem; letter-spacing: 0; text-transform: none; padding: 0.4rem 0.8rem;}
-    input:focus, select:focus {outline: 2px solid var(--accent); outline-offset: 2px;}
-    select option {color: #1c2733;}
-    .status {margin: 0; color: var(--muted); font-size: 0.85rem;}
-    .status.err {color: #e07a6a;}
-    .results-bar {display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 0 0.6rem;}
-    .view-switch {display: flex; gap: 4px;}
-    .view-switch button {border: 0; border-radius: 999px; padding: 0.25rem 0.7rem; font: inherit; font-size: 0.8rem; font-weight: 650; color: var(--muted); background: transparent; cursor: pointer;}
-    .view-switch button.on {color: white; background: var(--accent);}
-    .table-wrap {overflow: auto; max-height: calc(100vh - 11rem); padding: 0 0 1rem;}
-    table {width: 100%; border-collapse: collapse; font-size: 0.92rem;}
-    th, td {padding: 0.45rem 0.6rem; text-align: left; border-bottom: 1px solid rgb(54, 58, 64); white-space: nowrap;}
-    th {position: sticky; top: 0; z-index: 1; background: rgb(34, 38, 42); color: var(--muted); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 650;}
-    th[hidden] {display: none;}
-    td.time {font-variant-numeric: tabular-nums;}
-    td.time .gap {margin-left: 0.45rem; color: var(--muted); font-size: 0.82rem;}
-    td.vehicle {white-space: normal; min-width: 10rem;}
-    tr.group td {padding-top: 0.9rem; border-bottom-color: transparent; color: var(--soft); font-size: 0.72rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase;}
-    .empty {padding: 1.5rem 0.6rem; color: var(--muted); text-align: center;}
-    .loading {display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem; min-height: calc(100vh - 6rem); color: var(--muted); font-size: 0.95rem; font-weight: 300; text-align: center;}
-    .loading-bar {width: 7.5rem; height: 2px; border-radius: 999px; background: var(--line); overflow: hidden;}
-    .loading-bar::before {content: ""; display: block; width: 40%; height: 100%; border-radius: inherit; background: var(--accent); animation: loading-slide 1.1s ease-in-out infinite;}
-    .loading.err {color: #e07a6a;}
-    .loading.err .loading-bar {display: none;}
-    .loading[hidden], #content[hidden] {display: none;}
-    #content {animation: records-in 220ms ease;}
-    @keyframes loading-slide {from {transform: translateX(-120%);} to {transform: translateX(280%);}}
-    @keyframes records-in {from {opacity: 0;} to {opacity: 1;}}
-    @media (prefers-reduced-motion: reduce) {
-      #content {animation: none;}
-      .loading-bar::before {animation: none; width: 100%; transform: none; opacity: 0.65;}
-    }
+      --bg: rgb(34, 38, 42);
+      --text: rgb(255, 255, 255);
+      --title: var(--soft);
+      --time: var(--soft);
+      --link: var(--accent);
+      --eyebrow: var(--accent);
+      --group: var(--accent);
+      --glow: rgba(57,115,172,0.28);
+      --panel-border: rgb(54, 58, 64);
+      --panel-bg: rgba(0,0,0,0.2);
+      --input-border: var(--line);
+      --input-bg: rgba(255,255,255,0.03);
+      --focus: var(--accent);
+      --err: #e07a6a;
+      --switch-bg: rgba(0,0,0,0.28);
+      --on-text: white;
+      --on-bg: var(--accent);
+      --table-bg: rgba(0,0,0,0.18);
+      --row-line: rgb(54, 58, 64);
+      --th-bg: rgb(30, 34, 38);
+      --hover: rgba(57,115,172,0.08);
+      --group-bg: rgba(57,115,172,0.08);
+      --logo-opacity: 1;
+
+    --page-gutter: clamp(0.85rem, 3.5vw, 3.5rem);
+    font-family: "DM Sans", sans-serif;
+    line-height: 1.35;
+    color: var(--text);
+    background-color: var(--bg);
+  }
+  * {box-sizing: border-box;}
+  body {
+    margin: 0;
+    padding: 0 var(--page-gutter) 2rem;
+    background:
+      radial-gradient(ellipse 70% 40% at 50% -10%, var(--glow), transparent 60%),
+      var(--bg);
+  }
+  a {color: var(--link);}
+  .shell {max-width: 72rem; margin: 0 auto;}
+  header {
+    display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+    gap: 0.85rem 1.5rem; padding: 1.4rem 0 1rem;
+  }
+  a.brand {display: flex; align-items: center; gap: 0.55rem; color: var(--muted); text-decoration: none; font-size: 1.15rem; font-weight: 500; line-height: 1;}
+  a.brand svg {display: block; width: 44px; height: auto; opacity: var(--logo-opacity);}
+  a.brand b {font-weight: 700; color: inherit;}
+  .title-block {text-align: right;}
+  .eyebrow {margin: 0 0 0.2rem; font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--eyebrow);}
+  h1 {
+    margin: 0; font-family: "Space Grotesk", sans-serif; font-size: clamp(1.7rem, 6vw, 3.2rem);
+    font-weight: 700; letter-spacing: -0.04em; color: var(--title); line-height: 0.95;
+  }
+  .filters {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: 0.65rem;
+    padding: 0.85rem; margin-bottom: 1rem;
+    border: 1px solid var(--panel-border); border-radius: 14px;
+    background: var(--panel-bg);
+  }
+  label {display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);}
+  label.search {grid-column: 1 / -1;}
+  input, select {
+    width: 100%; min-height: 2.6rem; border: 1px solid var(--input-border); border-radius: 10px;
+    background: var(--input-bg); color: var(--soft); font: inherit; font-size: 1rem;
+    letter-spacing: 0; text-transform: none; padding: 0.5rem 0.75rem;
+  }
+  input:focus, select:focus {outline: 2px solid var(--focus); outline-offset: 1px;}
+  select option {color: #1c2733;}
+  .results-bar {display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.55rem;}
+  .status {margin: 0; color: var(--muted); font-size: 0.85rem;}
+  .status.err {color: var(--err);}
+  .view-switch {display: flex; flex: 0 0 auto; gap: 0.35rem; padding: 0.2rem; border-radius: 999px; background: var(--switch-bg);}
+  .view-switch button {border: 0; border-radius: 999px; min-height: 2.2rem; padding: 0.35rem 0.9rem; font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--muted); background: transparent; cursor: pointer;}
+  .view-switch button.on {color: var(--on-text); background: var(--on-bg);}
+  .table-wrap {
+    overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    max-height: calc(100vh - 16rem); border: 1px solid var(--panel-border);
+    border-radius: 14px; background: var(--table-bg);
+  }
+  table {width: 100%; min-width: 40rem; border-collapse: collapse; font-size: 0.9rem;}
+  th, td {padding: 0.55rem 0.8rem; text-align: left; border-bottom: 1px solid var(--row-line); white-space: nowrap;}
+  th {position: sticky; top: 0; z-index: 1; background: var(--th-bg); color: var(--muted); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700;}
+  th:first-child, td.time {padding-left: 1rem;}
+  th[hidden] {display: none;}
+  td.time {
+    font-family: "Space Grotesk", sans-serif; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--time); font-size: 1.02rem;
+  }
+  td.time .gap {margin-left: 0.45rem; color: var(--muted); font-size: 0.78rem; font-weight: 500;}
+  td.vehicle {white-space: normal; min-width: 10rem;}
+  @media (hover: hover) {
+    tbody tr:hover td {background: var(--hover);}
+  }
+  tr.group td {
+    padding-top: 0.95rem; border-bottom-color: transparent; color: var(--group);
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--group-bg);
+  }
+  .empty {padding: 2rem 0.6rem; color: var(--muted); text-align: center;}
+  .loading {display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem; min-height: calc(100vh - 4rem); color: var(--muted); font-size: 0.95rem; text-align: center;}
+  .loading-bar {width: 7.5rem; height: 2px; border-radius: 999px; background: var(--line); overflow: hidden;}
+  .loading-bar::before {content: ""; display: block; width: 40%; height: 100%; border-radius: inherit; background: var(--accent); animation: loading-slide 1.1s ease-in-out infinite;}
+  .loading.err {color: var(--err);}
+  .loading.err .loading-bar {display: none;}
+  .loading[hidden], #content[hidden] {display: none;}
+  #content {animation: records-in 220ms ease;}
+  @keyframes loading-slide {from {transform: translateX(-120%);} to {transform: translateX(280%);}}
+  @keyframes records-in {from {opacity: 0; transform: translateY(6px);} to {opacity: 1; transform: none;}}
+  @media (max-width: 720px) {
+    header {flex-direction: column; align-items: flex-start;}
+    .title-block {text-align: left;}
+    .filters {padding: 0.75rem; border-radius: 12px;}
+    .table-wrap {max-height: none; border-radius: 12px;}
+    table {font-size: 0.84rem;}
+    th, td {padding: 0.5rem 0.65rem;}
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #content {animation: none;}
+    .loading-bar::before {animation: none; width: 100%; transform: none; opacity: 0.65;}
+  }
+
   </style>
+
 </head>
 <body>
+  <div class="shell">
   <header>
     <a class="brand" href="index.html">
       <svg xmlns="http://www.w3.org/2000/svg" width="56" fill="#ff0000" fill-opacity="1.0" viewBox="0 162.7 950 624.6">
@@ -74,7 +149,10 @@
       </svg>
       <span class="brand-name"><b>Trackdays</b>.fyi</span>
     </a>
-    <h1>Lap Records</h1>
+    <div class="title-block">
+      <p class="eyebrow">Scoreboard</p>
+      <h1>Lap Records</h1>
+    </div>
   </header>
   <div id="loading" class="loading" role="status" aria-live="polite">
     <span class="loading-bar"></span>
@@ -82,11 +160,11 @@
   </div>
   <div id="content" hidden>
   <div class="filters">
-    <label>Track
-      <select id="track"></select>
-    </label>
     <label class="search">Search
       <input id="name" type="search" placeholder="Holder or vehicle" autocomplete="off">
+    </label>
+    <label>Track
+      <select id="track"></select>
     </label>
     <label>Vehicle
       <select id="vehicle">
@@ -126,6 +204,7 @@
       </thead>
       <tbody id="rows"></tbody>
     </table>
+  </div>
   </div>
   </div>
   <script>
