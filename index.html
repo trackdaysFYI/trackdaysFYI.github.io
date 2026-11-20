@@ -251,6 +251,10 @@
       }
     })();
 
+    function persistSavedEvents() {
+      localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+    }
+
     function removePastSavedEvents() {
       let todayStr = dayjs().format("YYYY-MM-DD");
       let hasChanges = false;
@@ -262,9 +266,7 @@
           hasChanges = true;
         }
       });
-      if (hasChanges) {
-        localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
-      }
+      if (hasChanges) persistSavedEvents();
     }
     removePastSavedEvents();
 
@@ -437,7 +439,7 @@
       } else {
         savedEventsSet.delete(key);
       }
-      localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+      persistSavedEvents();
       btn.setAttribute("aria-pressed", nowSaved ? "true" : "false");
       btn.title = nowSaved ? "Unsave Event" : "Save Event";
       btn.setAttribute("aria-label", nowSaved ? "Unsave Event" : "Save Event");
@@ -462,7 +464,7 @@
         .join("\n");
       alert(`Previously saved events have been cancelled or modified:\n${eventList}`);
       unmatchedSavedEvents.forEach((key) => {savedEventsSet.delete(key);});
-      localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+      persistSavedEvents();
     }
 
     function escapeICSValue(value) {
@@ -564,7 +566,6 @@
       tracks: {},
     };
     let recordLoads = {};
-    const SHOW_LAP_RECORDS = true;
     let recordsUi = {open: false, submitting: false, submitId: 0};
     const TRACKDAYS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays";
     const LAP_RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
@@ -587,11 +588,11 @@
     }
 
     function recordClassName(record) {
-      return record.vehicleClass || record.class || "";
+      return record.vehicleClass || "";
     }
 
     async function loadTrackRecords(trackKey) {
-      if (!SHOW_LAP_RECORDS || !trackKey) {
+      if (!trackKey) {
         updateTrackPopup();
         return;
       }
@@ -834,7 +835,8 @@
             } else {
               rank += 1;
             }
-            let evidence = r.evidence ? `<a class="rec-evidence" href="${escapeHtml(r.evidence)}" target="_blank" title="Evidence">▶</a>` : `<span></span>`;
+            let evidenceUrl = safeHttpUrl(r.evidence);
+            let evidence = evidenceUrl ? `<a class="rec-evidence" href="${escapeHtml(evidenceUrl)}" target="_blank" title="Evidence">▶</a>` : `<span></span>`;
             let meta = [r.holder, vehicleModel].filter(Boolean).map(escapeHtml).join(" · ");
             let classLabel = rank === 1 ? escapeHtml(vehicleClass) : "";
             let follow = rank > 1 ? " rec-follow" : "";
@@ -850,13 +852,6 @@
       }).join("");
       return `<div class="rec-panel">${groups}${footer}</div>`;
     }
-
-    function validHttpUrl(value) {
-      let trimmed = String(value || "").trim();
-      if (!trimmed || trimmed.length > 300) return false;
-      return !!safeHttpUrl(trimmed);
-    }
-
 
     function suggestEventDateBounds() {
       let today = dayjs.utc().startOf("day");
@@ -1032,14 +1027,14 @@
         }
         if (!["T", "S", "R"].includes(suggestUi.eventType)) return "Choose an event type";
         let eventUrl = optionalField(form.elements.url.value, 300, "Link must be an http(s) URL");
-        if (!eventUrl.ok || (eventUrl.value && !validHttpUrl(eventUrl.value))) return "Link must be an http(s) URL";
+        if (!eventUrl.ok || (eventUrl.value && !safeHttpUrl(eventUrl.value))) return "Link must be an http(s) URL";
         return "";
       }
       let name = optionalField(form.elements.name.value, 80, "Name is too long");
       if (!name.value) return "Enter a name";
       if (!name.ok) return name.error;
       let url = optionalField(form.elements.url.value, 300, "Link must be an http(s) URL");
-      if (!url.ok || (url.value && !validHttpUrl(url.value))) return "Link must be an http(s) URL";
+      if (!url.ok || (url.value && !safeHttpUrl(url.value))) return "Link must be an http(s) URL";
       return "";
     }
 
@@ -1140,12 +1135,8 @@
       let list = trackdaysFiltered.length === 0 ? `<div class="empty">No Events Found</div>` : `<div class="tl">${rows}</div>`;
       let report = `<button type="button" class="missing-event-link" onclick="reportMissingEvent()">Missing an event?</button>`;
       let eventsBody = list + hiddenNote + report;
-      let tabs = "";
-      let body = eventsBody;
-      if (SHOW_LAP_RECORDS) {
-        tabs = `<div class="rec-tabs"><button type="button" class="${recordsUi.open ? "" : "on"}" onclick="setRecordsOpen(false)">Events</button><button type="button" class="${recordsUi.open ? "on" : ""}" onclick="setRecordsOpen(true)">Records</button></div>`;
-        body = recordsUi.open ? recordsListHtml(lastOpenedTrack) : eventsBody;
-      }
+      let tabs = `<div class="rec-tabs"><button type="button" class="${recordsUi.open ? "" : "on"}" onclick="setRecordsOpen(false)">Events</button><button type="button" class="${recordsUi.open ? "on" : ""}" onclick="setRecordsOpen(true)">Records</button></div>`;
+      let body = recordsUi.open ? recordsListHtml(lastOpenedTrack) : eventsBody;
       let popup = mapMarkers[lastOpenedTrack].getPopup();
       popup.setContent(`<div class="popup popup-timeline">${head}${tabs}<div class="tl-scroll">${body}</div></div>`);
     }
@@ -1503,6 +1494,10 @@
       radiusSliderElement.addEventListener("change", () => {
         refresh({calendar: true, dropdown: true});
       });
+
+      map.on("pointerdown", () => {
+        map.closePopup();
+      });
     }
 
     function setFilterToggle(buttonElement, enabled) {
@@ -1639,10 +1634,6 @@
           if (daySelectAll) daySelectAll.checked = true;
         }
         resetHome();
-      });
-
-      map.on("pointerdown", () => {
-        map.closePopup();
       });
     }
 
