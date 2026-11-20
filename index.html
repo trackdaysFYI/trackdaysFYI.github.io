@@ -155,7 +155,7 @@
     <form id="suggest-form" class="rec-form" autocomplete="off" novalidate onsubmit="submitSuggestForm(event)">
       <div class="suggest-head">
         <b id="suggestTitle">Report a missing track</b>
-        <button type="button" class="suggest-close" onclick="closeSuggestDialog()" aria-label="Close">×</button>
+        <button type="button" class="suggest-close" aria-label="Close">×</button>
       </div>
       <div class="rec-types">
         <button type="button" class="rec-type on" data-kind="track" onclick="setSuggestKind('track')">Missing track</button>
@@ -190,7 +190,7 @@
       </div>
       <label class="rec-field"><span>Note (optional)</span><textarea name="note" maxlength="300" rows="1"></textarea></label>
       <div class="rec-form-actions">
-        <button type="button" class="rec-cancel" onclick="closeSuggestDialog()">Cancel</button>
+        <button type="button" class="rec-cancel">Cancel</button>
         <button type="submit" class="rec-submit">Submit for Review</button>
       </div>
       <div id="suggestMessage" class="rec-form-msg" hidden></div>
@@ -201,7 +201,7 @@
     <form id="lap-record-form" class="rec-form" autocomplete="off" novalidate onsubmit="submitLapRecord(event)">
       <div class="suggest-head">
         <b id="recordTitle">Add a Lap Record</b>
-        <button type="button" class="suggest-close" onclick="closeRecordForm()" aria-label="Close">×</button>
+        <button type="button" class="suggest-close" aria-label="Close">×</button>
       </div>
       <label class="rec-field"><span>Track</span><select name="track" onchange="onRecordTrackChange(this)"></select></label>
       <label class="rec-field"><span>Subtrack</span><select name="subtrack"></select></label>
@@ -228,13 +228,14 @@
       <label class="rec-field"><span>Evidence (optional)</span><input name="evidence" type="url" placeholder="https://" maxlength="300"></label>
       <label class="rec-field"><span>Note (optional)</span><textarea name="note" maxlength="300" rows="1"></textarea></label>
       <div class="rec-form-actions">
-        <button type="button" class="rec-cancel" onclick="closeRecordForm()">Cancel</button>
+        <button type="button" class="rec-cancel">Cancel</button>
         <button type="submit" class="rec-submit">Submit for Review</button>
       </div>
       <div id="recordMessage" class="rec-form-msg" hidden></div>
     </form>
   </dialog>
 
+  <script src="js/lap-record-shared.js" type="text/javascript"></script>
   <script>
     const STORAGE_KEY_USER_SAVED_EVENTS = "trackdaysFYI:userSavedEvents";
     const STORAGE_KEY_USER_VEHICLE_TYPES = "trackdaysFYI:userVehicleTypes";
@@ -464,24 +465,6 @@
       localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
     }
 
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-    }
-
-    function safeHttpUrl(value) {
-      try {
-        let url = new URL(String(value));
-        if (url.protocol !== "http:" && url.protocol !== "https:") return "";
-        return escapeHtml(url.href);
-      } catch (e) {
-        return "";
-      }
-    }
-
     function escapeICSValue(value) {
       return String(value || "")
         .replace(/\\/g, "\\\\")  // escape backslash
@@ -574,10 +557,9 @@
     }
 
     let lapRecords = {
-      // class names are listed here only to fill the dropdown options
       vehicleTypes: {
-        C: {label: "Car", classes: ["Open"]},
-        M: {label: "Motorcycle", classes: ["Open", "600cc", "Twins", "Lightweight", "Motard"]},
+        C: {label: "Car"},
+        M: {label: "Motorcycle"},
       },
       tracks: {},
     };
@@ -585,14 +567,9 @@
     const SHOW_LAP_RECORDS = true;
     let recordsUi = {open: false, submitting: false, submitId: 0};
     const TRACKDAYS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays";
-    const LAP_RECORD_SUBMIT_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/submitLapRecord";
     const LAP_RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
     const SUGGESTION_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/submitSuggestion";
     let suggestUi = {kind: "track", submitting: false, submitId: 0, eventType: "T"};
-
-    // m:ss.s–m:ss.sss, or ss.s–ss.sss when the lap is under a minute
-    const LAP_TIME_RE = /^(?:\d{1,3}:[0-5]\d|[0-5]?\d)\.\d{1,3}$/;
-    const CUSTOM_CLASS_VALUE = "__custom__";
 
     function optionalField(value, maxLen, tooLongMsg) {
       let text = String(value || "").trim();
@@ -602,66 +579,6 @@
 
     function assignOptional(payload, key, value) {
       if (value) payload[key] = value;
-    }
-
-    function showHiddenField(form, selector, show) {
-      let el = form.querySelector(selector);
-      if (el) el.hidden = !show;
-    }
-
-    function fillSelectOptions(select, options, selectedValue) {
-      if (!select) return "";
-      select.replaceChildren();
-      options.forEach(name => {
-        let option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        select.appendChild(option);
-      });
-      if (selectedValue != null && options.includes(selectedValue)) {
-        select.value = selectedValue;
-        return selectedValue;
-      }
-      if (options.length) {
-        select.value = options[0];
-        return options[0];
-      }
-      select.value = "";
-      return "";
-    }
-
-    function fillSelectWithOther(select, options, selectedValue, otherValue) {
-      if (!select) return "";
-      fillSelectOptions(select, options, options.includes(selectedValue) ? selectedValue : null);
-      let other = document.createElement("option");
-      other.value = otherValue;
-      other.textContent = "Other";
-      select.appendChild(other);
-      let choice = options[0] || otherValue;
-      if (selectedValue === otherValue) choice = otherValue;
-      else if (options.includes(selectedValue)) choice = selectedValue;
-      select.value = choice;
-      return choice;
-    }
-
-    function timeToMs(time) {
-      let text = String(time).trim();
-      if (!LAP_TIME_RE.test(text)) return Number.MAX_SAFE_INTEGER;
-      let colon = text.indexOf(":");
-      let minutes = 0;
-      let seconds = text;
-      if (colon !== -1) {
-        minutes = Number(text.slice(0, colon));
-        seconds = text.slice(colon + 1);
-      }
-      return minutes * 60000 + Number(seconds) * 1000;
-    }
-
-    function formatLapTime(time) {
-      let text = String(time).trim();
-      if (!LAP_TIME_RE.test(text)) return text;
-      let dot = text.lastIndexOf(".");
-      return text.slice(0, dot + 1) + text.slice(dot + 1).padEnd(3, "0");
     }
 
     function trackRecords(trackKey) {
@@ -734,8 +651,7 @@
     }
 
     function recordClasses(code) {
-      let info = lapRecords.vehicleTypes && lapRecords.vehicleTypes[code];
-      return info && Array.isArray(info.classes) ? info.classes : [];
+      return SUGGESTED_CLASSES[code] || [];
     }
 
     // hardcoded suggestions stay available - classes already on this track are ordered by their fastest lap; suggestions with no time yet follow in their original order
@@ -749,21 +665,7 @@
         let ms = timeToMs(record.time);
         if (!bestMs.has(name) || ms < bestMs.get(name)) bestMs.set(name, ms);
       });
-      let suggestedIndex = new Map(suggested.map((name, index) => [name, index]));
-      let names = [...new Set([...suggested, ...bestMs.keys()])];
-      let noTime = Number.MAX_SAFE_INTEGER;
-      names.sort((a, b) => {
-        let aMs = bestMs.has(a) ? bestMs.get(a) : noTime;
-        let bMs = bestMs.has(b) ? bestMs.get(b) : noTime;
-        if (aMs !== bMs) return aMs - bMs;
-        if (aMs === noTime) {
-          let aIndex = suggestedIndex.has(a) ? suggestedIndex.get(a) : suggested.length;
-          let bIndex = suggestedIndex.has(b) ? suggestedIndex.get(b) : suggested.length;
-          if (aIndex !== bIndex) return aIndex - bIndex;
-        }
-        return a.localeCompare(b);
-      });
-      return names;
+      return rankFormClasses(suggested, bestMs);
     }
 
     function recordDialog() {
@@ -772,81 +674,6 @@
 
     function recordForm() {
       return document.getElementById("lap-record-form");
-    }
-
-    function setFormMessage(el, message) {
-      if (!el) return;
-      if (!message) {
-        el.hidden = true;
-        el.textContent = "";
-        el.className = "rec-form-msg";
-        return;
-      }
-      el.hidden = false;
-      el.textContent = message.text;
-      el.className = "rec-form-msg " + message.kind;
-    }
-
-    function setFormSubmitting(state, form, submitting) {
-      state.submitting = submitting;
-      let button = form.querySelector(".rec-submit");
-      if (!button) return;
-      button.disabled = submitting;
-      button.textContent = submitting ? "Submitting..." : "Submit for Review";
-    }
-
-    function closeReviewDialog(state, dialogId) {
-      if (state.submitting) return;
-      let dialog = document.getElementById(dialogId);
-      if (dialog && dialog.open) dialog.close();
-    }
-
-    function focusReviewField(root) {
-      let focus = [...root.querySelectorAll("input, textarea, select")].find((el) => el.type !== "hidden" && !el.closest("[hidden]"));
-      if (focus) focus.focus();
-    }
-
-    async function postReview(url, payload) {
-      let res = await fetch(url, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        let failure = new Error("HTTP " + res.status);
-        failure.status = res.status;
-        throw failure;
-      }
-    }
-
-    async function submitReviewForm(event, state, submit) {
-      event.preventDefault();
-      if (state.submitting) return;
-      let form = event.target;
-      let message = form.querySelector(".rec-form-msg");
-      let error = submit.validate(form);
-      if (error) {
-        setFormMessage(message, {kind: "err", text: error});
-        return;
-      }
-      let started = state.submitId;
-      setFormSubmitting(state, form, true);
-      setFormMessage(message, null);
-      try {
-        await postReview(submit.url, submit.payload(form));
-        if (state.submitId !== started) return;
-        submit.reset(form);
-        setFormMessage(message, {kind: "ok", text: "Submitted for review."});
-      } catch (err) {
-        if (state.submitId !== started) return;
-        let text = err && err.status ? "Unable to submit (" + err.status + ")." : "Unable to submit. Try again.";
-        setFormMessage(message, {kind: "err", text});
-      }
-      if (state.submitId === started) setFormSubmitting(state, form, false);
-    }
-
-    function showRecordCustomClass(form, show) {
-      showHiddenField(form, ".rec-custom-class", show);
     }
 
     function recordTrackKey(form) {
@@ -1081,12 +908,14 @@
       let draft = readRecordForm(form);
       let trackKey = draft.track;
       let type = draft.vehicleType;
-      await submitReviewForm(event, recordsUi, {
-        url: LAP_RECORD_SUBMIT_URL,
+      await submitReview(event, {
+        state: recordsUi,
+        messageEl: form.querySelector(".rec-form-msg"),
+        setSubmitting: (submitting) => setFormSubmitting(recordsUi, form, submitting),
         validate: () => validateLapRecord(draft),
         payload: () => lapRecordPayload(draft, trackKey),
-        reset(current) {
-          prepareRecordForm(current, trackKey, type);
+        onSuccess() {
+          prepareRecordForm(form, trackKey, type);
         },
       });
     }
@@ -1160,6 +989,7 @@
       if (!trimmed || trimmed.length > 300) return false;
       return !!safeHttpUrl(trimmed);
     }
+
 
     function suggestEventDateBounds() {
       let today = dayjs.utc().startOf("day");
@@ -1377,12 +1207,15 @@
     }
 
     async function submitSuggestForm(event) {
+      let form = event.target;
       let kind = suggestUi.kind;
-      await submitReviewForm(event, suggestUi, {
-        url: SUGGESTION_URL,
-        validate: validateSuggestForm,
-        payload: suggestFormPayload,
-        reset(form) {
+      await submitReview(event, {
+        state: suggestUi,
+        messageEl: form.querySelector(".rec-form-msg"),
+        setSubmitting: (submitting) => setFormSubmitting(suggestUi, form, submitting),
+        validate: () => validateSuggestForm(form),
+        post: () => postJson(SUGGESTION_URL, suggestFormPayload(form)),
+        onSuccess() {
           resetSuggestForm(form, {kind});
         },
       });
@@ -1401,7 +1234,7 @@
       function rowMain(td, meta, price, mark) {
         let copy = `<span class="tl-copy"><span class="tl-dow">${td.date.format("ddd")}</span><span class="tl-host allowSelect">${escapeHtml(td.org)}</span>${meta ? `<span class="tl-meta">${meta}</span>` : ""}${price ? `<span class="tl-price">${price}</span>` : ""}</span>`;
         let eventUrl = safeHttpUrl(td.url);
-        if (eventUrl) return `<a class="tl-row-link" href="${eventUrl}" target="_blank">${mark}${copy}</a>`;
+        if (eventUrl) return `<a class="tl-row-link" href="${escapeHtml(eventUrl)}" target="_blank">${mark}${copy}</a>`;
         return `<div class="tl-row-link">${mark}${copy}</div>`;
       }
       function saveBox(eventKey) {
@@ -1542,7 +1375,7 @@
         let tbody = Object.values(orgs).map(org => {
           let orgUrl = safeHttpUrl(org.url);
           let name = escapeHtml(org.org);
-          let nameCell = orgUrl ? `<a href="${orgUrl}" target="_blank">${name}</a>` : name;
+          let nameCell = orgUrl ? `<a href="${escapeHtml(orgUrl)}" target="_blank">${name}</a>` : name;
           return `
           <tr>
             <td>${nameCell}</td>
@@ -1566,18 +1399,17 @@
       }
     }
 
-    function blockCancelWhileSubmitting(dialog, state) {
-      dialog.addEventListener("cancel", (event) => {
-        if (state.submitting) event.preventDefault();
-      });
-    }
-    blockCancelWhileSubmitting(document.getElementById("suggestDialog"), suggestUi);
-    blockCancelWhileSubmitting(document.getElementById("recordDialog"), recordsUi);
-    document.querySelectorAll(".suggest-dialog form").forEach((form) => {
-      form.addEventListener("input", () => {
-        let el = form.querySelector(".rec-form-msg");
-        if (el && !el.hidden && el.classList.contains("err")) setFormMessage(el, null);
-      });
+    wireReviewDialog(document.getElementById("suggestDialog"), {
+      state: suggestUi,
+      form: document.getElementById("suggestDialog").querySelector("form"),
+      messageEl: document.querySelector("#suggestDialog .rec-form-msg"),
+      close: closeSuggestDialog,
+    });
+    wireReviewDialog(document.getElementById("recordDialog"), {
+      state: recordsUi,
+      form: document.getElementById("lap-record-form"),
+      messageEl: document.getElementById("recordMessage"),
+      close: closeRecordForm,
     });
     document.getElementById("suggestDialog").addEventListener("close", () => {
       let dialog = document.getElementById("suggestDialog");
