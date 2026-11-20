@@ -650,13 +650,8 @@
       }
     }
 
-    function recordClasses(code) {
-      return SUGGESTED_CLASSES[code] || [];
-    }
-
     // hardcoded suggestions stay available - classes already on this track are ordered by their fastest lap; suggestions with no time yet follow in their original order
     function formClasses(code, trackKey) {
-      let suggested = recordClasses(code);
       let bestMs = new Map();
       trackRecords(trackKey).forEach(record => {
         if (record.vehicleType !== code) return;
@@ -665,7 +660,7 @@
         let ms = timeToMs(record.time);
         if (!bestMs.has(name) || ms < bestMs.get(name)) bestMs.set(name, ms);
       });
-      return rankFormClasses(suggested, bestMs);
+      return rankFormClasses(suggestedClasses(code), bestMs);
     }
 
     function recordDialog() {
@@ -717,46 +712,10 @@
       fillTrackSelect(form.elements.track, selectedKey);
     }
 
-    function fillRecordClassOptions(form, type, selectedValue) {
-      let classes = formClasses(type, recordTrackKey(form));
-      let choice = fillSelectWithOther(form.elements.vehicleClass, classes, selectedValue, CUSTOM_CLASS_VALUE);
-      showRecordCustomClass(form, choice === CUSTOM_CLASS_VALUE);
-    }
-
-    // missingClass: "reset" drops an unknown class, "named" keeps Other only when the typed name is a class, "refresh" keeps the current selection
-    function refillRecordClasses(form, type, missingClass) {
-      let classes = formClasses(type, recordTrackKey(form));
-      let selected = form.elements.vehicleClass.value;
-      let customText = form.elements.customClass.value;
-      let next;
-      let clearCustom = false;
-      if (selected === CUSTOM_CLASS_VALUE && (missingClass !== "named" || classes.includes(customText))) {
-        next = CUSTOM_CLASS_VALUE;
-      } else if (selected !== CUSTOM_CLASS_VALUE && (classes.includes(selected) || missingClass === "refresh")) {
-        next = selected;
-      } else {
-        next = classes[0] || "";
-        clearCustom = true;
-      }
-      fillRecordClassOptions(form, type, next);
-      if (next === CUSTOM_CLASS_VALUE) form.elements.customClass.value = customText;
-      else if (clearCustom) form.elements.customClass.value = "";
-    }
-
     function trackSubtracks(trackKey) {
       let track = typeof tracks !== "undefined" && tracks ? tracks[trackKey] : null;
       if (!track || !Array.isArray(track.subtracks)) return [];
       return track.subtracks.map(name => String(name).trim()).filter(Boolean);
-    }
-
-    function fillRecordSubtracks(form, trackKey) {
-      let select = form.elements.subtrack;
-      if (!select) return;
-      let field = select.closest(".rec-field");
-      let known = trackSubtracks(trackKey);
-      let prev = select.value;
-      fillSelectOptions(select, known, prev);
-      if (field) field.hidden = !known.length;
     }
 
     function applyRecordType(form, code) {
@@ -767,8 +726,8 @@
       let dialog = recordDialog();
       let form = recordForm();
       if (!dialog || !dialog.open || !form) return;
-      refillRecordClasses(form, form.elements.vehicleType.value, "refresh");
-      fillRecordSubtracks(form, recordTrackKey(form));
+      refillRecordClasses(form, form.elements.vehicleType.value, "refresh", formClasses);
+      fillRecordSubtracks(form, recordTrackKey(form), trackSubtracks);
     }
 
     function resetRecordForm() {
@@ -778,33 +737,12 @@
       if (dialog && dialog.open) dialog.close();
     }
 
-    function readRecordForm(form) {
-      let data = new FormData(form);
-      let selectedClass = String(data.get("vehicleClass") || "");
-      let classIsCustom = selectedClass === CUSTOM_CLASS_VALUE;
-      return {
-        track: form.elements.track ? form.elements.track.value : "",
-        vehicleType: String(data.get("vehicleType") || ""),
-        vehicleClass: classIsCustom ? String(data.get("customClass") || "") : selectedClass,
-        classIsCustom,
-        vehicleYear: String(data.get("vehicleYear") || ""),
-        vehicleMake: String(data.get("vehicleMake") || ""),
-        vehicleModel: String(data.get("vehicleModel") || ""),
-        subtrack: String(data.get("subtrack") || ""),
-        time: String(data.get("time") || ""),
-        holder: String(data.get("holder") || ""),
-        date: String(data.get("date") || ""),
-        evidence: String(data.get("evidence") || ""),
-        note: String(data.get("note") || ""),
-      };
-    }
-
     function onRecordTrackChange(select) {
       let form = select.form;
       let trackKey = select.value;
       if (form.elements.subtrack) form.elements.subtrack.value = "";
-      fillRecordSubtracks(form, trackKey);
-      refillRecordClasses(form, form.elements.vehicleType.value, "reset");
+      fillRecordSubtracks(form, trackKey, trackSubtracks);
+      refillRecordClasses(form, form.elements.vehicleType.value, "reset", formClasses);
       if (trackKey) loadTrackRecords(trackKey);
     }
 
@@ -820,17 +758,18 @@
       applyRecordType(form, type);
       form.elements.customClass.value = "";
       fillRecordTracks(form, trackKey);
-      fillRecordClassOptions(form, type, formClasses(type, trackKey)[0] || "");
-      fillRecordSubtracks(form, trackKey);
+      let classes = formClasses(type, trackKey);
+      fillRecordClassOptions(form, classes, classes[0] || "");
+      fillRecordSubtracks(form, trackKey, trackSubtracks);
       let date = form.elements.date;
-      if (date) date.max = dayjs().format("YYYY-MM-DD");
+      if (date) date.max = todayIso();
     }
 
     function openRecordForm() {
       let dialog = recordDialog();
       let form = recordForm();
       if (!dialog || !form) return;
-      let types = ["C", "M"].filter(code => recordClasses(code).length);
+      let types = ["C", "M"].filter(code => suggestedClasses(code).length);
       let type = preferredRecordType(types);
       recordsUi.submitting = false;
       prepareRecordForm(form, lastOpenedTrack, type);
@@ -847,73 +786,25 @@
     function onRecordTypeChange(select) {
       let form = select.form;
       let code = select.value;
-      if (!form || !recordClasses(code).length) return;
-      refillRecordClasses(form, code, "named");
+      if (!form || !suggestedClasses(code).length) return;
+      refillRecordClasses(form, code, "named", formClasses);
       setFormMessage(form.querySelector(".rec-form-msg"), null);
-    }
-
-    function validateLapRecord(draft) {
-      if (!draft.track || draft.track.length > 40) return "Choose a track.";
-      let classes = recordClasses(draft.vehicleType);
-      if (!classes.length) return "Choose a vehicle type.";
-      if (draft.classIsCustom) {
-        let name = draft.vehicleClass.trim();
-        if (!name || name.length > 40) return "Enter a class";
-      } else if (!formClasses(draft.vehicleType, draft.track).includes(draft.vehicleClass)) {
-        return "Choose a class.";
-      }
-      let yearText = draft.vehicleYear.trim();
-      if (yearText) {
-        let year = Number(yearText);
-        let maxYear = dayjs().year() + 1;
-        if (!Number.isInteger(year) || year < 1885 || year > maxYear) return "Enter a vehicle year";
-      }
-      if (!draft.vehicleMake.trim() || draft.vehicleMake.trim().length > 40) return "Enter a make";
-      if (!draft.vehicleModel.trim() || draft.vehicleModel.trim().length > 60) return "Enter a model";
-      let subtracks = trackSubtracks(draft.track);
-      if (subtracks.length && !subtracks.includes(draft.subtrack.trim())) return "Choose a subtrack.";
-      if (draft.subtrack.trim().length > 40) return "Subtrack is too long";
-      if (!LAP_TIME_RE.test(draft.time.trim())) return "Enter a time like 1:23.456 or 54.32";
-      if (!draft.holder.trim() || draft.holder.trim().length > 80) return "Enter the lap holder";
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.date) || draft.date > dayjs().format("YYYY-MM-DD")) return "Enter the lap date";
-      let evidence = optionalField(draft.evidence, 300, "Evidence link must be an http(s) URL");
-      if (!evidence.ok || (evidence.value && !safeHttpUrl(evidence.value))) return "Evidence link must be an http(s) URL";
-      let note = optionalField(draft.note, 300, "Note is too long");
-      if (!note.ok) return note.error;
-      return "";
-    }
-
-    function lapRecordPayload(draft, trackKey) {
-      let payload = {
-        action: "create",
-        track: trackKey,
-        vehicleType: draft.vehicleType,
-        vehicleClass: draft.vehicleClass.trim(),
-        vehicleMake: draft.vehicleMake.trim(),
-        vehicleModel: draft.vehicleModel.trim(),
-        subtrack: draft.subtrack.trim(),
-        time: formatLapTime(draft.time),
-        holder: draft.holder.trim(),
-        date: draft.date,
-      };
-      let yearText = draft.vehicleYear.trim();
-      if (yearText) payload.vehicleYear = Number(yearText);
-      assignOptional(payload, "evidence", draft.evidence.trim());
-      assignOptional(payload, "note", draft.note.trim());
-      return payload;
     }
 
     async function submitLapRecord(event) {
       let form = event.target;
-      let draft = readRecordForm(form);
+      let draft = readCreateDraft(form);
       let trackKey = draft.track;
       let type = draft.vehicleType;
       await submitReview(event, {
         state: recordsUi,
         messageEl: form.querySelector(".rec-form-msg"),
         setSubmitting: (submitting) => setFormSubmitting(recordsUi, form, submitting),
-        validate: () => validateLapRecord(draft),
-        payload: () => lapRecordPayload(draft, trackKey),
+        validate: () => validateCreateDraft(draft, {
+          allowedClasses: formClasses(draft.vehicleType, draft.track),
+          knownSubtracks: trackSubtracks(draft.track),
+        }),
+        payload: () => createLapRecordPayload(draft),
         onSuccess() {
           prepareRecordForm(form, trackKey, type);
         },

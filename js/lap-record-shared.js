@@ -101,6 +101,172 @@ function showRecordCustomClass(form, show) {
   if (el) el.hidden = !show;
 }
 
+function suggestedClasses(code) {
+  return SUGGESTED_CLASSES[code] || [];
+}
+
+function todayIso() {
+  let now = new Date();
+  let y = now.getFullYear();
+  let m = String(now.getMonth() + 1).padStart(2, "0");
+  let d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parseOptionalYear(text) {
+  let raw = String(text || "").trim();
+  if (!raw) return {ok: true, error: "", value: null};
+  let year = Number(raw);
+  let maxYear = new Date().getFullYear() + 1;
+  if (!Number.isInteger(year) || year < 1885 || year > maxYear) {
+    return {ok: false, error: "Enter a vehicle year.", value: null};
+  }
+  return {ok: true, error: "", value: year};
+}
+
+function validateVehicleMake(text) {
+  if (!text || text.length > 40) return "Enter a vehicle make.";
+  return "";
+}
+
+function validateVehicleModel(text) {
+  if (!text || text.length > 60) return "Enter a vehicle model.";
+  return "";
+}
+
+function validateLapTime(text) {
+  if (!LAP_TIME_RE.test(text)) return "Enter a time like 1:23.456 or 54.32.";
+  return "";
+}
+
+function validateLapDate(text) {
+  if (!DATE_RE.test(text) || text > todayIso()) return "Enter the date of the lap.";
+  return "";
+}
+
+function validateEvidence(text) {
+  if (text && (!safeHttpUrl(text) || text.length > 300)) return "Evidence link must be an http(s) URL.";
+  return "";
+}
+
+function validateNote(text, required) {
+  if (required && !text) return "Enter a note.";
+  if (text.length > 300) return "Note is too long.";
+  return "";
+}
+
+function validateSharedEditFields(draft) {
+  let year = parseOptionalYear(draft.vehicleYear);
+  if (!year.ok) return year.error;
+  return (
+    validateVehicleMake(draft.vehicleMake) ||
+    validateVehicleModel(draft.vehicleModel) ||
+    validateLapTime(draft.time) ||
+    validateLapDate(draft.date) ||
+    validateEvidence(draft.evidence) ||
+    validateNote(draft.note, false) ||
+    ""
+  );
+}
+
+function readCreateDraft(form) {
+  let data = new FormData(form);
+  let selectedClass = String(data.get("vehicleClass") || "");
+  let classIsCustom = selectedClass === CUSTOM_CLASS_VALUE;
+  return {
+    track: form.elements.track ? form.elements.track.value : "",
+    vehicleType: String(data.get("vehicleType") || ""),
+    vehicleClass: classIsCustom ? String(data.get("customClass") || "").trim() : selectedClass,
+    classIsCustom,
+    vehicleYear: String(data.get("vehicleYear") || "").trim(),
+    vehicleMake: String(data.get("vehicleMake") || "").trim(),
+    vehicleModel: String(data.get("vehicleModel") || "").trim(),
+    subtrack: String(data.get("subtrack") || "").trim(),
+    time: String(data.get("time") || "").trim(),
+    holder: String(data.get("holder") || "").trim(),
+    date: String(data.get("date") || "").trim(),
+    evidence: String(data.get("evidence") || "").trim(),
+    note: String(data.get("note") || "").trim(),
+  };
+}
+
+function createLapRecordPayload(draft) {
+  let payload = {
+    action: "create",
+    track: draft.track,
+    vehicleType: draft.vehicleType,
+    vehicleClass: draft.vehicleClass,
+    vehicleMake: draft.vehicleMake,
+    vehicleModel: draft.vehicleModel,
+    subtrack: draft.subtrack,
+    time: formatLapTime(draft.time),
+    holder: draft.holder,
+    date: draft.date,
+  };
+  let year = parseOptionalYear(draft.vehicleYear).value;
+  if (year != null) payload.vehicleYear = year;
+  if (draft.evidence) payload.evidence = draft.evidence;
+  if (draft.note) payload.note = draft.note;
+  return payload;
+}
+
+// opts: { allowedClasses, knownSubtracks }
+function validateCreateDraft(draft, opts) {
+  opts = opts || {};
+  let allowedClasses = opts.allowedClasses || [];
+  let knownSubtracks = opts.knownSubtracks || [];
+  if (!draft.track || draft.track.length > 40) return "Choose a track.";
+  if (!suggestedClasses(draft.vehicleType).length) return "Choose a vehicle type.";
+  if (draft.classIsCustom) {
+    if (!draft.vehicleClass || draft.vehicleClass.length > 40) return "Enter a class.";
+  } else if (!allowedClasses.includes(draft.vehicleClass)) {
+    return "Choose a class.";
+  }
+  let shared = validateSharedEditFields(draft);
+  if (shared) return shared;
+  if (knownSubtracks.length && !knownSubtracks.includes(draft.subtrack)) return "Choose a subtrack.";
+  if (draft.subtrack.length > 40) return "Subtrack is too long.";
+  if (!draft.holder || draft.holder.length > 80) return "Enter the record holder.";
+  return "";
+}
+
+function fillRecordClassOptions(form, classes, selectedValue) {
+  let choice = fillSelectWithOther(form.elements.vehicleClass, classes, selectedValue, CUSTOM_CLASS_VALUE);
+  showRecordCustomClass(form, choice === CUSTOM_CLASS_VALUE);
+  return choice;
+}
+
+// missingClass: "reset" drops an unknown class, "named" keeps Other only when the typed name is a class, "refresh" keeps the current selection
+function refillRecordClasses(form, type, missingClass, getClasses) {
+  let trackKey = form.elements.track ? form.elements.track.value : "";
+  let classes = getClasses(type, trackKey);
+  let selected = form.elements.vehicleClass.value;
+  let customText = form.elements.customClass.value;
+  let next;
+  let clearCustom = false;
+  if (selected === CUSTOM_CLASS_VALUE && (missingClass !== "named" || classes.includes(customText))) {
+    next = CUSTOM_CLASS_VALUE;
+  } else if (selected !== CUSTOM_CLASS_VALUE && (classes.includes(selected) || missingClass === "refresh")) {
+    next = selected;
+  } else {
+    next = classes[0] || "";
+    clearCustom = true;
+  }
+  fillRecordClassOptions(form, classes, next);
+  if (next === CUSTOM_CLASS_VALUE) form.elements.customClass.value = customText;
+  else if (clearCustom) form.elements.customClass.value = "";
+}
+
+function fillRecordSubtracks(form, trackKey, getSubtracks) {
+  let select = form.elements.subtrack;
+  if (!select) return;
+  let field = select.closest(".rec-field");
+  let options = getSubtracks(trackKey) || [];
+  let prev = select.value;
+  fillSelectOptions(select, options, prev);
+  if (field) field.hidden = !options.length;
+}
+
 function setFormMessage(el, message) {
   if (!el) return;
   if (!message) {
