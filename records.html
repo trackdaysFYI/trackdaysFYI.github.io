@@ -117,8 +117,11 @@
   }
   td.time .gap {margin-left: 0.45rem; color: var(--muted); font-size: 0.78rem; font-weight: 500;}
   td.vehicle {white-space: normal; min-width: 10rem;}
+  tbody tr[data-key] {cursor: pointer;}
+  tbody tr.ref td {background: rgba(57,115,172,0.16);}
   @media (hover: hover) {
     tbody tr:hover td {background: var(--hover);}
+    tbody tr.ref:hover td {background: rgba(57,115,172,0.22);}
   }
   tr.group td {
     padding-top: 0.95rem; border-bottom-color: transparent; color: var(--group);
@@ -197,8 +200,9 @@
     table {min-width: 0; width: 100%; font-size: 9.5pt; color: #111;}
     th, td {border-bottom: 1px solid #ccc; color: #111; background: transparent;}
     th {position: static; background: #f0f0f0; color: #333;}
-    td.time, tr.group td {color: #111; background: transparent; box-shadow: none;}
+    td.time, tr.group td, tbody tr.ref td {color: #111; background: transparent; box-shadow: none;}
     tr.group td {border-bottom: 0; padding-top: 0.85rem; color: #333;}
+    tbody tr.ref td {background: #e8eef5;}
     a {color: #111; text-decoration: underline;}
   }
 
@@ -286,6 +290,7 @@
     let trackSubtracks = {};
     let viewMode = "class";
     let paramsApplied = false;
+    let referenceKey = null;
     const trackSelect = document.getElementById("track");
     const nameInput = document.getElementById("name");
     const vehicleSelect = document.getElementById("vehicle");
@@ -459,11 +464,37 @@
 
     function formatGap(ms) {
       ms = Math.round(ms);
+      let sign = ms > 0 ? "+" : ms < 0 ? "\u2212" : "";
+      ms = Math.abs(ms);
       let minutes = Math.floor(ms / 60000);
       let seconds = ((ms % 60000) / 1000).toFixed(3);
-      if (!minutes) return `+${seconds}`;
+      if (!minutes) return `${sign}${seconds}`;
       let [whole, frac] = seconds.split(".");
-      return `+${minutes}:${whole.padStart(2, "0")}.${frac}`;
+      return `${sign}${minutes}:${whole.padStart(2, "0")}.${frac}`;
+    }
+
+    function recordKey(record) {
+      return [
+        record.time || "",
+        String(record.track || "").toUpperCase(),
+        record.subtrack || "",
+        record.holder || "",
+        record.vehicleType || "",
+        record.vehicleClass || "",
+        record.vehicleYear || "",
+        record.vehicleMake || "",
+        record.vehicleModel || "",
+        record.date || "",
+        record.evidence || "",
+      ].join("\u001f");
+    }
+
+    function gapFromReference(record, refMs) {
+      if (refMs == null) return null;
+      let ms = timeToMs(record.time);
+      if (ms === Number.MAX_SAFE_INTEGER || refMs === Number.MAX_SAFE_INTEGER) return null;
+      if (recordKey(record) === referenceKey) return null;
+      return ms - refMs;
     }
 
     function csvEscape(value) {
@@ -524,6 +555,8 @@
     }
 
     function recordRow(record, includeClass, includeTrack, includeSubtrack, includeType, gapMs) {
+      let key = recordKey(record);
+      let isRef = key === referenceKey;
       let vehicle = [record.vehicleYear, record.vehicleMake, record.vehicleModel].filter(value => value != null && value !== "").join(" ");
       let type = includeType ? (VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "") : "";
       let classLabel = [type, record.vehicleClass || ""].filter(Boolean).join(" · ");
@@ -533,7 +566,7 @@
       let trackCell = includeTrack ? `<td>${escapeHtml(trackLabel(record.track))}</td>` : "";
       let subCell = includeSubtrack ? `<td>${escapeHtml(record.subtrack || "")}</td>` : "";
       let gap = gapMs == null ? "" : ` <span class="gap">${formatGap(gapMs)}</span>`;
-      return `<tr>
+      return `<tr class="${isRef ? "ref" : ""}" data-key="${escapeHtml(key)}">
         <td class="time">${escapeHtml(record.time || "")}${gap}</td>
         ${trackCell}
         ${subCell}
@@ -578,10 +611,13 @@
 
     function renderRows() {
       let shown = filteredRecords();
+      if (referenceKey && !shown.some(record => recordKey(record) === referenceKey)) referenceKey = null;
       let byClass = viewMode === "class";
       let includeTrack = syncTrackVisibility();
       let includeSubtrack = syncSubtrackVisibility();
       let includeType = !vehicleSelect.value;
+      let refRecord = referenceKey && shown.find(record => recordKey(record) === referenceKey);
+      let refMs = refRecord ? timeToMs(refRecord.time) : null;
       classCol.hidden = byClass;
       let colspan = 8 - (byClass ? 1 : 0) - (includeTrack ? 0 : 1) - (includeSubtrack ? 0 : 1);
       statusEl.className = "status";
@@ -593,7 +629,9 @@
         return;
       }
       if (!byClass) {
-        rowsEl.innerHTML = shown.sort(compareRecords).map(record => recordRow(record, true, includeTrack, includeSubtrack, includeType)).join("");
+        rowsEl.innerHTML = shown.sort(compareRecords).map(record => {
+          return recordRow(record, true, includeTrack, includeSubtrack, includeType, gapFromReference(record, refMs));
+        }).join("");
         return;
       }
       let flags = {
@@ -607,8 +645,11 @@
         rows.sort(compareRecords);
         let best = timeToMs(rows[0].time);
         return head + rows.map((record, index) => {
-          let ms = timeToMs(record.time);
-          let gap = index === 0 || ms === Number.MAX_SAFE_INTEGER || best === Number.MAX_SAFE_INTEGER ? null : ms - best;
+          let gap = refMs != null
+            ? gapFromReference(record, refMs)
+            : (index === 0 || timeToMs(record.time) === Number.MAX_SAFE_INTEGER || best === Number.MAX_SAFE_INTEGER
+              ? null
+              : timeToMs(record.time) - best);
           return recordRow(record, false, includeTrack, includeSubtrack, includeType, gap);
         }).join("");
       }).join("");
@@ -658,6 +699,14 @@
     viewTimeButton.addEventListener("click", () => setView("time"));
     exportCsvButton.addEventListener("click", exportCsv);
     printButton.addEventListener("click", printRecords);
+    rowsEl.addEventListener("click", (event) => {
+      if (event.target.closest("a")) return;
+      let row = event.target.closest("tr[data-key]");
+      if (!row) return;
+      let key = row.getAttribute("data-key");
+      referenceKey = referenceKey === key ? null : key;
+      renderRows();
+    });
 
     function showResults() {
       loadingEl.hidden = true;
