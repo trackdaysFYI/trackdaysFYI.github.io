@@ -180,13 +180,17 @@
     #content {animation: none;}
     .loading-bar::before {animation: none; width: 100%; transform: none; opacity: 0.65;}
   }
+  .print-filters {display: none;}
   @media print {
     body {
       padding: 0.5in; background: white; color: #111;
     }
     a.brand, .filters, .results-bar, .export-actions, .loading {display: none !important;}
     .title-block {text-align: left;}
-    h1 {color: #111; font-size: 1.25rem; margin-bottom: 0.75rem;}
+    h1 {color: #111; font-size: 1.25rem; margin-bottom: 0.35rem;}
+    .print-filters {
+      display: block; margin: 0 0 0.85rem; color: #444; font-size: 9.5pt; line-height: 1.4;
+    }
     .table-wrap {
       max-height: none; overflow: visible; margin: 0; border: 0; border-radius: 0; background: transparent;
     }
@@ -219,6 +223,7 @@
     <p>Loading lap records...</p>
   </div>
   <div id="content" hidden>
+  <p id="print-filters" class="print-filters"></p>
   <div class="filters">
     <label class="search">Search
       <input id="name" type="search" placeholder="Holder or vehicle" autocomplete="off">
@@ -265,8 +270,8 @@
     </table>
   </div>
   <div class="export-actions">
-    <button type="button" id="export-csv" disabled>Export CSV</button>
     <button type="button" id="print-records" disabled>Print</button>
+    <button type="button" id="export-csv" disabled>Export CSV</button>
   </div>
   </div>
   </div>
@@ -294,6 +299,7 @@
     const viewTimeButton = document.getElementById("view-time");
     const exportCsvButton = document.getElementById("export-csv");
     const printButton = document.getElementById("print-records");
+    const printFiltersEl = document.getElementById("print-filters");
     const statusEl = document.getElementById("status");
     const rowsEl = document.getElementById("rows");
     const loadingEl = document.getElementById("loading");
@@ -496,8 +502,24 @@
       URL.revokeObjectURL(url);
     }
 
+    function activeFilterSummary() {
+      let parts = [];
+      let track = trackKey();
+      if (track) parts.push(`Track: ${trackLabel(track)}`);
+      if (vehicleSelect.value) {
+        parts.push(`Vehicle: ${VEHICLE_LABELS[vehicleSelect.value] || vehicleSelect.value}`);
+      }
+      if (classSelect.value) parts.push(`Class: ${classSelect.value}`);
+      if (subtrackSelect.value && !subtrackFilter.hidden) parts.push(`Subtrack: ${subtrackSelect.value}`);
+      let query = nameInput.value.trim();
+      if (query) parts.push(`Search: ${query}`);
+      let view = `View: ${viewMode === "time" ? "Time" : "Class"}`;
+      return parts.length ? `${parts.join(" · ")} · ${view}` : `Filters: none · ${view}`;
+    }
+
     function printRecords() {
       if (!filteredRecords().length) return;
+      printFiltersEl.textContent = activeFilterSummary();
       window.print();
     }
 
