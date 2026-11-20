@@ -1297,11 +1297,16 @@
 
     function openSuggestDialog(kind, trackName) {
       let dialog = document.getElementById("suggestDialog");
-      setSuggestKind(kind || "track");
-      if (trackName) {
-        let input = dialog.querySelector("input[name=trackName]");
-        if (input) input.value = trackName;
+      let form = dialog.querySelector("form");
+      if (form) {
+        form.reset();
+        form.querySelectorAll("[data-vehicle]").forEach((btn) => btn.classList.remove("on"));
+        form.querySelectorAll(".suggest-matches").forEach((box) => { box.hidden = true; });
       }
+      setSuggestEventType("T");
+      setSuggestKind(kind || "track");
+      let trackInput = dialog.querySelector("[name=trackName]");
+      if (trackInput) trackInput.value = trackName || "";
       if (dialog.open) {
         focusReviewField(dialog);
         return;
