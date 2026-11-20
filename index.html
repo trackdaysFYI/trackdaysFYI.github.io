@@ -145,7 +145,7 @@
     .suggest-dialog .rec-field textarea,
     .suggest-dialog .rec-field select {width: 100%; box-sizing: border-box; border: 0; border-radius: 6px; padding: 4px 6px; font: inherit; font-size: 12px; color: #1c2733; background: #fff;}
     .suggest-dialog .rec-form-grid {display: grid; grid-template-columns: 1fr 1fr; gap: 6px;}
-    .suggest-dialog .rec-type-class {display: grid; grid-template-columns: 9.5em 1fr; gap: 6px; align-items: end;}
+    .suggest-dialog .rec-type-class {display: grid; grid-template-columns: 10.5em 1fr; gap: 6px; align-items: end;}
     .suggest-dialog .rec-type-class .rec-field {min-width: 0;}
     .suggest-dialog .rec-ymm {display: grid; grid-template-columns: calc(4ch + 12px) 1fr 1fr; gap: 6px;}
     .suggest-dialog .rec-ymm .rec-year input {width: 100%;}
@@ -918,26 +918,31 @@
       else if (clearCustom) form.elements.customClass.value = "";
     }
 
-    function fillRecordSubtracks(form, trackKey) {
-      let list = form.querySelector("#rec-subtracks");
-      let field = form.elements.subtrack ? form.elements.subtrack.closest(".rec-field") : null;
-      if (!list) return;
+    function trackSubtracks(trackKey) {
       let track = typeof tracks !== "undefined" && tracks ? tracks[trackKey] : null;
-      let known;
-      if (track && Array.isArray(track.subtracks)) {
-        known = track.subtracks.map(name => String(name).trim()).filter(Boolean);
-        if (field) field.hidden = !known.length;
-        if (!known.length && form.elements.subtrack) form.elements.subtrack.value = "";
-      } else {
-        known = [...new Set(trackRecords(trackKey).map(r => r.subtrack).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-        if (field) field.hidden = false;
-      }
-      list.replaceChildren();
+      if (!track || !Array.isArray(track.subtracks)) return [];
+      return track.subtracks.map(name => String(name).trim()).filter(Boolean);
+    }
+
+    function fillRecordSubtracks(form, trackKey) {
+      let select = form.elements.subtrack;
+      if (!select) return;
+      let field = select.closest(".rec-field");
+      let known = trackSubtracks(trackKey);
+      let prev = select.value;
+      select.replaceChildren();
       known.forEach(name => {
         let option = document.createElement("option");
         option.value = name;
-        list.appendChild(option);
+        option.textContent = name;
+        select.appendChild(option);
       });
+      if (field) field.hidden = !known.length;
+      if (!known.length) {
+        select.value = "";
+        return;
+      }
+      select.value = known.includes(prev) ? prev : known[0];
     }
 
     function applyRecordType(form, code) {
@@ -1047,6 +1052,8 @@
       if (!Number.isInteger(year) || year < 1885 || year > maxYear) return "Enter a vehicle year";
       if (!draft.vehicleMake.trim() || draft.vehicleMake.trim().length > 40) return "Enter a make";
       if (!draft.vehicleModel.trim() || draft.vehicleModel.trim().length > 60) return "Enter a model";
+      let subtracks = trackSubtracks(draft.track);
+      if (subtracks.length && !subtracks.includes(draft.subtrack.trim())) return "Choose a subtrack.";
       if (draft.subtrack.trim().length > 40) return "Subtrack is too long";
       if (!LAP_TIME_RE.test(draft.time.trim())) return "Enter a time like 1:23.456 or 54.32";
       if (!draft.holder.trim() || draft.holder.trim().length > 80) return "Enter the lap holder";
@@ -1754,9 +1761,10 @@
         <b id="recordTitle">Add a Lap Record</b>
         <button type="button" class="suggest-close" onclick="closeRecordForm()" aria-label="Close">×</button>
       </div>
-      <div id="recordMessage" class="rec-form-msg" hidden></div>
+      <label class="rec-field"><span>Track</span><select name="track" onchange="onRecordTrackChange(this)"></select></label>
+      <label class="rec-field"><span>Subtrack</span><select name="subtrack"></select></label>
       <div class="rec-type-class">
-        <label class="rec-field"><span>Type</span>
+        <label class="rec-field"><span>Vehicle type</span>
           <select name="vehicleType" onchange="onRecordTypeChange(this)">
             <option value="C">Car</option>
             <option value="M">Motorcycle</option>
@@ -1770,8 +1778,6 @@
         <label class="rec-field"><span>Make</span><input name="vehicleMake" maxlength="40"></label>
         <label class="rec-field"><span>Model</span><input name="vehicleModel" maxlength="60"></label>
       </div>
-      <label class="rec-field"><span>Track</span><select name="track" onchange="onRecordTrackChange(this)"></select></label>
-      <label class="rec-field"><span>Subtrack (optional)</span><input name="subtrack" maxlength="40" list="rec-subtracks"><datalist id="rec-subtracks"></datalist></label>
       <div class="rec-form-grid">
         <label class="rec-field"><span>Time</span><input name="time" placeholder="1:23.456" inputmode="decimal"></label>
         <label class="rec-field"><span>Lap date</span><input name="date" type="date"></label>
@@ -1782,6 +1788,7 @@
         <button type="button" class="rec-cancel" onclick="closeRecordForm()">Cancel</button>
         <button type="submit" class="rec-submit">Submit for Review</button>
       </div>
+      <div id="recordMessage" class="rec-form-msg" hidden></div>
     </form>
   </dialog>
 
