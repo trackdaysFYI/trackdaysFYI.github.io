@@ -1298,17 +1298,20 @@
       else if (clearCustom) form.elements.customClass.value = "";
     }
 
+    function subtracksForTrack(trackKey) {
+      let key = String(trackKey || "").toUpperCase();
+      let known = trackSubtracks[key] || trackSubtracks[trackKey] || [];
+      let fromRecords = records
+        .filter(record => String(record.track || "").toUpperCase() === key)
+        .map(record => record.subtrack || "")
+        .filter(Boolean);
+      return [...new Set([...known, ...fromRecords])].sort((a, b) => a.localeCompare(b));
+    }
+
     function fillRecordSubtracks(form, trackKey) {
       let select = form.elements.subtrack;
       let field = select.closest(".rec-field");
-      let known = trackSubtracks[trackKey] || [];
-      let fromRecords = [...new Set(
-        records
-          .filter(record => String(record.track || "").toUpperCase() === String(trackKey || "").toUpperCase())
-          .map(record => record.subtrack || "")
-          .filter(Boolean)
-      )].sort((a, b) => a.localeCompare(b));
-      let options = [...new Set([...known, ...fromRecords])];
+      let options = subtracksForTrack(trackKey);
       let prev = select.value;
       fillSelectOptions(select, options, prev);
       if (field) field.hidden = !options.length;
@@ -1381,14 +1384,7 @@
       }
       let shared = validateSharedEditFields(draft);
       if (shared) return shared;
-      let subtracks = [
-        ...(trackSubtracks[draft.track] || []),
-        ...records
-          .filter(record => String(record.track || "").toUpperCase() === draft.track)
-          .map(record => record.subtrack || "")
-          .filter(Boolean),
-      ];
-      let knownSubtracks = [...new Set(subtracks)];
+      let knownSubtracks = subtracksForTrack(draft.track);
       if (knownSubtracks.length && !knownSubtracks.includes(draft.subtrack)) return "Choose a subtrack.";
       if (draft.subtrack.length > 40) return "Subtrack is too long.";
       if (!draft.holder || draft.holder.length > 80) return "Enter the record holder.";
