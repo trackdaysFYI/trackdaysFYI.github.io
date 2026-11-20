@@ -358,6 +358,7 @@
     let recordLoads = {};
     const SHOW_LAP_RECORDS = true;
     let recordsUi = {open: false, submitting: false, submitId: 0};
+    const TRACKDAYS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays";
     const LAP_RECORD_SUBMIT_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/submitLapRecord";
     const LAP_RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
     const SUGGESTION_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/submitSuggestion";
@@ -1398,7 +1399,6 @@
           <button type="button" class="colored on" id="showCarEvents">Car <span class="pill-count" id="countCar"></span></button>
           <button type="button" class="colored on" id="showMotoEvents">Motorcycle <span class="pill-count" id="countMoto"></span></button>
           <button type="button" class="colored on" id="showSumoEvents">Supermoto <span class="pill-count" id="countSumo"></span></button>
-          <button type="button" class="colored" id="showMiniEvents" hidden>Minimoto</button>
         </div>
       </div>
 
@@ -1611,7 +1611,6 @@
     let showCarEventsButton = document.getElementById("showCarEvents");
     let showMotoEventsButton = document.getElementById("showMotoEvents");
     let showSumoEventsButton = document.getElementById("showSumoEvents");
-    let showMiniEventsButton = document.getElementById("showMiniEvents");
     let orgSelectElement = document.getElementById("orgSelect");
     let radiusSliderElement = document.getElementById("radiusSlider");
     let minDateElement = document.getElementById("minDateSearch");
@@ -1651,7 +1650,7 @@
 
     async function visualizeData() {
       try {
-        const res = await fetch("https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays");
+        const res = await fetch(TRACKDAYS_URL);
         if (!res.ok) throw new Error("unable to retrieve data");
         const data = await res.json();
         orgs = data["orgs"];

@@ -208,7 +208,6 @@ input[type=range]:focus::-webkit-slider-thumb {box-shadow: 0 0 0 1px rgb(255, 25
 input[type=checkbox] {accent-color: var(--accent);}
 input[type=date] {background-color: var(--soft); font-family: "Noto Sans"; cursor: pointer;}
 
-@media (max-width: 26em) {.mobileSqueeze > tbody > tr > td {display: block;}}
 @media (orientation:landscape) and (max-width: 800px) {#map {height: 80vh;}}
 
 .control-font {
@@ -225,36 +224,9 @@ button.colored {
   cursor: pointer;
   transition: 0.3s;
 }
-#showMiniEvents {display: none !important;}
 button.colored.on {
   color: rgb(255, 255, 255);
   background-color: var(--accent-soft);
-}
-button.colored.big {
-  width: 7em;
-  line-height: 2em;
-  margin: 5px;
-}
-table button.colored {
-  width: 100%;
-}
-
-.flex-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  column-gap: 12px;
-  margin-top: 5px;
-}
-.flex-cell {
-  width: 230px;
-}
-.flex-cell input[type="date"] {
-  width: 105px;  /* fit on mobile */
-}
-.flex-cell > * tr {
-  height: 26px;
 }
 
 .filter-label {font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);}
