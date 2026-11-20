@@ -177,7 +177,7 @@
     <label>Class
       <select id="class"></select>
     </label>
-    <label>Subtrack
+    <label id="subtrack-filter">Subtrack
       <select id="subtrack"></select>
     </label>
   </div>
@@ -194,7 +194,7 @@
         <tr>
           <th>Time</th>
           <th>Track</th>
-          <th>Subtrack</th>
+          <th id="subtrack-col">Subtrack</th>
           <th>Vehicle</th>
           <th id="class-col">Class</th>
           <th>Holder</th>
@@ -215,6 +215,7 @@
 
     let records = [];
     let trackNames = {};
+    let trackSubtracks = {};
     let viewMode = "class";
     let paramsApplied = false;
     const trackSelect = document.getElementById("track");
@@ -222,6 +223,8 @@
     const vehicleSelect = document.getElementById("vehicle");
     const classSelect = document.getElementById("class");
     const subtrackSelect = document.getElementById("subtrack");
+    const subtrackFilter = document.getElementById("subtrack-filter");
+    const subtrackCol = document.getElementById("subtrack-col");
     const classCol = document.getElementById("class-col");
     const viewClassButton = document.getElementById("view-class");
     const viewTimeButton = document.getElementById("view-time");
@@ -277,6 +280,27 @@
       });
     }
 
+    function trackHasSubtracks(key) {
+      if (key) {
+        if (Object.prototype.hasOwnProperty.call(trackSubtracks, key)) return trackSubtracks[key].length > 0;
+        return records.some(record => String(record.track).toUpperCase() === key && record.subtrack);
+      }
+      if (Object.keys(trackSubtracks).some(name => trackSubtracks[name].length)) return true;
+      return records.some(record => record.subtrack);
+    }
+
+    function showSubtracks() {
+      return trackHasSubtracks(trackKey());
+    }
+
+    function syncSubtrackVisibility() {
+      let show = showSubtracks();
+      subtrackFilter.hidden = !show;
+      subtrackCol.hidden = !show;
+      if (!show) subtrackSelect.value = "";
+      return show;
+    }
+
     function fillSelect(select, values, allLabel) {
       let current = select.value;
       let options = values.map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("");
@@ -300,6 +324,7 @@
       let subtracks = [...new Set(scoped.map(record => record.subtrack || "").filter(Boolean))].sort((a, b) => a.localeCompare(b));
       fillSelect(classSelect, classes, "All classes");
       fillSelect(subtrackSelect, subtracks, "All subtracks");
+      syncSubtrackVisibility();
     }
 
     function filteredRecords() {
@@ -363,18 +388,19 @@
       return `+${minutes}:${whole.padStart(2, "0")}.${frac}`;
     }
 
-    function recordRow(record, includeClass, gapMs) {
+    function recordRow(record, includeClass, includeSubtrack, gapMs) {
       let detail = [record.vehicleYear, record.vehicleMake, record.vehicleModel].filter(value => value != null && value !== "").join(" ");
       let type = VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "";
       let vehicle = [type, detail].filter(Boolean).join(" · ");
       let evidence = safeHttpUrl(record.evidence);
       let evidenceCell = evidence ? `<a href="${escapeHtml(evidence)}" target="_blank" rel="noopener">View</a>` : "";
       let classCell = includeClass ? `<td>${escapeHtml(record.vehicleClass || "")}</td>` : "";
+      let subCell = includeSubtrack ? `<td>${escapeHtml(record.subtrack || "")}</td>` : "";
       let gap = gapMs == null ? "" : ` <span class="gap">${formatGap(gapMs)}</span>`;
       return `<tr>
         <td class="time">${escapeHtml(record.time || "")}${gap}</td>
         <td>${escapeHtml(trackLabel(record.track))}</td>
-        <td>${escapeHtml(record.subtrack || "")}</td>
+        ${subCell}
         <td class="vehicle">${escapeHtml(vehicle)}</td>
         ${classCell}
         <td>${escapeHtml(record.holder || "")}</td>
@@ -418,8 +444,9 @@
     function renderRows() {
       let shown = filteredRecords();
       let byClass = viewMode === "class";
+      let includeSubtrack = syncSubtrackVisibility();
       classCol.hidden = byClass;
-      let colspan = byClass ? 7 : 8;
+      let colspan = 8 - (byClass ? 1 : 0) - (includeSubtrack ? 0 : 1);
       statusEl.className = "status";
       statusEl.textContent = `${shown.length} record${shown.length === 1 ? "" : "s"}`;
       if (!shown.length) {
@@ -427,13 +454,13 @@
         return;
       }
       if (!byClass) {
-        rowsEl.innerHTML = shown.sort(compareRecords).map(record => recordRow(record, true)).join("");
+        rowsEl.innerHTML = shown.sort(compareRecords).map(record => recordRow(record, true, includeSubtrack)).join("");
         return;
       }
       let flags = {
         track: new Set(shown.map(record => String(record.track || "").toUpperCase())).size > 1,
         type: new Set(shown.map(record => record.vehicleType)).size > 1,
-        subtrack: new Set(shown.map(record => record.subtrack || "")).size > 1,
+        subtrack: includeSubtrack && new Set(shown.map(record => record.subtrack || "")).size > 1,
       };
       rowsEl.innerHTML = classGroups(shown).map(([key, rows]) => {
         let label = groupLabel(key, flags);
@@ -443,7 +470,7 @@
         return head + rows.map((record, index) => {
           let ms = timeToMs(record.time);
           let gap = index === 0 || ms === Number.MAX_SAFE_INTEGER || best === Number.MAX_SAFE_INTEGER ? null : ms - best;
-          return recordRow(record, false, gap);
+          return recordRow(record, false, includeSubtrack, gap);
         }).join("");
       }).join("");
     }
@@ -523,11 +550,16 @@
           let data = await tracksResult.json();
           (data.tracks || []).forEach(track => {
             if (!track.nickname) return;
-            trackNames[String(track.nickname).toUpperCase()] = track.name || track.nickname;
+            let key = String(track.nickname).toUpperCase();
+            trackNames[key] = track.name || track.nickname;
+            trackSubtracks[key] = Array.isArray(track.subtracks)
+              ? track.subtracks.map(name => String(name || "").trim()).filter(Boolean)
+              : [];
           });
         }
       } catch (err) {
         trackNames = {};
+        trackSubtracks = {};
       }
       render();
       showResults();
