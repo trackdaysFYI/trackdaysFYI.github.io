@@ -666,6 +666,62 @@
       return `${y}-${m}-${d}`;
     }
 
+    function parseOptionalYear(text) {
+      let raw = String(text || "").trim();
+      if (!raw) return {ok: true, error: "", value: null};
+      let year = Number(raw);
+      let maxYear = new Date().getFullYear() + 1;
+      if (!Number.isInteger(year) || year < 1885 || year > maxYear) {
+        return {ok: false, error: "Enter a vehicle year.", value: null};
+      }
+      return {ok: true, error: "", value: year};
+    }
+
+    function validateVehicleMake(text) {
+      if (!text || text.length > 40) return "Enter a vehicle make.";
+      return "";
+    }
+
+    function validateVehicleModel(text) {
+      if (!text || text.length > 60) return "Enter a vehicle model.";
+      return "";
+    }
+
+    function validateLapTime(text) {
+      if (!LAP_TIME_RE.test(text)) return "Enter a time like 1:23.456 or 54.32.";
+      return "";
+    }
+
+    function validateLapDate(text) {
+      if (!DATE_RE.test(text) || text > todayIso()) return "Enter the date of the lap.";
+      return "";
+    }
+
+    function validateEvidence(text) {
+      if (text && (!safeHttpUrl(text) || text.length > 300)) return "Evidence link must be an http(s) URL.";
+      return "";
+    }
+
+    function validateNote(text, required) {
+      if (required && !text) return "Enter a note.";
+      if (text.length > 300) return "Note is too long.";
+      return "";
+    }
+
+    function validateSharedEditFields(draft) {
+      let year = parseOptionalYear(draft.vehicleYear);
+      if (!year.ok) return year.error;
+      return (
+        validateVehicleMake(draft.vehicleMake) ||
+        validateVehicleModel(draft.vehicleModel) ||
+        validateLapTime(draft.time) ||
+        validateLapDate(draft.date) ||
+        validateEvidence(draft.evidence) ||
+        validateNote(draft.note, false) ||
+        ""
+      );
+    }
+
     function recordKey(record) {
       if (record.recordId) return "id:" + record.recordId;
       return [
@@ -1050,25 +1106,10 @@
     function validateChangeDraft(draft) {
       let record = changeUi.record;
       if (!record || !record.recordId) return "Choose a lap record.";
-      if (changeUi.action === "contest") {
-        if (!draft.note) return "Enter a note.";
-        if (draft.note.length > 300) return "Note is too long.";
-        return "";
-      }
-      let year = null;
-      if (draft.vehicleYear) {
-        year = Number(draft.vehicleYear);
-        let maxYear = new Date().getFullYear() + 1;
-        if (!Number.isInteger(year) || year < 1885 || year > maxYear) return "Enter a vehicle year.";
-      }
-      if (!draft.vehicleMake || draft.vehicleMake.length > 40) return "Enter a vehicle make.";
-      if (!draft.vehicleModel || draft.vehicleModel.length > 60) return "Enter a vehicle model.";
-      if (!LAP_TIME_RE.test(draft.time)) return "Enter a time like 1:23.456 or 54.32.";
-      if (!DATE_RE.test(draft.date) || draft.date > todayIso()) return "Enter the date of the lap.";
-      if (draft.evidence && (!safeHttpUrl(draft.evidence) || draft.evidence.length > 300)) {
-        return "Evidence link must be an http(s) URL.";
-      }
-      if (draft.note.length > 300) return "Note is too long.";
+      if (changeUi.action === "contest") return validateNote(draft.note, true);
+      let shared = validateSharedEditFields(draft);
+      if (shared) return shared;
+      let year = parseOptionalYear(draft.vehicleYear).value;
       let currentYear = record.vehicleYear != null && record.vehicleYear !== ""
         ? Number(record.vehicleYear)
         : null;
@@ -1094,7 +1135,7 @@
       if (changeUi.action === "contest") return payload;
       payload.time = formatLapTime(draft.time);
       payload.date = draft.date;
-      payload.vehicleYear = draft.vehicleYear ? Number(draft.vehicleYear) : null;
+      payload.vehicleYear = parseOptionalYear(draft.vehicleYear).value;
       payload.vehicleMake = draft.vehicleMake;
       payload.vehicleModel = draft.vehicleModel;
       payload.evidence = draft.evidence;
@@ -1333,13 +1374,8 @@
       } else if (!formClasses(draft.vehicleType, draft.track).includes(draft.vehicleClass)) {
         return "Choose a class.";
       }
-      if (draft.vehicleYear) {
-        let year = Number(draft.vehicleYear);
-        let maxYear = new Date().getFullYear() + 1;
-        if (!Number.isInteger(year) || year < 1885 || year > maxYear) return "Enter a vehicle year.";
-      }
-      if (!draft.vehicleMake || draft.vehicleMake.length > 40) return "Enter a vehicle make.";
-      if (!draft.vehicleModel || draft.vehicleModel.length > 60) return "Enter a vehicle model.";
+      let shared = validateSharedEditFields(draft);
+      if (shared) return shared;
       let subtracks = [
         ...(trackSubtracks[draft.track] || []),
         ...records
@@ -1350,13 +1386,7 @@
       let knownSubtracks = [...new Set(subtracks)];
       if (knownSubtracks.length && !knownSubtracks.includes(draft.subtrack)) return "Choose a subtrack.";
       if (draft.subtrack.length > 40) return "Subtrack is too long.";
-      if (!LAP_TIME_RE.test(draft.time)) return "Enter a time like 1:23.456 or 54.32.";
       if (!draft.holder || draft.holder.length > 80) return "Enter the record holder.";
-      if (!DATE_RE.test(draft.date) || draft.date > todayIso()) return "Enter the date of the lap.";
-      if (draft.evidence && (!safeHttpUrl(draft.evidence) || draft.evidence.length > 300)) {
-        return "Evidence link must be an http(s) URL.";
-      }
-      if (draft.note.length > 300) return "Note is too long.";
       return "";
     }
 
@@ -1373,7 +1403,8 @@
         holder: draft.holder,
         date: draft.date,
       };
-      if (draft.vehicleYear) payload.vehicleYear = Number(draft.vehicleYear);
+      let year = parseOptionalYear(draft.vehicleYear).value;
+      if (year != null) payload.vehicleYear = year;
       if (draft.evidence) payload.evidence = draft.evidence;
       if (draft.note) payload.note = draft.note;
       return payload;
