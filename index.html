@@ -389,21 +389,38 @@
       return afterMin && beforeMax;
     }
 
+    function selectedWeekdays() {
+      return new Set(Array.from(daySelectElement.options).filter(option => option.selected).map(option => option.value));
+    }
+
+    function trackWithinRadius(trackKey) {
+      return searchRadius === infiniteRadius || tracks[trackKey].dist <= searchRadius;
+    }
+
+    // opts toggles which checks apply: radius, date, day, org, vehicle, event
+    function passesFilters(td, opts = {}) {
+      if (opts.radius && !trackWithinRadius(td.track)) return false;
+      if (opts.date && !dateInRange(td.date)) return false;
+      if (opts.day) {
+        let days = opts.selectedDays || selectedWeekdays();
+        if (!days.has(dayjs(td.date).format("ddd"))) return false;
+      }
+      if (opts.org && !orgs[td.org].dropdownSelected) return false;
+      if (opts.vehicle && ![...td.vehicleType].some(t => selectedVehicleTypes.has(t))) return false;
+      if (opts.event && ![...td.eventType].some(t => selectedEventTypes.has(t))) return false;
+      return true;
+    }
+
     function updateTrackdaysVisibilityProperty() {
-      let selectedDays = new Set(Array.from(daySelectElement.options).filter(option => option.selected).map(option => option.value));
+      let selectedDays = selectedWeekdays();
       trackdays.forEach((td) => {
-        let withinRadius = (searchRadius === infiniteRadius || tracks[td.track].dist <= searchRadius);
-        let dateCheck = dateInRange(td.date);
-        let dayCheck = selectedDays.has(dayjs(td.date).format("ddd"));
-        let vehicleTypeCheck = [...td.vehicleType].some(t => selectedVehicleTypes.has(t));
-        let eventTypeCheck = [...td.eventType].some(t => selectedEventTypes.has(t));
-        let orgSelectCheck = orgs[td.org].dropdownSelected;
+        let withinRadius = trackWithinRadius(td.track);
+        let core = passesFilters(td, {date: true, day: true, org: true, vehicle: true, event: true, selectedDays});
         let isSaved = savedEventsSet.has(getEventKey(td));
-        let passesFilters = dateCheck && dayCheck && vehicleTypeCheck && eventTypeCheck && orgSelectCheck;
-        td.visibilityDropdown = (withinRadius && vehicleTypeCheck && eventTypeCheck);
+        td.visibilityDropdown = passesFilters(td, {radius: true, vehicle: true, event: true});
         // saved events intentionally skip most filters (radius, price, date, weekday, host, vehicle type, event type)
-        td.visibilityMap = isSaved || passesFilters;
-        td.visibilityCalendar = isSaved || (passesFilters && withinRadius);
+        td.visibilityMap = isSaved || core;
+        td.visibilityCalendar = isSaved || (core && withinRadius);
       });
     }
 
@@ -1465,18 +1482,10 @@
       selectedMonth = dayjs(selectedMonth).startOf("month").add(delta, "month").toDate();
     }
 
-    function eventPassesSharedFilters(td) {
-      let selectedDays = new Set(Array.from(daySelectElement.options).filter(option => option.selected).map(option => option.value));
-      let withinRadius = (searchRadius === infiniteRadius || tracks[td.track].dist <= searchRadius);
-      let dateCheck = dateInRange(td.date);
-      let dayCheck = selectedDays.has(dayjs(td.date).format("ddd"));
-      let orgSelectCheck = orgs[td.org].dropdownSelected;
-      return withinRadius && dateCheck && dayCheck && orgSelectCheck;
-    }
-
     function updatePillCounts() {
       if (typeof trackdays === "undefined" || typeof tracks === "undefined") return;
-      let shared = trackdays.filter(eventPassesSharedFilters);
+      let selectedDays = selectedWeekdays();
+      let shared = trackdays.filter(td => passesFilters(td, {radius: true, date: true, day: true, org: true, selectedDays}));
       let hasVehicle = (td, code) => [...td.vehicleType].includes(code);
       let hasEvent = (td, code) => [...td.eventType].includes(code);
       let vehicleMatch = (td) => [...td.vehicleType].some(t => selectedVehicleTypes.has(t));
@@ -1489,8 +1498,7 @@
       document.getElementById("countRaces").textContent = shared.filter(td => hasEvent(td, "R") && vehicleMatch(td)).length;
       let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityCalendar).map(td => td.track));
       document.getElementById("countEmpty").textContent = Object.keys(tracks).filter((track) => {
-        let withinRadius = (searchRadius === infiniteRadius || tracks[track].dist <= searchRadius);
-        return withinRadius && !tracksWithEvents.has(track);
+        return trackWithinRadius(track) && !tracksWithEvents.has(track);
       }).length;
     }
 
@@ -1776,11 +1784,39 @@
       });
     }
 
-    function setFilterToggleLabel(buttonElement, enabled) {
+    function setFilterToggle(buttonElement, enabled) {
+      buttonElement.classList.toggle("on", enabled);
       buttonElement.setAttribute("aria-pressed", enabled ? "true" : "false");
     }
 
+    function bindToggleGroup(pairs, {selectedSet, storageKey, onChange}) {
+      let stored = localStorage.getItem(storageKey) || "";
+      for (const [buttonElement, code] of pairs) {
+        let enabled = stored.includes(code);
+        setFilterToggle(buttonElement, enabled);
+        if (enabled) selectedSet.add(code);
+        buttonElement.addEventListener("click", () => {
+          let nowEnabled = !selectedSet.has(code);
+          if (nowEnabled) selectedSet.add(code);
+          else selectedSet.delete(code);
+          setFilterToggle(buttonElement, nowEnabled);
+          localStorage.setItem(storageKey, [...selectedSet].join(""));
+          if (onChange) onChange(nowEnabled, code);
+        });
+      }
+    }
+
+    function enableAllToggles(pairs, selectedSet, storageKey, allCodes) {
+      for (const [buttonElement] of pairs) setFilterToggle(buttonElement, true);
+      selectedSet.clear();
+      allCodes.forEach(code => selectedSet.add(code));
+      localStorage.setItem(storageKey, allCodes.join(""));
+    }
+
     function wireFilterControls() {
+      const vehiclePairs = [[showCarEventsButton, "C"], [showMotoEventsButton, "M"], [showSumoEventsButton, "S"]];
+      const eventPairs = [[showTrackdaysToggleElement, "T"], [showSchoolsToggleElement, "S"], [showRacesToggleElement, "R"]];
+
       minDateElement.addEventListener("input", () => {
         updateMinDateVar();
       });
@@ -1803,55 +1839,27 @@
         localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, Object.keys(eventTypeMap).join(""));
       }
 
-      for (const [buttonElement, vehicleType] of [[showCarEventsButton, "C"], [showMotoEventsButton, "M"], [showSumoEventsButton, "S"]]) {
-        (localStorage.getItem(STORAGE_KEY_USER_VEHICLE_TYPES) || "").includes(vehicleType) ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
-        setFilterToggleLabel(buttonElement, buttonElement.classList.contains("on"));
-        if (buttonElement.classList.contains("on")) {
-          selectedVehicleTypes.add(vehicleType);
-        }
-
-        buttonElement.addEventListener("click", () => {
-          let nowEnabled = !selectedVehicleTypes.has(vehicleType);
-          if (nowEnabled) {
-            selectedVehicleTypes.add(vehicleType);
-            buttonElement.classList.add("on");
-          } else {
-            selectedVehicleTypes.delete(vehicleType);
-            buttonElement.classList.remove("on");
-          }
-          setFilterToggleLabel(buttonElement, nowEnabled);
-          localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, [...selectedVehicleTypes].join(""));
+      bindToggleGroup(vehiclePairs, {
+        selectedSet: selectedVehicleTypes,
+        storageKey: STORAGE_KEY_USER_VEHICLE_TYPES,
+        onChange() {
           if (selectedVehicleTypes.size > 0) {
             homeMarker.setIcon(selectedVehicleTypes.has("C") ? homeIconCar : homeIconMoto);
           }
           refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
-        });
-      }
+        },
+      });
       if (selectedVehicleTypes.size === 0 || selectedVehicleTypes.has("C")) {
         homeMarker.setIcon(homeIconCar);
       }
 
-      for (const [buttonElement, eventType] of [[showTrackdaysToggleElement, "T"], [showSchoolsToggleElement, "S"], [showRacesToggleElement, "R"]]) {
-        let enabled = (localStorage.getItem(STORAGE_KEY_USER_EVENT_TYPES) || "").includes(eventType);
-        enabled ? buttonElement.classList.add("on") : buttonElement.classList.remove("on");
-        setFilterToggleLabel(buttonElement, enabled);
-        if (buttonElement.classList.contains("on")) {
-          selectedEventTypes.add(eventType);
-        }
-        buttonElement.addEventListener("click", () => {
-          let nowEnabled = !selectedEventTypes.has(eventType);
-          if (nowEnabled) {
-            selectedEventTypes.add(eventType);
-            buttonElement.classList.add("on");
-          } else {
-            selectedEventTypes.delete(eventType);
-            buttonElement.classList.remove("on");
-          }
-          setFilterToggleLabel(buttonElement, nowEnabled);
-          localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, [...selectedEventTypes].join(""));
+      bindToggleGroup(eventPairs, {
+        selectedSet: selectedEventTypes,
+        storageKey: STORAGE_KEY_USER_EVENT_TYPES,
+        onChange() {
           refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
-        });
-      }
+        },
+      });
 
       [minDateElement, maxDateElement, daySelectElement].forEach(elem =>
         elem.addEventListener("change", () => {
@@ -1861,15 +1869,10 @@
 
       showTracksWithoutEventsToggleElement.addEventListener("click", () => {
         let nowEnabled = !showTracksWithoutEventsToggleElement.classList.contains("on");
-        if (nowEnabled) {
-          showTracksWithoutEventsToggleElement.classList.add("on");
-        } else {
-          showTracksWithoutEventsToggleElement.classList.remove("on");
-        }
-        setFilterToggleLabel(showTracksWithoutEventsToggleElement, nowEnabled);
+        setFilterToggle(showTracksWithoutEventsToggleElement, nowEnabled);
         refresh({trackVisibility: true});
       });
-      setFilterToggleLabel(showTracksWithoutEventsToggleElement, showTracksWithoutEventsToggleElement.classList.contains("on"));
+      setFilterToggle(showTracksWithoutEventsToggleElement, showTracksWithoutEventsToggleElement.classList.contains("on"));
 
       exportSavedEventsElement.addEventListener("click", () => {
         downloadSavedEventsICS();
@@ -1889,28 +1892,12 @@
           localStorage.removeItem(STORAGE_KEY_USER_SAVED_EVENTS);
         }
 
-        showMotoEventsButton.classList.add("on");
-        showSumoEventsButton.classList.add("on");
-        showCarEventsButton.classList.add("on");
-        setFilterToggleLabel(showMotoEventsButton, true);
-        setFilterToggleLabel(showSumoEventsButton, true);
-        setFilterToggleLabel(showCarEventsButton, true);
-        selectedVehicleTypes = new Set(Object.keys(vehicleTypeMap));
-        localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(vehicleTypeMap).join(""));
-
-        showTrackdaysToggleElement.classList.add("on");
-        showSchoolsToggleElement.classList.add("on");
-        showRacesToggleElement.classList.add("on");
-        setFilterToggleLabel(showTrackdaysToggleElement, true);
-        setFilterToggleLabel(showSchoolsToggleElement, true);
-        setFilterToggleLabel(showRacesToggleElement, true);
-        selectedEventTypes = new Set(Object.keys(eventTypeMap));
-        localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, Object.keys(eventTypeMap).join(""));
+        enableAllToggles(vehiclePairs, selectedVehicleTypes, STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(vehicleTypeMap));
+        enableAllToggles(eventPairs, selectedEventTypes, STORAGE_KEY_USER_EVENT_TYPES, Object.keys(eventTypeMap));
         homeMarker.setIcon(homeIconCar);
 
         Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
-        showTracksWithoutEventsToggleElement.classList.add("on");
-        setFilterToggleLabel(showTracksWithoutEventsToggleElement, true);
+        setFilterToggle(showTracksWithoutEventsToggleElement, true);
         Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
 
         minDateElement.value = dayjs().format("YYYY-MM-DD");
