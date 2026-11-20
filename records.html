@@ -98,6 +98,15 @@
   @media (hover: hover) {
     .export-actions button:not(:disabled):hover {border-color: var(--accent); color: var(--text);}
   }
+  .results-actions {display: flex; flex: 0 0 auto; align-items: center; gap: 0.55rem;}
+  .add-record {
+    border: 1px solid var(--panel-border); border-radius: 999px; min-height: 2.2rem;
+    padding: 0.35rem 0.9rem; font: inherit; font-size: 0.8rem; font-weight: 700;
+    color: var(--soft); background: transparent; cursor: pointer;
+  }
+  @media (hover: hover) {
+    .add-record:hover {border-color: var(--accent); color: var(--text);}
+  }
   .view-switch {display: flex; flex: 0 0 auto; gap: 0.35rem; padding: 0.2rem; border-radius: 999px; background: var(--switch-bg);}
   .view-switch button {border: 0; border-radius: 999px; min-height: 2.2rem; padding: 0.35rem 0.9rem; font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--muted); background: transparent; cursor: pointer;}
   .view-switch button.on {color: var(--on-text); background: var(--on-bg);}
@@ -255,7 +264,7 @@
     body {
       padding: 0.5in; background: white; color: #111;
     }
-    a.brand, .filters, .results-bar, .export-actions, .loading,
+    a.brand, .filters, .results-bar, .export-actions, .loading, .add-record,
     th.actions, td.actions, th.evidence, td.evidence, .suggest-dialog {display: none !important;}
     .title-block {text-align: left;}
     h1 {color: #111; font-size: 1.25rem; margin-bottom: 0.35rem;}
@@ -319,9 +328,12 @@
   </div>
   <div class="results-bar">
     <p id="status" class="status"></p>
-    <div class="view-switch" role="group" aria-label="Arrange records">
-      <button type="button" id="view-class" class="on">Class</button>
-      <button type="button" id="view-time">Time</button>
+    <div class="results-actions">
+      <button type="button" class="add-record" id="add-record">Add lap record</button>
+      <div class="view-switch" role="group" aria-label="Arrange records">
+        <button type="button" id="view-class" class="on">Class</button>
+        <button type="button" id="view-time">Time</button>
+      </div>
     </div>
   </div>
   <div class="table-wrap">
@@ -348,6 +360,44 @@
   </div>
   </div>
   </div>
+
+  <dialog id="recordDialog" class="suggest-dialog" closedby="closerequest" aria-labelledby="recordTitle">
+    <form id="lap-record-form" class="rec-form" autocomplete="off" novalidate>
+      <div class="suggest-head">
+        <b id="recordTitle">Add a Lap Record</b>
+        <button type="button" class="suggest-close" id="record-close" aria-label="Close">×</button>
+      </div>
+      <label class="rec-field"><span>Track</span><select name="track"></select></label>
+      <label class="rec-field"><span>Subtrack</span><select name="subtrack"></select></label>
+      <div class="rec-type-class">
+        <label class="rec-field"><span>Vehicle type</span>
+          <select name="vehicleType">
+            <option value="C">Car</option>
+            <option value="M">Motorcycle</option>
+          </select>
+        </label>
+        <label class="rec-field"><span>Class</span><select name="vehicleClass"></select></label>
+      </div>
+      <label class="rec-field rec-custom-class" hidden><span>Other class</span><input name="customClass" maxlength="40"></label>
+      <div class="rec-ymm">
+        <label class="rec-field rec-year"><span>Year</span><input name="vehicleYear" inputmode="numeric" maxlength="4" size="4"></label>
+        <label class="rec-field"><span>Make</span><input name="vehicleMake" maxlength="40"></label>
+        <label class="rec-field"><span>Model</span><input name="vehicleModel" maxlength="60"></label>
+      </div>
+      <div class="rec-form-grid">
+        <label class="rec-field"><span>Time</span><input name="time" placeholder="1:23.456" inputmode="decimal"></label>
+        <label class="rec-field"><span>Lap date</span><input name="date" type="date"></label>
+      </div>
+      <label class="rec-field"><span>Holder name</span><input name="holder" maxlength="80"></label>
+      <label class="rec-field"><span>Evidence (optional)</span><input name="evidence" type="url" placeholder="https://" maxlength="300"></label>
+      <label class="rec-field"><span>Note (optional)</span><textarea name="note" maxlength="300" rows="1"></textarea></label>
+      <div class="rec-form-actions">
+        <button type="button" class="rec-cancel" id="record-cancel">Cancel</button>
+        <button type="submit" class="rec-submit">Submit for Review</button>
+      </div>
+      <div id="recordMessage" class="rec-form-msg" hidden></div>
+    </form>
+  </dialog>
 
   <dialog id="changeDialog" class="suggest-dialog" closedby="closerequest" aria-labelledby="changeTitle">
     <form id="change-form" class="rec-form" autocomplete="off" novalidate>
@@ -388,6 +438,11 @@
     const VEHICLE_LABELS = {C: "Car", M: "Motorcycle"};
     const LAP_TIME_RE = /^(?:\d{1,3}:[0-5]\d|[0-5]?\d)\.\d{1,3}$/;
     const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+    const CUSTOM_CLASS_VALUE = "__custom__";
+    const SUGGESTED_CLASSES = {
+      C: ["Open"],
+      M: ["Open", "600cc", "Twins", "Lightweight", "Motard"],
+    };
 
     let records = [];
     let trackNames = {};
@@ -396,6 +451,7 @@
     let paramsApplied = false;
     let referenceKey = null;
     let changeUi = {submitting: false, submitId: 0, action: "edit", record: null};
+    let recordsUi = {submitting: false, submitId: 0};
     const trackSelect = document.getElementById("track");
     const nameInput = document.getElementById("name");
     const vehicleSelect = document.getElementById("vehicle");
@@ -419,6 +475,10 @@
     const changeMeta = document.getElementById("change-meta");
     const changeNoteLabel = document.getElementById("change-note-label");
     const changeMessage = document.getElementById("changeMessage");
+    const recordDialog = document.getElementById("recordDialog");
+    const recordForm = document.getElementById("lap-record-form");
+    const recordMessage = document.getElementById("recordMessage");
+    const addRecordButton = document.getElementById("add-record");
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, (ch) => ({
@@ -1034,6 +1094,321 @@
     document.getElementById("change-cancel").addEventListener("click", closeChangeDialog);
     changeDialog.addEventListener("cancel", (event) => {
       if (changeUi.submitting) event.preventDefault();
+    });
+
+    function suggestedClasses(code) {
+      return SUGGESTED_CLASSES[code] || [];
+    }
+
+    function formClasses(code, trackKey) {
+      let suggested = suggestedClasses(code);
+      let bestMs = new Map();
+      records.forEach(record => {
+        if (String(record.track || "").toUpperCase() !== String(trackKey || "").toUpperCase()) return;
+        if (record.vehicleType !== code) return;
+        let name = record.vehicleClass || "";
+        if (!name) return;
+        let ms = timeToMs(record.time);
+        if (!bestMs.has(name) || ms < bestMs.get(name)) bestMs.set(name, ms);
+      });
+      let suggestedIndex = new Map(suggested.map((name, index) => [name, index]));
+      let names = [...new Set([...suggested, ...bestMs.keys()])];
+      let noTime = Number.MAX_SAFE_INTEGER;
+      names.sort((a, b) => {
+        let aMs = bestMs.has(a) ? bestMs.get(a) : noTime;
+        let bMs = bestMs.has(b) ? bestMs.get(b) : noTime;
+        if (aMs !== bMs) return aMs - bMs;
+        if (aMs === noTime) {
+          let aIndex = suggestedIndex.has(a) ? suggestedIndex.get(a) : suggested.length;
+          let bIndex = suggestedIndex.has(b) ? suggestedIndex.get(b) : suggested.length;
+          if (aIndex !== bIndex) return aIndex - bIndex;
+        }
+        return a.localeCompare(b);
+      });
+      return names;
+    }
+
+    function fillSelectOptions(select, options, selectedValue) {
+      if (!select) return "";
+      select.replaceChildren();
+      options.forEach(name => {
+        let option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+      if (selectedValue != null && options.includes(selectedValue)) {
+        select.value = selectedValue;
+        return selectedValue;
+      }
+      if (options.length) {
+        select.value = options[0];
+        return options[0];
+      }
+      select.value = "";
+      return "";
+    }
+
+    function fillSelectWithOther(select, options, selectedValue, otherValue) {
+      if (!select) return "";
+      fillSelectOptions(select, options, options.includes(selectedValue) ? selectedValue : null);
+      let other = document.createElement("option");
+      other.value = otherValue;
+      other.textContent = "Other";
+      select.appendChild(other);
+      let choice = options[0] || otherValue;
+      if (selectedValue === otherValue) choice = otherValue;
+      else if (options.includes(selectedValue)) choice = selectedValue;
+      select.value = choice;
+      return choice;
+    }
+
+    function showRecordCustomClass(form, show) {
+      let el = form.querySelector(".rec-custom-class");
+      if (el) el.hidden = !show;
+    }
+
+    function fillRecordTracks(form, selectedKey) {
+      let select = form.elements.track;
+      let keys = [...new Set([
+        ...Object.keys(trackNames),
+        ...records.map(record => String(record.track).toUpperCase()),
+      ])];
+      if (selectedKey && !keys.includes(selectedKey)) keys.push(selectedKey);
+      keys.sort((a, b) => trackLabel(a).localeCompare(trackLabel(b)) || a.localeCompare(b));
+      select.replaceChildren();
+      let blank = document.createElement("option");
+      blank.value = "";
+      blank.textContent = "Select a track";
+      select.appendChild(blank);
+      keys.forEach(key => {
+        let option = document.createElement("option");
+        option.value = key;
+        option.textContent = trackLabel(key);
+        select.appendChild(option);
+      });
+      select.value = keys.includes(selectedKey) ? selectedKey : "";
+    }
+
+    function fillRecordClassOptions(form, type, selectedValue) {
+      let classes = formClasses(type, form.elements.track.value);
+      let choice = fillSelectWithOther(form.elements.vehicleClass, classes, selectedValue, CUSTOM_CLASS_VALUE);
+      showRecordCustomClass(form, choice === CUSTOM_CLASS_VALUE);
+    }
+
+    function refillRecordClasses(form, type, missingClass) {
+      let classes = formClasses(type, form.elements.track.value);
+      let selected = form.elements.vehicleClass.value;
+      let customText = form.elements.customClass.value;
+      let next;
+      let clearCustom = false;
+      if (selected === CUSTOM_CLASS_VALUE && (missingClass !== "named" || classes.includes(customText))) {
+        next = CUSTOM_CLASS_VALUE;
+      } else if (selected !== CUSTOM_CLASS_VALUE && (classes.includes(selected) || missingClass === "refresh")) {
+        next = selected;
+      } else {
+        next = classes[0] || "";
+        clearCustom = true;
+      }
+      fillRecordClassOptions(form, type, next);
+      if (next === CUSTOM_CLASS_VALUE) form.elements.customClass.value = customText;
+      else if (clearCustom) form.elements.customClass.value = "";
+    }
+
+    function fillRecordSubtracks(form, trackKey) {
+      let select = form.elements.subtrack;
+      let field = select.closest(".rec-field");
+      let known = trackSubtracks[trackKey] || [];
+      let fromRecords = [...new Set(
+        records
+          .filter(record => String(record.track || "").toUpperCase() === String(trackKey || "").toUpperCase())
+          .map(record => record.subtrack || "")
+          .filter(Boolean)
+      )].sort((a, b) => a.localeCompare(b));
+      let options = [...new Set([...known, ...fromRecords])];
+      let prev = select.value;
+      fillSelectOptions(select, options, prev);
+      if (field) field.hidden = !options.length;
+    }
+
+    function prepareRecordForm(form, trackKey, type) {
+      form.reset();
+      form.elements.vehicleType.value = type;
+      form.elements.customClass.value = "";
+      fillRecordTracks(form, trackKey);
+      fillRecordClassOptions(form, type, formClasses(type, trackKey)[0] || "");
+      fillRecordSubtracks(form, trackKey);
+      form.elements.date.max = todayIso();
+    }
+
+    function setRecordMessage(message) {
+      if (!message) {
+        recordMessage.hidden = true;
+        recordMessage.textContent = "";
+        recordMessage.className = "rec-form-msg";
+        return;
+      }
+      recordMessage.hidden = false;
+      recordMessage.textContent = message.text;
+      recordMessage.className = "rec-form-msg " + message.kind;
+    }
+
+    function setRecordSubmitting(submitting) {
+      recordsUi.submitting = submitting;
+      let button = recordForm.querySelector(".rec-submit");
+      button.disabled = submitting;
+      button.textContent = submitting ? "Submitting..." : "Submit for Review";
+      document.getElementById("record-close").disabled = submitting;
+      document.getElementById("record-cancel").disabled = submitting;
+      recordForm.elements.track.disabled = submitting;
+      recordForm.elements.vehicleType.disabled = submitting;
+      recordForm.elements.vehicleClass.disabled = submitting;
+    }
+
+    function openRecordForm() {
+      let preferredTrack = trackKey();
+      let preferredType = vehicleSelect.value === "M" ? "M" : "C";
+      if (!suggestedClasses(preferredType).length) preferredType = "C";
+      recordsUi.submitting = false;
+      prepareRecordForm(recordForm, preferredTrack, preferredType);
+      setRecordSubmitting(false);
+      setRecordMessage(null);
+      if (!recordDialog.open) recordDialog.showModal();
+      let focus = [...recordForm.querySelectorAll("input, textarea, select")].find(el => !el.closest("[hidden]"));
+      if (focus) focus.focus();
+    }
+
+    function closeRecordForm() {
+      if (recordsUi.submitting) return;
+      if (recordDialog.open) recordDialog.close();
+    }
+
+    function readCreateDraft(form) {
+      let data = new FormData(form);
+      let selectedClass = String(data.get("vehicleClass") || "");
+      let classIsCustom = selectedClass === CUSTOM_CLASS_VALUE;
+      return {
+        track: form.elements.track.value,
+        vehicleType: String(data.get("vehicleType") || ""),
+        vehicleClass: classIsCustom ? String(data.get("customClass") || "").trim() : selectedClass,
+        classIsCustom,
+        vehicleYear: String(data.get("vehicleYear") || "").trim(),
+        vehicleMake: String(data.get("vehicleMake") || "").trim(),
+        vehicleModel: String(data.get("vehicleModel") || "").trim(),
+        subtrack: String(data.get("subtrack") || "").trim(),
+        time: String(data.get("time") || "").trim(),
+        holder: String(data.get("holder") || "").trim(),
+        date: String(data.get("date") || "").trim(),
+        evidence: String(data.get("evidence") || "").trim(),
+        note: String(data.get("note") || "").trim(),
+      };
+    }
+
+    function validateCreateDraft(draft) {
+      if (!draft.track || draft.track.length > 40) return "Choose a track.";
+      if (!suggestedClasses(draft.vehicleType).length) return "Choose a vehicle type.";
+      if (draft.classIsCustom) {
+        if (!draft.vehicleClass || draft.vehicleClass.length > 40) return "Enter a class.";
+      } else if (!formClasses(draft.vehicleType, draft.track).includes(draft.vehicleClass)) {
+        return "Choose a class.";
+      }
+      let year = Number(draft.vehicleYear);
+      let maxYear = new Date().getFullYear() + 1;
+      if (!Number.isInteger(year) || year < 1885 || year > maxYear) return "Enter a vehicle year.";
+      if (!draft.vehicleMake || draft.vehicleMake.length > 40) return "Enter a vehicle make.";
+      if (!draft.vehicleModel || draft.vehicleModel.length > 60) return "Enter a vehicle model.";
+      let subtracks = [
+        ...(trackSubtracks[draft.track] || []),
+        ...records
+          .filter(record => String(record.track || "").toUpperCase() === draft.track)
+          .map(record => record.subtrack || "")
+          .filter(Boolean),
+      ];
+      let knownSubtracks = [...new Set(subtracks)];
+      if (knownSubtracks.length && !knownSubtracks.includes(draft.subtrack)) return "Choose a subtrack.";
+      if (draft.subtrack.length > 40) return "Subtrack is too long.";
+      if (!LAP_TIME_RE.test(draft.time)) return "Enter a time like 1:23.456 or 54.32.";
+      if (!draft.holder || draft.holder.length > 80) return "Enter the record holder.";
+      if (!DATE_RE.test(draft.date) || draft.date > todayIso()) return "Enter the date of the lap.";
+      if (draft.evidence && (!safeHttpUrl(draft.evidence) || draft.evidence.length > 300)) {
+        return "Evidence link must be an http(s) URL.";
+      }
+      if (draft.note.length > 300) return "Note is too long.";
+      return "";
+    }
+
+    function createPayload(draft) {
+      let payload = {
+        action: "create",
+        track: draft.track,
+        vehicleType: draft.vehicleType,
+        vehicleClass: draft.vehicleClass,
+        vehicleYear: Number(draft.vehicleYear),
+        vehicleMake: draft.vehicleMake,
+        vehicleModel: draft.vehicleModel,
+        subtrack: draft.subtrack,
+        time: formatLapTime(draft.time),
+        holder: draft.holder,
+        date: draft.date,
+      };
+      if (draft.evidence) payload.evidence = draft.evidence;
+      if (draft.note) payload.note = draft.note;
+      return payload;
+    }
+
+    async function submitCreateForm(event) {
+      event.preventDefault();
+      if (recordsUi.submitting) return;
+      let draft = readCreateDraft(recordForm);
+      let error = validateCreateDraft(draft);
+      if (error) {
+        setRecordMessage({kind: "err", text: error});
+        return;
+      }
+      let started = ++recordsUi.submitId;
+      setRecordSubmitting(true);
+      setRecordMessage(null);
+      try {
+        let res = await fetch(LAP_RECORD_SUBMIT_URL, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(createPayload(draft)),
+        });
+        if (recordsUi.submitId !== started) return;
+        if (!res.ok) throw Object.assign(new Error("HTTP " + res.status), {status: res.status});
+        prepareRecordForm(recordForm, draft.track, draft.vehicleType);
+        setRecordMessage({kind: "ok", text: "Submitted for review."});
+      } catch (err) {
+        if (recordsUi.submitId !== started) return;
+        let text = err && err.status ? "Unable to submit (" + err.status + ")." : "Unable to submit. Try again.";
+        setRecordMessage({kind: "err", text});
+      }
+      if (recordsUi.submitId === started) setRecordSubmitting(false);
+    }
+
+    addRecordButton.addEventListener("click", openRecordForm);
+    recordForm.addEventListener("submit", submitCreateForm);
+    recordForm.addEventListener("input", () => {
+      if (!recordMessage.hidden && recordMessage.classList.contains("err")) setRecordMessage(null);
+    });
+    recordForm.elements.track.addEventListener("change", () => {
+      recordForm.elements.subtrack.value = "";
+      fillRecordSubtracks(recordForm, recordForm.elements.track.value);
+      refillRecordClasses(recordForm, recordForm.elements.vehicleType.value, "reset");
+    });
+    recordForm.elements.vehicleType.addEventListener("change", () => {
+      refillRecordClasses(recordForm, recordForm.elements.vehicleType.value, "named");
+      setRecordMessage(null);
+    });
+    recordForm.elements.vehicleClass.addEventListener("change", () => {
+      let show = recordForm.elements.vehicleClass.value === CUSTOM_CLASS_VALUE;
+      showRecordCustomClass(recordForm, show);
+      if (show) recordForm.elements.customClass.focus();
+    });
+    document.getElementById("record-close").addEventListener("click", closeRecordForm);
+    document.getElementById("record-cancel").addEventListener("click", closeRecordForm);
+    recordDialog.addEventListener("cancel", (event) => {
+      if (recordsUi.submitting) event.preventDefault();
     });
 
     function showResults() {
