@@ -159,7 +159,7 @@
     .suggest-dialog .suggest-matches[hidden] {display: none;}
     .suggest-dialog .suggest-matches button {border: 0; background: transparent; text-align: left; padding: 3px 6px; font: inherit; font-size: 12px; color: #1c2733; cursor: pointer;}
     .suggest-dialog .suggest-matches button:hover {background: #ebe6df;}
-    .suggest-dialog .rec-field textarea {resize: vertical; min-height: 2.6rem;}
+    .suggest-dialog .rec-field textarea {resize: vertical; min-height: 1.7rem;}
     .suggest-dialog .rec-form-actions {display: flex; gap: 4px; margin-top: 2px;}
     .suggest-dialog .rec-form-actions button {flex: 1; border: 0; border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 12px; font-weight: 650; cursor: pointer;}
     .suggest-dialog .rec-submit {color: #fff; background: #3973ac;}
@@ -981,6 +981,7 @@
         holder: String(data.get("holder") || ""),
         date: String(data.get("date") || ""),
         evidence: String(data.get("evidence") || ""),
+        note: String(data.get("note") || ""),
       };
     }
 
@@ -1059,6 +1060,7 @@
       if (!draft.holder.trim() || draft.holder.trim().length > 80) return "Enter the lap holder";
       if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.date) || draft.date > dayjs().format("YYYY-MM-DD")) return "Enter the lap date";
       if (draft.evidence.trim() && !safeHttpUrl(draft.evidence.trim())) return "Evidence link must be an http(s) URL";
+      if (draft.note.trim().length > 300) return "Note is too long";
       return "";
     }
 
@@ -1077,6 +1079,8 @@
       };
       let evidence = draft.evidence.trim();
       if (evidence) payload.evidence = evidence;
+      let note = draft.note.trim();
+      if (note) payload.note = note;
       return payload;
     }
 
@@ -1715,16 +1719,15 @@
         <b id="suggestTitle">Report a missing track</b>
         <button type="button" class="suggest-close" onclick="closeSuggestDialog()" aria-label="Close">×</button>
       </div>
-      <div id="suggestMessage" class="rec-form-msg" hidden></div>
       <div class="rec-types">
         <button type="button" class="rec-type on" data-kind="track" onclick="setSuggestKind('track')">Missing track</button>
         <button type="button" class="rec-type" data-kind="missing_event" onclick="setSuggestKind('missing_event')">Missing event</button>
       </div>
-      <label class="rec-field" data-suggest="track"><span>Name</span><input name="name" maxlength="80"></label>
+      <label class="rec-field" data-suggest="track"><span>Track name</span><input name="name" maxlength="80"></label>
       <label class="rec-field" data-suggest="missing_event" hidden><span>Track</span><input name="trackName" maxlength="80" oninput="suggestTracks(this)" onblur="this.parentElement.querySelector('.suggest-matches').hidden = true"><div class="suggest-matches" hidden></div></label>
-      <label class="rec-field" data-suggest="missing_event" hidden><span>Host</span><input name="org" maxlength="80" oninput="suggestHosts(this)" onblur="this.parentElement.querySelector('.suggest-matches').hidden = true"><div class="suggest-matches" hidden></div></label>
+      <label class="rec-field" data-suggest="missing_event" hidden><span>Host/Organizer</span><input name="org" maxlength="80" oninput="suggestHosts(this)" onblur="this.parentElement.querySelector('.suggest-matches').hidden = true"><div class="suggest-matches" hidden></div></label>
       <div class="rec-field" data-suggest="missing_event" hidden>
-        <span>Date</span>
+        <span>Event date</span>
         <div class="suggest-date-row">
           <input name="eventDate" type="date">
           <label class="suggest-multi"><input name="multipleDates" type="checkbox">Multiple dates</label>
@@ -1747,11 +1750,12 @@
           <button type="button" class="rec-type" data-vehicle="S" onclick="toggleSuggestVehicle(this)">Supermoto</button>
         </div>
       </div>
-      <label class="rec-field"><span>Note (optional)</span><textarea name="note" maxlength="300" rows="2"></textarea></label>
+      <label class="rec-field"><span>Note (optional)</span><textarea name="note" maxlength="300" rows="1"></textarea></label>
       <div class="rec-form-actions">
         <button type="button" class="rec-cancel" onclick="closeSuggestDialog()">Cancel</button>
         <button type="submit" class="rec-submit">Submit for Review</button>
       </div>
+      <div id="suggestMessage" class="rec-form-msg" hidden></div>
     </form>
   </dialog>
 
@@ -1784,6 +1788,7 @@
       </div>
       <label class="rec-field"><span>Holder name</span><input name="holder" maxlength="80"></label>
       <label class="rec-field"><span>Evidence (optional)</span><input name="evidence" type="url" placeholder="https://" maxlength="300"></label>
+      <label class="rec-field"><span>Note (optional)</span><textarea name="note" maxlength="300" rows="1"></textarea></label>
       <div class="rec-form-actions">
         <button type="button" class="rec-cancel" onclick="closeRecordForm()">Cancel</button>
         <button type="submit" class="rec-submit">Submit for Review</button>
