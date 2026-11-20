@@ -145,6 +145,10 @@
     .suggest-dialog .rec-field textarea,
     .suggest-dialog .rec-field select {width: 100%; box-sizing: border-box; border: 0; border-radius: 6px; padding: 4px 6px; font: inherit; font-size: 12px; color: #1c2733; background: #fff;}
     .suggest-dialog .rec-form-grid {display: grid; grid-template-columns: 1fr 1fr; gap: 6px;}
+    .suggest-dialog .rec-type-class {display: grid; grid-template-columns: 9.5em 1fr; gap: 6px; align-items: end;}
+    .suggest-dialog .rec-type-class .rec-field {min-width: 0;}
+    .suggest-dialog .rec-ymm {display: grid; grid-template-columns: calc(4ch + 12px) 1fr 1fr; gap: 6px;}
+    .suggest-dialog .rec-ymm .rec-year input {width: 100%;}
     .suggest-dialog .rec-field input[type=date] {color-scheme: light;}
     .suggest-dialog .suggest-date-row {display: flex; align-items: center; gap: 8px;}
     .suggest-dialog .suggest-date-row input[type=date] {flex: 1 1 auto; width: auto; min-width: 0;}
@@ -937,8 +941,7 @@
     }
 
     function applyRecordType(form, code) {
-      form.elements.vehicleType.value = code;
-      form.querySelectorAll("[data-record-type]").forEach(btn => btn.classList.toggle("on", btn.dataset.recordType === code));
+      if (form.elements.vehicleType) form.elements.vehicleType.value = code;
     }
 
     function syncRecordDialog() {
@@ -1021,10 +1024,10 @@
       closeReviewDialog(recordsUi, "recordDialog");
     }
 
-    function setRecordFormType(code) {
-      let form = recordForm();
+    function onRecordTypeChange(select) {
+      let form = select.form;
+      let code = select.value;
       if (!form || !recordClasses(code).length) return;
-      applyRecordType(form, code);
       refillRecordClasses(form, code, "named");
       setFormMessage(form.querySelector(".rec-form-msg"), null);
     }
@@ -1752,25 +1755,28 @@
         <button type="button" class="suggest-close" onclick="closeRecordForm()" aria-label="Close">×</button>
       </div>
       <div id="recordMessage" class="rec-form-msg" hidden></div>
-      <input type="hidden" name="vehicleType" value="C">
-      <div class="rec-types">
-        <button type="button" class="rec-type on" data-record-type="C" onclick="setRecordFormType('C')">Car</button>
-        <button type="button" class="rec-type" data-record-type="M" onclick="setRecordFormType('M')">Motorcycle</button>
+      <div class="rec-type-class">
+        <label class="rec-field"><span>Type</span>
+          <select name="vehicleType" onchange="onRecordTypeChange(this)">
+            <option value="C">Car</option>
+            <option value="M">Motorcycle</option>
+          </select>
+        </label>
+        <label class="rec-field"><span>Class</span><select name="vehicleClass" onchange="onRecordClassChange(this)"></select></label>
       </div>
-      <label class="rec-field"><span>Class</span><select name="vehicleClass" onchange="onRecordClassChange(this)"></select></label>
       <label class="rec-field rec-custom-class" hidden><span>Other class</span><input name="customClass" maxlength="40"></label>
-      <div class="rec-form-grid">
-        <label class="rec-field"><span>Year</span><input name="vehicleYear" inputmode="numeric" maxlength="4"></label>
+      <div class="rec-ymm">
+        <label class="rec-field rec-year"><span>Year</span><input name="vehicleYear" inputmode="numeric" maxlength="4" size="4"></label>
         <label class="rec-field"><span>Make</span><input name="vehicleMake" maxlength="40"></label>
+        <label class="rec-field"><span>Model</span><input name="vehicleModel" maxlength="60"></label>
       </div>
-      <label class="rec-field"><span>Model</span><input name="vehicleModel" maxlength="60"></label>
       <label class="rec-field"><span>Track</span><select name="track" onchange="onRecordTrackChange(this)"></select></label>
       <label class="rec-field"><span>Subtrack (optional)</span><input name="subtrack" maxlength="40" list="rec-subtracks"><datalist id="rec-subtracks"></datalist></label>
       <div class="rec-form-grid">
         <label class="rec-field"><span>Time</span><input name="time" placeholder="1:23.456" inputmode="decimal"></label>
-        <label class="rec-field"><span>Date</span><input name="date" type="date"></label>
+        <label class="rec-field"><span>Lap date</span><input name="date" type="date"></label>
       </div>
-      <label class="rec-field"><span>Holder</span><input name="holder" maxlength="80"></label>
+      <label class="rec-field"><span>Holder name</span><input name="holder" maxlength="80"></label>
       <label class="rec-field"><span>Evidence (optional)</span><input name="evidence" type="url" placeholder="https://" maxlength="300"></label>
       <div class="rec-form-actions">
         <button type="button" class="rec-cancel" onclick="closeRecordForm()">Cancel</button>
