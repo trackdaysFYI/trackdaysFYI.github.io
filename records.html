@@ -88,6 +88,16 @@
   .results-bar {display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.55rem;}
   .status {margin: 0; color: var(--muted); font-size: 0.85rem;}
   .status.err {color: var(--err);}
+  .export-actions {display: flex; justify-content: flex-end; gap: 0.35rem; margin-top: 0.75rem;}
+  .export-actions button {
+    border: 1px solid var(--panel-border); border-radius: 10px; min-height: 2.2rem;
+    padding: 0.35rem 0.85rem; font: inherit; font-size: 0.8rem; font-weight: 700;
+    color: var(--soft); background: transparent; cursor: pointer;
+  }
+  .export-actions button:disabled {opacity: 0.45; cursor: default;}
+  @media (hover: hover) {
+    .export-actions button:not(:disabled):hover {border-color: var(--accent); color: var(--text);}
+  }
   .view-switch {display: flex; flex: 0 0 auto; gap: 0.35rem; padding: 0.2rem; border-radius: 999px; background: var(--switch-bg);}
   .view-switch button {border: 0; border-radius: 999px; min-height: 2.2rem; padding: 0.35rem 0.9rem; font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--muted); background: transparent; cursor: pointer;}
   .view-switch button.on {color: var(--on-text); background: var(--on-bg);}
@@ -170,6 +180,23 @@
     #content {animation: none;}
     .loading-bar::before {animation: none; width: 100%; transform: none; opacity: 0.65;}
   }
+  @media print {
+    body {
+      padding: 0.5in; background: white; color: #111;
+    }
+    a.brand, .filters, .results-bar, .export-actions, .loading {display: none !important;}
+    .title-block {text-align: left;}
+    h1 {color: #111; font-size: 1.25rem; margin-bottom: 0.75rem;}
+    .table-wrap {
+      max-height: none; overflow: visible; margin: 0; border: 0; border-radius: 0; background: transparent;
+    }
+    table {min-width: 0; width: 100%; font-size: 9.5pt; color: #111;}
+    th, td {border-bottom: 1px solid #ccc; color: #111; background: transparent;}
+    th {position: static; background: #f0f0f0; color: #333;}
+    td.time, tr.group td {color: #111; background: transparent; box-shadow: none;}
+    tr.group td {border-bottom: 0; padding-top: 0.85rem; color: #333;}
+    a {color: #111; text-decoration: underline;}
+  }
 
   </style>
 
@@ -237,6 +264,10 @@
       <tbody id="rows"></tbody>
     </table>
   </div>
+  <div class="export-actions">
+    <button type="button" id="export-csv" disabled>Export CSV</button>
+    <button type="button" id="print-records" disabled>Print</button>
+  </div>
   </div>
   </div>
   <script>
@@ -261,6 +292,8 @@
     const classCol = document.getElementById("class-col");
     const viewClassButton = document.getElementById("view-class");
     const viewTimeButton = document.getElementById("view-time");
+    const exportCsvButton = document.getElementById("export-csv");
+    const printButton = document.getElementById("print-records");
     const statusEl = document.getElementById("status");
     const rowsEl = document.getElementById("rows");
     const loadingEl = document.getElementById("loading");
@@ -427,6 +460,47 @@
       return `+${minutes}:${whole.padStart(2, "0")}.${frac}`;
     }
 
+    function csvEscape(value) {
+      let text = String(value == null ? "" : value);
+      if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+      return text;
+    }
+
+    function exportCsv() {
+      let shown = filteredRecords().slice().sort(compareRecords);
+      if (!shown.length) return;
+      let headers = ["Time", "Track", "Subtrack", "Holder", "Vehicle", "Type", "Class", "Date", "Evidence"];
+      let lines = [headers.map(csvEscape).join(",")];
+      shown.forEach(record => {
+        let vehicle = [record.vehicleYear, record.vehicleMake, record.vehicleModel]
+          .filter(value => value != null && value !== "")
+          .join(" ");
+        lines.push([
+          record.time || "",
+          trackLabel(record.track),
+          record.subtrack || "",
+          record.holder || "",
+          vehicle,
+          VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "",
+          record.vehicleClass || "",
+          record.date || "",
+          record.evidence || "",
+        ].map(csvEscape).join(","));
+      });
+      let blob = new Blob(["\uFEFF" + lines.join("\r\n")], {type: "text/csv;charset=utf-8"});
+      let url = URL.createObjectURL(blob);
+      let link = document.createElement("a");
+      link.href = url;
+      link.download = "lap-records.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function printRecords() {
+      if (!filteredRecords().length) return;
+      window.print();
+    }
+
     function recordRow(record, includeClass, includeTrack, includeSubtrack, includeType, gapMs) {
       let vehicle = [record.vehicleYear, record.vehicleMake, record.vehicleModel].filter(value => value != null && value !== "").join(" ");
       let type = includeType ? (VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "") : "";
@@ -490,6 +564,8 @@
       let colspan = 8 - (byClass ? 1 : 0) - (includeTrack ? 0 : 1) - (includeSubtrack ? 0 : 1);
       statusEl.className = "status";
       statusEl.textContent = `${shown.length} record${shown.length === 1 ? "" : "s"}`;
+      exportCsvButton.disabled = !shown.length;
+      printButton.disabled = !shown.length;
       if (!shown.length) {
         rowsEl.innerHTML = `<tr><td class="empty" colspan="${colspan}">No records match</td></tr>`;
         return;
@@ -558,6 +634,8 @@
     }
     viewClassButton.addEventListener("click", () => setView("class"));
     viewTimeButton.addEventListener("click", () => setView("time"));
+    exportCsvButton.addEventListener("click", exportCsv);
+    printButton.addEventListener("click", printRecords);
 
     function showResults() {
       loadingEl.hidden = true;
