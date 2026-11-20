@@ -1002,6 +1002,16 @@
       });
     }
 
+    async function postLapRecord(payload) {
+      let res = await fetch(LAP_RECORD_SUBMIT_URL, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw Object.assign(new Error("HTTP " + res.status), {status: res.status});
+      return res;
+    }
+
     async function submitReview(event, opts) {
       event.preventDefault();
       if (opts.state.submitting) return;
@@ -1014,13 +1024,8 @@
       opts.setSubmitting(true);
       setFormMessage(opts.messageEl, null);
       try {
-        let res = await fetch(LAP_RECORD_SUBMIT_URL, {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify(opts.payload()),
-        });
+        await postLapRecord(opts.payload());
         if (opts.state.submitId !== started) return;
-        if (!res.ok) throw Object.assign(new Error("HTTP " + res.status), {status: res.status});
         opts.onSuccess();
         setFormMessage(opts.messageEl, {kind: "ok", text: "Submitted for review."});
       } catch (err) {
