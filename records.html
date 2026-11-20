@@ -918,26 +918,65 @@
       renderRows();
     });
 
-    function setChangeMessage(message) {
+    function setFormMessage(el, message) {
+      if (!el) return;
       if (!message) {
-        changeMessage.hidden = true;
-        changeMessage.textContent = "";
-        changeMessage.className = "rec-form-msg";
+        el.hidden = true;
+        el.textContent = "";
+        el.className = "rec-form-msg";
         return;
       }
-      changeMessage.hidden = false;
-      changeMessage.textContent = message.text;
-      changeMessage.className = "rec-form-msg " + message.kind;
+      el.hidden = false;
+      el.textContent = message.text;
+      el.className = "rec-form-msg " + message.kind;
+    }
+
+    function setFormSubmitting(state, form, submitting, extraEls) {
+      state.submitting = submitting;
+      let button = form.querySelector(".rec-submit");
+      if (button) {
+        button.disabled = submitting;
+        button.textContent = submitting ? "Submitting..." : "Submit for Review";
+      }
+      form.querySelectorAll(".rec-type, .rec-cancel, .suggest-close").forEach(el => {
+        el.disabled = submitting;
+      });
+      (extraEls || []).forEach(el => {
+        if (el) el.disabled = submitting;
+      });
+    }
+
+    async function submitReview(event, opts) {
+      event.preventDefault();
+      if (opts.state.submitting) return;
+      let error = opts.validate();
+      if (error) {
+        setFormMessage(opts.messageEl, {kind: "err", text: error});
+        return;
+      }
+      let started = ++opts.state.submitId;
+      opts.setSubmitting(true);
+      setFormMessage(opts.messageEl, null);
+      try {
+        let res = await fetch(LAP_RECORD_SUBMIT_URL, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(opts.payload()),
+        });
+        if (opts.state.submitId !== started) return;
+        if (!res.ok) throw Object.assign(new Error("HTTP " + res.status), {status: res.status});
+        opts.onSuccess();
+        setFormMessage(opts.messageEl, {kind: "ok", text: "Submitted for review."});
+      } catch (err) {
+        if (opts.state.submitId !== started) return;
+        let text = err && err.status ? "Unable to submit (" + err.status + ")." : "Unable to submit. Try again.";
+        setFormMessage(opts.messageEl, {kind: "err", text});
+      }
+      if (opts.state.submitId === started) opts.setSubmitting(false);
     }
 
     function setChangeSubmitting(submitting) {
-      changeUi.submitting = submitting;
-      let button = changeForm.querySelector(".rec-submit");
-      button.disabled = submitting;
-      button.textContent = submitting ? "Submitting..." : "Submit for Review";
-      changeForm.querySelectorAll(".rec-type, .rec-cancel, .suggest-close").forEach(el => {
-        el.disabled = submitting;
-      });
+      setFormSubmitting(changeUi, changeForm, submitting);
     }
 
     function setChangeAction(action) {
@@ -951,7 +990,7 @@
       changeForm.elements.note.rows = changeUi.action === "edit" ? 2 : 8;
       document.getElementById("changeTitle").textContent =
         changeUi.action === "edit" ? "Update Record" : "Delete/Protest Record";
-      setChangeMessage(null);
+      setFormMessage(changeMessage, null);
     }
 
     function fillChangeForm(record) {
@@ -975,7 +1014,7 @@
       changeForm.elements.note.value = "";
       setChangeAction("edit");
       setChangeSubmitting(false);
-      setChangeMessage(null);
+      setFormMessage(changeMessage, null);
     }
 
     function openChangeDialog(key) {
@@ -1063,40 +1102,24 @@
     }
 
     async function submitChangeForm(event) {
-      event.preventDefault();
-      if (changeUi.submitting) return;
       let draft = readChangeDraft();
-      let error = validateChangeDraft(draft);
-      if (error) {
-        setChangeMessage({kind: "err", text: error});
-        return;
-      }
-      let started = ++changeUi.submitId;
-      setChangeSubmitting(true);
-      setChangeMessage(null);
-      try {
-        let res = await fetch(LAP_RECORD_SUBMIT_URL, {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify(changePayload(draft)),
-        });
-        if (changeUi.submitId !== started) return;
-        if (!res.ok) throw Object.assign(new Error("HTTP " + res.status), {status: res.status});
-        let action = changeUi.action;
-        fillChangeForm(changeUi.record);
-        setChangeAction(action);
-        setChangeMessage({kind: "ok", text: "Submitted for review."});
-      } catch (err) {
-        if (changeUi.submitId !== started) return;
-        let text = err && err.status ? "Unable to submit (" + err.status + ")." : "Unable to submit. Try again.";
-        setChangeMessage({kind: "err", text});
-      }
-      if (changeUi.submitId === started) setChangeSubmitting(false);
+      await submitReview(event, {
+        state: changeUi,
+        messageEl: changeMessage,
+        setSubmitting: setChangeSubmitting,
+        validate: () => validateChangeDraft(draft),
+        payload: () => changePayload(draft),
+        onSuccess() {
+          let action = changeUi.action;
+          fillChangeForm(changeUi.record);
+          setChangeAction(action);
+        },
+      });
     }
 
     changeForm.addEventListener("submit", submitChangeForm);
     changeForm.addEventListener("input", () => {
-      if (!changeMessage.hidden && changeMessage.classList.contains("err")) setChangeMessage(null);
+      if (!changeMessage.hidden && changeMessage.classList.contains("err")) setFormMessage(changeMessage, null);
     });
     changeForm.querySelectorAll(".rec-type[data-action]").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -1255,28 +1278,12 @@
       form.elements.date.max = todayIso();
     }
 
-    function setRecordMessage(message) {
-      if (!message) {
-        recordMessage.hidden = true;
-        recordMessage.textContent = "";
-        recordMessage.className = "rec-form-msg";
-        return;
-      }
-      recordMessage.hidden = false;
-      recordMessage.textContent = message.text;
-      recordMessage.className = "rec-form-msg " + message.kind;
-    }
-
     function setRecordSubmitting(submitting) {
-      recordsUi.submitting = submitting;
-      let button = recordForm.querySelector(".rec-submit");
-      button.disabled = submitting;
-      button.textContent = submitting ? "Submitting..." : "Submit for Review";
-      document.getElementById("record-close").disabled = submitting;
-      document.getElementById("record-cancel").disabled = submitting;
-      recordForm.elements.track.disabled = submitting;
-      recordForm.elements.vehicleType.disabled = submitting;
-      recordForm.elements.vehicleClass.disabled = submitting;
+      setFormSubmitting(recordsUi, recordForm, submitting, [
+        recordForm.elements.track,
+        recordForm.elements.vehicleType,
+        recordForm.elements.vehicleClass,
+      ]);
     }
 
     function openRecordForm() {
@@ -1286,7 +1293,7 @@
       recordsUi.submitting = false;
       prepareRecordForm(recordForm, preferredTrack, preferredType);
       setRecordSubmitting(false);
-      setRecordMessage(null);
+      setFormMessage(recordMessage, null);
       if (!recordDialog.open) recordDialog.showModal();
       let focus = [...recordForm.querySelectorAll("input, textarea, select")].find(el => !el.closest("[hidden]"));
       if (focus) focus.focus();
@@ -1373,39 +1380,23 @@
     }
 
     async function submitCreateForm(event) {
-      event.preventDefault();
-      if (recordsUi.submitting) return;
       let draft = readCreateDraft(recordForm);
-      let error = validateCreateDraft(draft);
-      if (error) {
-        setRecordMessage({kind: "err", text: error});
-        return;
-      }
-      let started = ++recordsUi.submitId;
-      setRecordSubmitting(true);
-      setRecordMessage(null);
-      try {
-        let res = await fetch(LAP_RECORD_SUBMIT_URL, {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify(createPayload(draft)),
-        });
-        if (recordsUi.submitId !== started) return;
-        if (!res.ok) throw Object.assign(new Error("HTTP " + res.status), {status: res.status});
-        prepareRecordForm(recordForm, draft.track, draft.vehicleType);
-        setRecordMessage({kind: "ok", text: "Submitted for review."});
-      } catch (err) {
-        if (recordsUi.submitId !== started) return;
-        let text = err && err.status ? "Unable to submit (" + err.status + ")." : "Unable to submit. Try again.";
-        setRecordMessage({kind: "err", text});
-      }
-      if (recordsUi.submitId === started) setRecordSubmitting(false);
+      await submitReview(event, {
+        state: recordsUi,
+        messageEl: recordMessage,
+        setSubmitting: setRecordSubmitting,
+        validate: () => validateCreateDraft(draft),
+        payload: () => createPayload(draft),
+        onSuccess() {
+          prepareRecordForm(recordForm, draft.track, draft.vehicleType);
+        },
+      });
     }
 
     addRecordButton.addEventListener("click", openRecordForm);
     recordForm.addEventListener("submit", submitCreateForm);
     recordForm.addEventListener("input", () => {
-      if (!recordMessage.hidden && recordMessage.classList.contains("err")) setRecordMessage(null);
+      if (!recordMessage.hidden && recordMessage.classList.contains("err")) setFormMessage(recordMessage, null);
     });
     recordForm.elements.track.addEventListener("change", () => {
       recordForm.elements.subtrack.value = "";
@@ -1414,7 +1405,7 @@
     });
     recordForm.elements.vehicleType.addEventListener("change", () => {
       refillRecordClasses(recordForm, recordForm.elements.vehicleType.value, "named");
-      setRecordMessage(null);
+      setFormMessage(recordMessage, null);
     });
     recordForm.elements.vehicleClass.addEventListener("change", () => {
       let show = recordForm.elements.vehicleClass.value === CUSTOM_CLASS_VALUE;
