@@ -525,6 +525,12 @@
       return trackNames[key] || key;
     }
 
+    function vehicleLabel(record) {
+      return [record.vehicleYear, record.vehicleMake, record.vehicleModel]
+        .filter(value => value != null && value !== "")
+        .join(" ");
+    }
+
     function scopedRecords() {
       let vehicle = vehicleSelect.value;
       let track = trackKey();
@@ -596,7 +602,7 @@
         if (vehicleClass && (record.vehicleClass || "") !== vehicleClass) return false;
         if (subtrack && (record.subtrack || "") !== subtrack) return false;
         if (!terms.length) return true;
-        let name = [record.holder, record.vehicleYear, record.vehicleMake, record.vehicleModel].join(" ").toLowerCase();
+        let name = [record.holder, vehicleLabel(record)].join(" ").toLowerCase();
         return terms.some(term => name.includes(term));
       });
     }
@@ -763,15 +769,12 @@
       let headers = ["Time", "Track", "Subtrack", "Holder", "Vehicle", "Type", "Class", "Date", "Evidence"];
       let lines = [headers.map(csvEscape).join(",")];
       shown.forEach(record => {
-        let vehicle = [record.vehicleYear, record.vehicleMake, record.vehicleModel]
-          .filter(value => value != null && value !== "")
-          .join(" ");
         lines.push([
           record.time || "",
           trackLabel(record.track),
           record.subtrack || "",
           record.holder || "",
-          vehicle,
+          vehicleLabel(record),
           VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "",
           record.vehicleClass || "",
           record.date || "",
@@ -811,7 +814,6 @@
     function recordRow(record, includeClass, includeTrack, includeSubtrack, includeType, gapMs) {
       let key = recordKey(record);
       let isRef = key === referenceKey;
-      let vehicle = [record.vehicleYear, record.vehicleMake, record.vehicleModel].filter(value => value != null && value !== "").join(" ");
       let type = includeType ? (VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "") : "";
       let classLabel = [type, record.vehicleClass || ""].filter(Boolean).join(" · ");
       let evidence = safeHttpUrl(record.evidence);
@@ -830,7 +832,7 @@
         ${trackCell}
         ${subCell}
         <td>${escapeHtml(record.holder || "")}</td>
-        <td class="vehicle">${escapeHtml(vehicle)}</td>
+        <td class="vehicle">${escapeHtml(vehicleLabel(record))}</td>
         ${classCell}
         <td>${escapeHtml(record.date || "")}</td>
         <td class="evidence">${evidenceCell}</td>
