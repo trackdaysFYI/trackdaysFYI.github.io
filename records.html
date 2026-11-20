@@ -1079,8 +1079,7 @@
       setRecordSubmitting(false);
       setFormMessage(recordMessage, null);
       if (!recordDialog.open) recordDialog.showModal();
-      let focus = [...recordForm.querySelectorAll("input, textarea, select")].find(el => !el.closest("[hidden]"));
-      if (focus) focus.focus();
+      focusReviewField(recordForm);
     }
 
     function closeRecordForm() {

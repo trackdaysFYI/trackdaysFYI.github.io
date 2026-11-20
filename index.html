@@ -198,21 +198,21 @@
   </dialog>
 
   <dialog id="recordDialog" class="suggest-dialog" closedby="closerequest" aria-labelledby="recordTitle">
-    <form id="lap-record-form" class="rec-form" autocomplete="off" novalidate onsubmit="submitLapRecord(event)">
+    <form id="lap-record-form" class="rec-form" autocomplete="off" novalidate>
       <div class="suggest-head">
         <b id="recordTitle">Add a Lap Record</b>
         <button type="button" class="suggest-close" aria-label="Close">×</button>
       </div>
-      <label class="rec-field"><span>Track</span><select name="track" onchange="onRecordTrackChange(this)"></select></label>
+      <label class="rec-field"><span>Track</span><select name="track"></select></label>
       <label class="rec-field"><span>Subtrack</span><select name="subtrack"></select></label>
       <div class="rec-type-class">
         <label class="rec-field"><span>Vehicle type</span>
-          <select name="vehicleType" onchange="onRecordTypeChange(this)">
+          <select name="vehicleType">
             <option value="C">Car</option>
             <option value="M">Motorcycle</option>
           </select>
         </label>
-        <label class="rec-field"><span>Class</span><select name="vehicleClass" onchange="onRecordClassChange(this)"></select></label>
+        <label class="rec-field"><span>Class</span><select name="vehicleClass"></select></label>
       </div>
       <label class="rec-field rec-custom-class" hidden><span>Other class</span><input name="customClass" maxlength="40"></label>
       <div class="rec-ymm">
@@ -737,22 +737,6 @@
       if (dialog && dialog.open) dialog.close();
     }
 
-    function onRecordTrackChange(select) {
-      let form = select.form;
-      let trackKey = select.value;
-      if (form.elements.subtrack) form.elements.subtrack.value = "";
-      fillRecordSubtracks(form, trackKey, trackSubtracks);
-      refillRecordClasses(form, form.elements.vehicleType.value, "reset", formClasses);
-      if (trackKey) loadTrackRecords(trackKey);
-    }
-
-    function onRecordClassChange(select) {
-      let form = select.form;
-      let show = select.value === CUSTOM_CLASS_VALUE;
-      showRecordCustomClass(form, show);
-      if (show && form.elements.customClass) form.elements.customClass.focus();
-    }
-
     function prepareRecordForm(form, trackKey, type) {
       form.reset();
       applyRecordType(form, type);
@@ -781,14 +765,6 @@
 
     function closeRecordForm() {
       closeReviewDialog(recordsUi, "recordDialog");
-    }
-
-    function onRecordTypeChange(select) {
-      let form = select.form;
-      let code = select.value;
-      if (!form || !suggestedClasses(code).length) return;
-      refillRecordClasses(form, code, "named", formClasses);
-      setFormMessage(form.querySelector(".rec-form-msg"), null);
     }
 
     async function submitLapRecord(event) {
@@ -1296,12 +1272,34 @@
       messageEl: document.querySelector("#suggestDialog .rec-form-msg"),
       close: closeSuggestDialog,
     });
-    wireReviewDialog(document.getElementById("recordDialog"), {
-      state: recordsUi,
-      form: document.getElementById("lap-record-form"),
-      messageEl: document.getElementById("recordMessage"),
-      close: closeRecordForm,
-    });
+    {
+      let form = recordForm();
+      form.addEventListener("submit", submitLapRecord);
+      form.elements.track.addEventListener("change", () => {
+        let trackKey = form.elements.track.value;
+        if (form.elements.subtrack) form.elements.subtrack.value = "";
+        fillRecordSubtracks(form, trackKey, trackSubtracks);
+        refillRecordClasses(form, form.elements.vehicleType.value, "reset", formClasses);
+        if (trackKey) loadTrackRecords(trackKey);
+      });
+      form.elements.vehicleType.addEventListener("change", () => {
+        let code = form.elements.vehicleType.value;
+        if (!suggestedClasses(code).length) return;
+        refillRecordClasses(form, code, "named", formClasses);
+        setFormMessage(form.querySelector(".rec-form-msg"), null);
+      });
+      form.elements.vehicleClass.addEventListener("change", () => {
+        let show = form.elements.vehicleClass.value === CUSTOM_CLASS_VALUE;
+        showRecordCustomClass(form, show);
+        if (show && form.elements.customClass) form.elements.customClass.focus();
+      });
+      wireReviewDialog(document.getElementById("recordDialog"), {
+        state: recordsUi,
+        form,
+        messageEl: document.getElementById("recordMessage"),
+        close: closeRecordForm,
+      });
+    }
     document.getElementById("suggestDialog").addEventListener("close", () => {
       let dialog = document.getElementById("suggestDialog");
       unpinSuggestDialog(dialog);
