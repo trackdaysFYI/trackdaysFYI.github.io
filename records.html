@@ -193,7 +193,7 @@
       <thead>
         <tr>
           <th>Time</th>
-          <th>Track</th>
+          <th id="track-col">Track</th>
           <th id="subtrack-col">Subtrack</th>
           <th>Vehicle</th>
           <th id="class-col">Class</th>
@@ -224,6 +224,7 @@
     const classSelect = document.getElementById("class");
     const subtrackSelect = document.getElementById("subtrack");
     const subtrackFilter = document.getElementById("subtrack-filter");
+    const trackCol = document.getElementById("track-col");
     const subtrackCol = document.getElementById("subtrack-col");
     const classCol = document.getElementById("class-col");
     const viewClassButton = document.getElementById("view-class");
@@ -298,6 +299,12 @@
       subtrackFilter.hidden = !show;
       subtrackCol.hidden = !show;
       if (!show) subtrackSelect.value = "";
+      return show;
+    }
+
+    function syncTrackVisibility() {
+      let show = !trackKey();
+      trackCol.hidden = !show;
       return show;
     }
 
@@ -388,18 +395,19 @@
       return `+${minutes}:${whole.padStart(2, "0")}.${frac}`;
     }
 
-    function recordRow(record, includeClass, includeSubtrack, gapMs) {
+    function recordRow(record, includeClass, includeTrack, includeSubtrack, gapMs) {
       let detail = [record.vehicleYear, record.vehicleMake, record.vehicleModel].filter(value => value != null && value !== "").join(" ");
       let type = VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "";
       let vehicle = [type, detail].filter(Boolean).join(" · ");
       let evidence = safeHttpUrl(record.evidence);
       let evidenceCell = evidence ? `<a href="${escapeHtml(evidence)}" target="_blank" rel="noopener">View</a>` : "";
       let classCell = includeClass ? `<td>${escapeHtml(record.vehicleClass || "")}</td>` : "";
+      let trackCell = includeTrack ? `<td>${escapeHtml(trackLabel(record.track))}</td>` : "";
       let subCell = includeSubtrack ? `<td>${escapeHtml(record.subtrack || "")}</td>` : "";
       let gap = gapMs == null ? "" : ` <span class="gap">${formatGap(gapMs)}</span>`;
       return `<tr>
         <td class="time">${escapeHtml(record.time || "")}${gap}</td>
-        <td>${escapeHtml(trackLabel(record.track))}</td>
+        ${trackCell}
         ${subCell}
         <td class="vehicle">${escapeHtml(vehicle)}</td>
         ${classCell}
@@ -444,9 +452,10 @@
     function renderRows() {
       let shown = filteredRecords();
       let byClass = viewMode === "class";
+      let includeTrack = syncTrackVisibility();
       let includeSubtrack = syncSubtrackVisibility();
       classCol.hidden = byClass;
-      let colspan = 8 - (byClass ? 1 : 0) - (includeSubtrack ? 0 : 1);
+      let colspan = 8 - (byClass ? 1 : 0) - (includeTrack ? 0 : 1) - (includeSubtrack ? 0 : 1);
       statusEl.className = "status";
       statusEl.textContent = `${shown.length} record${shown.length === 1 ? "" : "s"}`;
       if (!shown.length) {
@@ -454,11 +463,11 @@
         return;
       }
       if (!byClass) {
-        rowsEl.innerHTML = shown.sort(compareRecords).map(record => recordRow(record, true, includeSubtrack)).join("");
+        rowsEl.innerHTML = shown.sort(compareRecords).map(record => recordRow(record, true, includeTrack, includeSubtrack)).join("");
         return;
       }
       let flags = {
-        track: new Set(shown.map(record => String(record.track || "").toUpperCase())).size > 1,
+        track: includeTrack && new Set(shown.map(record => String(record.track || "").toUpperCase())).size > 1,
         type: new Set(shown.map(record => record.vehicleType)).size > 1,
         subtrack: includeSubtrack && new Set(shown.map(record => record.subtrack || "")).size > 1,
       };
@@ -470,7 +479,7 @@
         return head + rows.map((record, index) => {
           let ms = timeToMs(record.time);
           let gap = index === 0 || ms === Number.MAX_SAFE_INTEGER || best === Number.MAX_SAFE_INTEGER ? null : ms - best;
-          return recordRow(record, false, includeSubtrack, gap);
+          return recordRow(record, false, includeTrack, includeSubtrack, gap);
         }).join("");
       }).join("");
     }
