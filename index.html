@@ -641,6 +641,56 @@
     const LAP_TIME_RE = /^(?:\d{1,3}:[0-5]\d|[0-5]?\d)\.\d{1,3}$/;
     const CUSTOM_CLASS_VALUE = "__custom__";
 
+    function optionalField(value, maxLen, tooLongMsg) {
+      let text = String(value || "").trim();
+      if (text.length > maxLen) return {ok: false, error: tooLongMsg, value: text};
+      return {ok: true, error: "", value: text};
+    }
+
+    function assignOptional(payload, key, value) {
+      if (value) payload[key] = value;
+    }
+
+    function showHiddenField(form, selector, show) {
+      let el = form.querySelector(selector);
+      if (el) el.hidden = !show;
+    }
+
+    function fillSelectOptions(select, options, selectedValue) {
+      if (!select) return "";
+      select.replaceChildren();
+      options.forEach(name => {
+        let option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+      if (selectedValue != null && options.includes(selectedValue)) {
+        select.value = selectedValue;
+        return selectedValue;
+      }
+      if (options.length) {
+        select.value = options[0];
+        return options[0];
+      }
+      select.value = "";
+      return "";
+    }
+
+    function fillSelectWithOther(select, options, selectedValue, otherValue) {
+      if (!select) return "";
+      fillSelectOptions(select, options, options.includes(selectedValue) ? selectedValue : null);
+      let other = document.createElement("option");
+      other.value = otherValue;
+      other.textContent = "Other";
+      select.appendChild(other);
+      let choice = options[0] || otherValue;
+      if (selectedValue === otherValue) choice = otherValue;
+      else if (options.includes(selectedValue)) choice = selectedValue;
+      select.value = choice;
+      return choice;
+    }
+
     function timeToMs(time) {
       let text = String(time).trim();
       if (!LAP_TIME_RE.test(text)) return Number.MAX_SAFE_INTEGER;
@@ -843,8 +893,7 @@
     }
 
     function showRecordCustomClass(form, show) {
-      let custom = form.querySelector(".rec-custom-class");
-      if (custom) custom.hidden = !show;
+      showHiddenField(form, ".rec-custom-class", show);
     }
 
     function recordTrackKey(form) {
@@ -858,8 +907,7 @@
       return name;
     }
 
-    function fillRecordTracks(form, selectedKey) {
-      let select = form.elements.track;
+    function fillTrackSelect(select, selectedKey, placeholder) {
       if (!select) return;
       let entries = [];
       if (typeof tracks !== "undefined" && tracks) {
@@ -868,33 +916,30 @@
       if (selectedKey && !entries.some(entry => entry.key === selectedKey)) entries.push({key: selectedKey, label: selectedKey});
       entries.sort((a, b) => a.label.localeCompare(b.label));
       select.replaceChildren();
+      if (placeholder) {
+        let blank = document.createElement("option");
+        blank.value = "";
+        blank.textContent = placeholder;
+        select.appendChild(blank);
+      }
       entries.forEach(entry => {
         let option = document.createElement("option");
         option.value = entry.key;
         option.textContent = entry.label;
         select.appendChild(option);
       });
-      if (selectedKey) select.value = selectedKey;
+      if (selectedKey && [...select.options].some(option => option.value === selectedKey)) select.value = selectedKey;
+      else if (placeholder) select.value = "";
+      else if (select.options.length) select.selectedIndex = 0;
+    }
+
+    function fillRecordTracks(form, selectedKey) {
+      fillTrackSelect(form.elements.track, selectedKey);
     }
 
     function fillRecordClassOptions(form, type, selectedValue) {
       let classes = formClasses(type, recordTrackKey(form));
-      let select = form.elements.vehicleClass;
-      select.replaceChildren();
-      classes.forEach(name => {
-        let option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        select.appendChild(option);
-      });
-      let other = document.createElement("option");
-      other.value = CUSTOM_CLASS_VALUE;
-      other.textContent = "Other";
-      select.appendChild(other);
-      let choice = classes[0] || CUSTOM_CLASS_VALUE;
-      if (selectedValue === CUSTOM_CLASS_VALUE) choice = CUSTOM_CLASS_VALUE;
-      else if (classes.includes(selectedValue)) choice = selectedValue;
-      select.value = choice;
+      let choice = fillSelectWithOther(form.elements.vehicleClass, classes, selectedValue, CUSTOM_CLASS_VALUE);
       showRecordCustomClass(form, choice === CUSTOM_CLASS_VALUE);
     }
 
@@ -930,19 +975,8 @@
       let field = select.closest(".rec-field");
       let known = trackSubtracks(trackKey);
       let prev = select.value;
-      select.replaceChildren();
-      known.forEach(name => {
-        let option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        select.appendChild(option);
-      });
+      fillSelectOptions(select, known, prev);
       if (field) field.hidden = !known.length;
-      if (!known.length) {
-        select.value = "";
-        return;
-      }
-      select.value = known.includes(prev) ? prev : known[0];
     }
 
     function applyRecordType(form, code) {
@@ -1059,8 +1093,10 @@
       if (!LAP_TIME_RE.test(draft.time.trim())) return "Enter a time like 1:23.456 or 54.32";
       if (!draft.holder.trim() || draft.holder.trim().length > 80) return "Enter the lap holder";
       if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.date) || draft.date > dayjs().format("YYYY-MM-DD")) return "Enter the lap date";
-      if (draft.evidence.trim() && !safeHttpUrl(draft.evidence.trim())) return "Evidence link must be an http(s) URL";
-      if (draft.note.trim().length > 300) return "Note is too long";
+      let evidence = optionalField(draft.evidence, 300, "Evidence link must be an http(s) URL");
+      if (!evidence.ok || (evidence.value && !safeHttpUrl(evidence.value))) return "Evidence link must be an http(s) URL";
+      let note = optionalField(draft.note, 300, "Note is too long");
+      if (!note.ok) return note.error;
       return "";
     }
 
@@ -1077,10 +1113,8 @@
         holder: draft.holder.trim(),
         date: draft.date,
       };
-      let evidence = draft.evidence.trim();
-      if (evidence) payload.evidence = evidence;
-      let note = draft.note.trim();
-      if (note) payload.note = note;
+      assignOptional(payload, "evidence", draft.evidence.trim());
+      assignOptional(payload, "note", draft.note.trim());
       return payload;
     }
 
@@ -1193,10 +1227,6 @@
       suggestField(input, typeof orgs === "undefined" ? null : orgs, "org");
     }
 
-    function suggestTracks(input) {
-      suggestField(input, typeof tracks === "undefined" ? null : tracks, "name");
-    }
-
     function suggestField(input, items, key) {
       let box = input.parentElement.querySelector(".suggest-matches");
       if (!box) return;
@@ -1267,15 +1297,25 @@
       document.querySelectorAll("#suggestDialog [data-event]").forEach((btn) => btn.classList.toggle("on", btn.dataset.event === code));
     }
 
-    function matchedTrackNickname(name) {
-      if (typeof tracks === "undefined" || !tracks) return "";
-      let needle = name.trim().toLowerCase();
-      let matches = Object.values(tracks).filter((track) => track.name.toLowerCase() === needle || String(track.nickname).toLowerCase() === needle);
-      return matches.length === 1 ? matches[0].nickname : "";
-    }
-
     function toggleSuggestVehicle(button) {
       button.classList.toggle("on");
+    }
+
+    function suggestTrackLabel(trackKey) {
+      if (!trackKey) return "";
+      if (typeof tracks === "undefined" || !tracks || !tracks[trackKey]) return trackKey;
+      return tracks[trackKey].name || tracks[trackKey].nickname || trackKey;
+    }
+
+    function resetSuggestForm(form, options) {
+      options = options || {};
+      if (!form) return;
+      form.reset();
+      form.querySelectorAll("[data-vehicle]").forEach((btn) => btn.classList.remove("on"));
+      form.querySelectorAll(".suggest-matches").forEach((box) => { box.hidden = true; });
+      setSuggestEventType("T");
+      fillTrackSelect(form.elements.track, options.trackKey || "", "Choose a track");
+      setSuggestKind(options.kind || "track");
     }
 
     function pinSuggestDialog(dialog) {
@@ -1295,18 +1335,10 @@
       dialog.style.overflowY = "";
     }
 
-    function openSuggestDialog(kind, trackName) {
+    function openSuggestDialog(kind, trackKey) {
       let dialog = document.getElementById("suggestDialog");
       let form = dialog.querySelector("form");
-      if (form) {
-        form.reset();
-        form.querySelectorAll("[data-vehicle]").forEach((btn) => btn.classList.remove("on"));
-        form.querySelectorAll(".suggest-matches").forEach((box) => { box.hidden = true; });
-      }
-      setSuggestEventType("T");
-      setSuggestKind(kind || "track");
-      let trackInput = dialog.querySelector("[name=trackName]");
-      if (trackInput) trackInput.value = trackName || "";
+      resetSuggestForm(form, {kind: kind || "track", trackKey: trackKey || ""});
       if (dialog.open) {
         focusReviewField(dialog);
         return;
@@ -1318,7 +1350,7 @@
 
     function reportMissingEvent() {
       if (typeof tracks === "undefined" || !tracks || !tracks[lastOpenedTrack]) return;
-      openSuggestDialog("missing_event", tracks[lastOpenedTrack].name);
+      openSuggestDialog("missing_event", lastOpenedTrack);
     }
 
     function closeSuggestDialog() {
@@ -1326,15 +1358,16 @@
     }
 
     function validateSuggestForm(form) {
-      let note = form.elements.note.value.trim();
-      if (note.length > 300) return "Note is too long";
+      let note = optionalField(form.elements.note.value, 300, "Note is too long");
+      if (!note.ok) return note.error;
       if (suggestUi.kind === "missing_event") {
-        let trackName = form.elements.trackName.value.trim();
-        if (!trackName) return "Enter a track";
-        if (trackName.length > 80) return "Track name is too long";
-        let org = form.elements.org.value.trim();
-        if (!org) return "Enter the host";
-        if (org.length > 80) return "Host is too long";
+        let trackKey = form.elements.track.value;
+        if (!trackKey) return "Choose a track";
+        let trackName = suggestTrackLabel(trackKey);
+        if (!trackName || trackName.length > 80) return "Choose a track";
+        let org = optionalField(form.elements.org.value, 80, "Host is too long");
+        if (!org.value) return "Enter the host";
+        if (!org.ok) return org.error;
         let date = form.elements.eventDate.value.trim();
         let multipleDates = form.elements.multipleDates.checked;
         if (!date && !multipleDates) return "Enter a date or choose multiple dates";
@@ -1343,45 +1376,41 @@
           if (dateError) return dateError;
         }
         if (!["T", "S", "R"].includes(suggestUi.eventType)) return "Choose an event type";
-        let eventUrl = form.elements.url.value.trim();
-        if (eventUrl && !validHttpUrl(eventUrl)) return "Link must be an http(s) URL";
+        let eventUrl = optionalField(form.elements.url.value, 300, "Link must be an http(s) URL");
+        if (!eventUrl.ok || (eventUrl.value && !validHttpUrl(eventUrl.value))) return "Link must be an http(s) URL";
         return "";
       }
-      let name = form.elements.name.value.trim();
-      if (!name) return "Enter a name";
-      if (name.length > 80) return "Name is too long";
-      let url = form.elements.url.value.trim();
-      if (url && !validHttpUrl(url)) return "Link must be an http(s) URL";
+      let name = optionalField(form.elements.name.value, 80, "Name is too long");
+      if (!name.value) return "Enter a name";
+      if (!name.ok) return name.error;
+      let url = optionalField(form.elements.url.value, 300, "Link must be an http(s) URL");
+      if (!url.ok || (url.value && !validHttpUrl(url.value))) return "Link must be an http(s) URL";
       return "";
     }
 
     function suggestFormPayload(form) {
       let note = form.elements.note.value.trim();
       if (suggestUi.kind === "missing_event") {
-        let trackName = form.elements.trackName.value.trim();
+        let trackKey = form.elements.track.value;
         let payload = {
           kind: "missing_event",
-          trackName,
+          trackName: suggestTrackLabel(trackKey),
           org: form.elements.org.value.trim(),
           eventType: suggestUi.eventType,
         };
-        let eventDate = form.elements.eventDate.value.trim();
-        if (eventDate) payload.date = eventDate;
+        assignOptional(payload, "date", form.elements.eventDate.value.trim());
         if (form.elements.multipleDates.checked) payload.multipleDates = true;
-        let nickname = matchedTrackNickname(trackName);
-        if (nickname && nickname.length <= 40) payload.track = nickname;
-        let eventUrl = form.elements.url.value.trim();
-        if (eventUrl) payload.url = eventUrl;
-        if (note) payload.note = note;
+        if (trackKey && trackKey.length <= 40) payload.track = trackKey;
+        assignOptional(payload, "url", form.elements.url.value.trim());
+        assignOptional(payload, "note", note);
         return payload;
       }
       let payload = {
         kind: suggestUi.kind,
         name: form.elements.name.value.trim(),
       };
-      let url = form.elements.url.value.trim();
-      if (url) payload.url = url;
-      if (note) payload.note = note;
+      assignOptional(payload, "url", form.elements.url.value.trim());
+      assignOptional(payload, "note", note);
       if (suggestUi.kind === "track") {
         let vehicleTypes = suggestVehicleTypes();
         if (vehicleTypes) payload.vehicleTypes = vehicleTypes;
@@ -1396,10 +1425,7 @@
         validate: validateSuggestForm,
         payload: suggestFormPayload,
         reset(form) {
-          form.reset();
-          form.querySelectorAll("[data-vehicle]").forEach((btn) => btn.classList.remove("on"));
-          setSuggestEventType("T");
-          setSuggestKind(kind);
+          resetSuggestForm(form, {kind});
         },
       });
     }
@@ -1729,7 +1755,7 @@
         <button type="button" class="rec-type" data-kind="missing_event" onclick="setSuggestKind('missing_event')">Missing event</button>
       </div>
       <label class="rec-field" data-suggest="track"><span>Track name</span><input name="name" maxlength="80"></label>
-      <label class="rec-field" data-suggest="missing_event" hidden><span>Track</span><input name="trackName" maxlength="80" oninput="suggestTracks(this)" onblur="this.parentElement.querySelector('.suggest-matches').hidden = true"><div class="suggest-matches" hidden></div></label>
+      <label class="rec-field" data-suggest="missing_event" hidden><span>Track</span><select name="track"></select></label>
       <label class="rec-field" data-suggest="missing_event" hidden><span>Host/Organizer</span><input name="org" maxlength="80" oninput="suggestHosts(this)" onblur="this.parentElement.querySelector('.suggest-matches').hidden = true"><div class="suggest-matches" hidden></div></label>
       <div class="rec-field" data-suggest="missing_event" hidden>
         <span>Event date</span>
