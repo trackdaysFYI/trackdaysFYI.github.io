@@ -56,7 +56,7 @@
       <div id="eventInfoText" hidden>
         <span>Tracking <span id="numTrackdays"></span> events from <span id="numOrgs"></span> organizers.</span>
         <br>
-        <span>Last sync was <b><a id="lastSyncMessage" onclick="toggleSyncInfo();" href="javascript:void(0);"></a></b>.</span>
+        <span>Last sync was <b><a id="lastSyncMessage" href="javascript:void(0);"></a></b>.</span>
       </div>
       <div id="eventInfoSpinner">
         <span>Loading events...</span>
@@ -147,23 +147,23 @@
 
   <footer class="gray">
     <p>No guarantee of event availability, pricing accuracy, or completeness. Contact hosts for up-to-date information.</p>
-    <p>To report inaccuracies or bugs: <b class="allowSelect">trackdaysFYI@gmail.com</b> · <a class="suggest-link" href="javascript:void(0);" onclick="openSuggestDialog('track'); return false;">Report a missing track or event</a></p>
+    <p>To report inaccuracies or bugs: <b class="allowSelect">trackdaysFYI@gmail.com</b> · <a class="suggest-link" href="javascript:void(0);" data-suggest-open="track">Report a missing track or event</a></p>
     <p>© 2023-2026 Trackdays.fyi</p>
   </footer>
 
   <dialog id="suggestDialog" class="suggest-dialog" closedby="closerequest" aria-labelledby="suggestTitle">
-    <form id="suggest-form" class="rec-form" autocomplete="off" novalidate onsubmit="submitSuggestForm(event)">
+    <form id="suggest-form" class="rec-form" autocomplete="off" novalidate>
       <div class="suggest-head">
         <b id="suggestTitle">Report a missing track</b>
         <button type="button" class="suggest-close" aria-label="Close">×</button>
       </div>
       <div class="rec-types">
-        <button type="button" class="rec-type on" data-kind="track" onclick="setSuggestKind('track')">Missing track</button>
-        <button type="button" class="rec-type" data-kind="missing_event" onclick="setSuggestKind('missing_event')">Missing event</button>
+        <button type="button" class="rec-type on" data-kind="track">Missing track</button>
+        <button type="button" class="rec-type" data-kind="missing_event">Missing event</button>
       </div>
       <label class="rec-field" data-suggest="track"><span>Track name</span><input name="name" maxlength="80"></label>
       <label class="rec-field" data-suggest="missing_event" hidden><span>Track</span><select name="track"></select></label>
-      <label class="rec-field" data-suggest="missing_event" hidden><span>Host/Organizer</span><input name="org" maxlength="80" oninput="suggestHosts(this)" onblur="this.parentElement.querySelector('.suggest-matches').hidden = true"><div class="suggest-matches" hidden></div></label>
+      <label class="rec-field" data-suggest="missing_event" hidden><span>Host/Organizer</span><input name="org" maxlength="80"><div class="suggest-matches" hidden></div></label>
       <div class="rec-field" data-suggest="missing_event" hidden>
         <span>Event date</span>
         <div class="suggest-date-row">
@@ -174,18 +174,18 @@
       <div class="rec-field" data-suggest="missing_event" hidden>
         <span>Event</span>
         <div class="rec-types">
-          <button type="button" class="rec-type on" data-event="T" onclick="setSuggestEventType('T')">Trackday/HPDE</button>
-          <button type="button" class="rec-type" data-event="S" onclick="setSuggestEventType('S')">School</button>
-          <button type="button" class="rec-type" data-event="R" onclick="setSuggestEventType('R')">Race</button>
+          <button type="button" class="rec-type on" data-event="T">Trackday/HPDE</button>
+          <button type="button" class="rec-type" data-event="S">School</button>
+          <button type="button" class="rec-type" data-event="R">Race</button>
         </div>
       </div>
       <label class="rec-field"><span id="suggestUrlLabel">Website or calendar (optional)</span><input name="url" type="url" maxlength="300" placeholder="https://"></label>
       <div class="rec-field" data-suggest="track">
         <span>Vehicles (optional)</span>
         <div class="rec-types">
-          <button type="button" class="rec-type" data-vehicle="C" onclick="toggleSuggestVehicle(this)">Car</button>
-          <button type="button" class="rec-type" data-vehicle="M" onclick="toggleSuggestVehicle(this)">Motorcycle</button>
-          <button type="button" class="rec-type" data-vehicle="S" onclick="toggleSuggestVehicle(this)">Supermoto</button>
+          <button type="button" class="rec-type" data-vehicle="C">Car</button>
+          <button type="button" class="rec-type" data-vehicle="M">Motorcycle</button>
+          <button type="button" class="rec-type" data-vehicle="S">Supermoto</button>
         </div>
       </div>
       <label class="rec-field"><span>Note (optional)</span><textarea name="note" maxlength="300" rows="1"></textarea></label>
@@ -236,6 +236,8 @@
   </dialog>
 
   <script src="js/lap-record-shared.js" type="text/javascript"></script>
+  <script src="js/index-lap-records.js" type="text/javascript"></script>
+  <script src="js/index-suggest.js" type="text/javascript"></script>
   <script>
     const STORAGE_KEY_USER_SAVED_EVENTS = "trackdaysFYI:userSavedEvents";
     const STORAGE_KEY_USER_VEHICLE_TYPES = "trackdaysFYI:userVehicleTypes";
@@ -558,530 +560,7 @@
       URL.revokeObjectURL(url);
     }
 
-    let lapRecords = {
-      vehicleTypes: {
-        C: {label: "Car"},
-        M: {label: "Motorcycle"},
-      },
-      tracks: {},
-    };
-    let recordLoads = {};
-    let recordsUi = {open: false, submitting: false, submitId: 0};
     const TRACKDAYS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays";
-    const LAP_RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
-    const SUGGESTION_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/submitSuggestion";
-    let suggestUi = {kind: "track", submitting: false, submitId: 0, eventType: "T"};
-
-    function optionalField(value, maxLen, tooLongMsg) {
-      let text = String(value || "").trim();
-      if (text.length > maxLen) return {ok: false, error: tooLongMsg, value: text};
-      return {ok: true, error: "", value: text};
-    }
-
-    function assignOptional(payload, key, value) {
-      if (value) payload[key] = value;
-    }
-
-    function trackRecords(trackKey) {
-      let entry = lapRecords.tracks && lapRecords.tracks[trackKey];
-      return entry && entry.records ? entry.records : [];
-    }
-
-    function recordClassName(record) {
-      return record.vehicleClass || "";
-    }
-
-    async function loadTrackRecords(trackKey) {
-      if (!trackKey) {
-        updateTrackPopup();
-        return;
-      }
-      let entry = lapRecords.tracks[trackKey];
-      if (entry && (entry.loaded || entry.loading)) {
-        updateTrackPopup();
-        return;
-      }
-      let token = {};
-      recordLoads[trackKey] = token;
-      lapRecords.tracks[trackKey] = {records: [], loading: true, loaded: false, error: ""};
-      if (lastOpenedTrack === trackKey) updateTrackPopup();
-      try {
-        let res = await fetch(LAP_RECORDS_URL + "?track=" + encodeURIComponent(trackKey) + "&maxPerClass=3");
-        if (recordLoads[trackKey] !== token) return;
-        if (!res.ok) {
-          let failure = new Error("HTTP " + res.status);
-          failure.status = res.status;
-          throw failure;
-        }
-        let records = await res.json();
-        if (!Array.isArray(records)) throw new Error("Unable to load lap records.");
-        lapRecords.tracks[trackKey] = {records, loading: false, loaded: true, error: ""};
-      } catch (err) {
-        if (recordLoads[trackKey] !== token) return;
-        lapRecords.tracks[trackKey] = {
-          records: [],
-          loading: false,
-          loaded: false,
-          error: err && err.status ? "HTTP " + err.status : "Unable to load lap records.",
-        };
-      }
-      if (lastOpenedTrack === trackKey && recordsUi.open) updateTrackPopup();
-      let recordFormEl = recordForm();
-      if (recordFormEl && recordTrackKey(recordFormEl) === trackKey) syncRecordDialog();
-    }
-
-    function recordTypeLabel(code) {
-      let info = lapRecords.vehicleTypes && lapRecords.vehicleTypes[code];
-      if (info) return info.label;
-      if (code === "S") return "Supermoto";
-      return code;
-    }
-
-    function preferredRecordType(types) {
-      let preferred = ["C", "M", "S"].find(code => selectedVehicleTypes.has(code) && (!types || types.includes(code)));
-      return preferred || (types && types[0]) || "C";
-    }
-
-    function setRecordsOpen(open) {
-      recordsUi.open = open;
-      if (open) {
-        loadTrackRecords(lastOpenedTrack);
-      } else {
-        updateTrackPopup();
-      }
-    }
-
-    // hardcoded suggestions stay available - classes already on this track are ordered by their fastest lap; suggestions with no time yet follow in their original order
-    function formClasses(code, trackKey) {
-      let bestMs = new Map();
-      trackRecords(trackKey).forEach(record => {
-        if (record.vehicleType !== code) return;
-        let name = recordClassName(record);
-        if (!name) return;
-        let ms = timeToMs(record.time);
-        if (!bestMs.has(name) || ms < bestMs.get(name)) bestMs.set(name, ms);
-      });
-      return rankFormClasses(suggestedClasses(code), bestMs);
-    }
-
-    function recordDialog() {
-      return document.getElementById("recordDialog");
-    }
-
-    function recordForm() {
-      return document.getElementById("lap-record-form");
-    }
-
-    function recordTrackKey(form) {
-      let selected = form && form.elements.track && form.elements.track.value;
-      return selected || lastOpenedTrack || "";
-    }
-
-    function trackOptionLabel(track, key) {
-      let name = (track && (track.name || track.nickname)) || key;
-      if (track && track.showNickname && track.nickname && track.nickname !== track.name) name += ` (${track.nickname})`;
-      return name;
-    }
-
-    function fillTrackSelect(select, selectedKey, placeholder) {
-      if (!select) return;
-      let entries = [];
-      if (typeof tracks !== "undefined" && tracks) {
-        Object.keys(tracks).forEach(key => entries.push({key, label: trackOptionLabel(tracks[key], key)}));
-      }
-      if (selectedKey && !entries.some(entry => entry.key === selectedKey)) entries.push({key: selectedKey, label: selectedKey});
-      entries.sort((a, b) => a.label.localeCompare(b.label));
-      select.replaceChildren();
-      if (placeholder) {
-        let blank = document.createElement("option");
-        blank.value = "";
-        blank.textContent = placeholder;
-        select.appendChild(blank);
-      }
-      entries.forEach(entry => {
-        let option = document.createElement("option");
-        option.value = entry.key;
-        option.textContent = entry.label;
-        select.appendChild(option);
-      });
-      if (selectedKey && [...select.options].some(option => option.value === selectedKey)) select.value = selectedKey;
-      else if (placeholder) select.value = "";
-      else if (select.options.length) select.selectedIndex = 0;
-    }
-
-    function fillRecordTracks(form, selectedKey) {
-      fillTrackSelect(form.elements.track, selectedKey);
-    }
-
-    function trackSubtracks(trackKey) {
-      let track = typeof tracks !== "undefined" && tracks ? tracks[trackKey] : null;
-      if (!track || !Array.isArray(track.subtracks)) return [];
-      return track.subtracks.map(name => String(name).trim()).filter(Boolean);
-    }
-
-    function applyRecordType(form, code) {
-      if (form.elements.vehicleType) form.elements.vehicleType.value = code;
-    }
-
-    function syncRecordDialog() {
-      let dialog = recordDialog();
-      let form = recordForm();
-      if (!dialog || !dialog.open || !form) return;
-      refillRecordClasses(form, form.elements.vehicleType.value, "refresh", formClasses);
-      fillRecordSubtracks(form, recordTrackKey(form), trackSubtracks);
-    }
-
-    function resetRecordForm() {
-      recordsUi.submitting = false;
-      recordsUi.submitId += 1;
-      let dialog = recordDialog();
-      if (dialog && dialog.open) dialog.close();
-    }
-
-    function prepareRecordForm(form, trackKey, type) {
-      form.reset();
-      applyRecordType(form, type);
-      form.elements.customClass.value = "";
-      fillRecordTracks(form, trackKey);
-      let classes = formClasses(type, trackKey);
-      fillRecordClassOptions(form, classes, classes[0] || "");
-      fillRecordSubtracks(form, trackKey, trackSubtracks);
-      let date = form.elements.date;
-      if (date) date.max = todayIso();
-    }
-
-    function openRecordForm() {
-      let dialog = recordDialog();
-      let form = recordForm();
-      if (!dialog || !form) return;
-      let types = ["C", "M"].filter(code => suggestedClasses(code).length);
-      let type = preferredRecordType(types);
-      recordsUi.submitting = false;
-      prepareRecordForm(form, lastOpenedTrack, type);
-      setFormSubmitting(recordsUi, form, false);
-      setFormMessage(form.querySelector(".rec-form-msg"), null);
-      if (!dialog.open) dialog.showModal();
-      focusReviewField(form);
-    }
-
-    function closeRecordForm() {
-      closeReviewDialog(recordsUi, "recordDialog");
-    }
-
-    async function submitLapRecord(event) {
-      let form = event.target;
-      let draft = readCreateDraft(form);
-      let trackKey = draft.track;
-      let type = draft.vehicleType;
-      await submitReview(event, {
-        state: recordsUi,
-        messageEl: form.querySelector(".rec-form-msg"),
-        setSubmitting: (submitting) => setFormSubmitting(recordsUi, form, submitting),
-        validate: () => validateCreateDraft(draft, {
-          allowedClasses: formClasses(draft.vehicleType, draft.track),
-          knownSubtracks: trackSubtracks(draft.track),
-        }),
-        payload: () => createLapRecordPayload(draft),
-        onSuccess() {
-          prepareRecordForm(form, trackKey, type);
-        },
-      });
-    }
-
-    function recordsListHtml(trackKey) {
-      let add = `<button type="button" class="rec-add" onclick="openRecordForm()">Add a Lap Record</button>`;
-      let entry = lapRecords.tracks && lapRecords.tracks[trackKey];
-      let records = trackRecords(trackKey);
-      let allRecords = records.length ? `<a class="rec-all" href="records.html?track=${encodeURIComponent(trackKey)}" target="_blank" rel="noopener">All records</a>` : "";
-      let footer = `<div class="rec-footer">${allRecords}${add}</div>`;
-      if (entry && entry.loading && !records.length) return `<div class="empty">Loading lap records...</div>${footer}`;
-      if (entry && entry.error && !records.length) return `<div class="empty">${escapeHtml(entry.error)}</div>${footer}`;
-      let shown = records.filter(r => selectedVehicleTypes.has(r.vehicleType));
-      let emptyMessage = records.length ? "No lap records for the selected vehicles" : "No Lap Records";
-      if (!shown.length) return `<div class="empty">${emptyMessage}</div>${footer}`;
-      function groupsHtml(typeRows) {
-        let bySub = new Map();
-        typeRows.forEach(r => {
-          let sub = r.subtrack || "";
-          if (!bySub.has(sub)) bySub.set(sub, []);
-          bySub.get(sub).push(r);
-        });
-        return [...bySub.entries()].map(([sub, rows]) => {
-          let bestByClass = new Map();
-          rows.forEach(r => {
-            let vehicleClass = recordClassName(r);
-            let ms = timeToMs(r.time);
-            if (!bestByClass.has(vehicleClass) || ms < bestByClass.get(vehicleClass)) bestByClass.set(vehicleClass, ms);
-          });
-          rows.sort((a, b) => {
-            let classA = recordClassName(a);
-            let classB = recordClassName(b);
-            if (classA !== classB) {
-              let d = bestByClass.get(classA) - bestByClass.get(classB);
-              if (d !== 0) return d;
-              return classA.localeCompare(classB);
-            }
-            return timeToMs(a.time) - timeToMs(b.time);
-          });
-          let heading = sub ? `<div class="rec-subhead">${escapeHtml(sub)}</div>` : "";
-          let lastClass = null;
-          let rank = 0;
-          let body = rows.map(r => {
-            let vehicleClass = recordClassName(r);
-            let vehicleModel = [r.vehicleYear, r.vehicleMake, r.vehicleModel].filter(v => v != null && v !== "").join(" ");
-            if (vehicleClass !== lastClass) {
-              lastClass = vehicleClass;
-              rank = 1;
-            } else {
-              rank += 1;
-            }
-            let evidenceUrl = safeHttpUrl(r.evidence);
-            let evidence = evidenceUrl ? `<a class="rec-evidence" href="${escapeHtml(evidenceUrl)}" target="_blank" title="Evidence">▶</a>` : `<span></span>`;
-            let meta = [r.holder, vehicleModel].filter(Boolean).map(escapeHtml).join(" · ");
-            let classLabel = rank === 1 ? escapeHtml(vehicleClass) : "";
-            let follow = rank > 1 ? " rec-follow" : "";
-            return `<div class="rec-row${follow}"><span class="rec-class">${classLabel}</span><span class="rec-rank">${rank}</span><span class="rec-meta">${meta}</span><span class="rec-time">${escapeHtml(formatLapTime(r.time))}</span>${evidence}</div>`;
-          }).join("");
-          return heading + body;
-        }).join("");
-      }
-      let typeSections = ["C", "M", "S"].filter(code => shown.some(r => r.vehicleType === code));
-      let groups = typeSections.map((code, index) => {
-        let heading = typeSections.length > 1 ? `<div class="rec-typehead${index ? "" : " first"}">${escapeHtml(recordTypeLabel(code))}</div>` : "";
-        return heading + groupsHtml(shown.filter(r => r.vehicleType === code));
-      }).join("");
-      return `<div class="rec-panel">${groups}${footer}</div>`;
-    }
-
-    function suggestEventDateBounds() {
-      let today = dayjs.utc().startOf("day");
-      return {min: today.subtract(1, "day"), max: today.add(18, "month")};
-    }
-
-    function missingEventDateError(value) {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "Enter the event date";
-      let parsed = dayjs.utc(value, "YYYY-MM-DD", true);
-      if (!parsed.isValid() || parsed.format("YYYY-MM-DD") !== value) return "Enter the event date";
-      let bounds = suggestEventDateBounds();
-      if (parsed.isBefore(bounds.min) || parsed.isAfter(bounds.max)) return "Enter the event date";
-      return "";
-    }
-
-    function suggestVehicleTypes() {
-      let selected = new Set();
-      document.querySelectorAll("#suggestDialog [data-vehicle].on").forEach((btn) => selected.add(btn.dataset.vehicle));
-      return ["C", "M", "S"].filter((code) => selected.has(code)).join("");
-    }
-
-    function suggestHosts(input) {
-      suggestField(input, typeof orgs === "undefined" ? null : orgs, "org");
-    }
-
-    function suggestField(input, items, key) {
-      let box = input.parentElement.querySelector(".suggest-matches");
-      if (!box) return;
-      let query = input.value.trim().toLowerCase();
-      let names = [];
-      if (query && items) {
-        let seen = new Set();
-        Object.values(items).forEach(item => {
-          let name = item && item[key];
-          if (!name || seen.has(name) || !String(name).toLowerCase().includes(query)) return;
-          seen.add(name);
-          names.push(name);
-        });
-      }
-      names.sort((a, b) => a.localeCompare(b));
-      names = names.slice(0, 6);
-      box.replaceChildren();
-      names.forEach(name => {
-        let button = document.createElement("button");
-        button.type = "button";
-        button.textContent = name;
-        button.addEventListener("mousedown", (event) => {
-          event.preventDefault();
-          input.value = name;
-          box.hidden = true;
-        });
-        box.append(button);
-      });
-      box.classList.remove("overlay");
-      box.style.maxHeight = "";
-      box.hidden = true;
-      if (!names.length) return;
-      let dialog = document.getElementById("suggestDialog");
-      let room = Math.floor(window.innerHeight - dialog.getBoundingClientRect().bottom) - 10;
-      if (room < 28) {
-        box.classList.add("overlay");
-        box.style.maxHeight = "7.5rem";
-      } else {
-        box.style.maxHeight = Math.min(120, room) + "px";
-      }
-      box.hidden = false;
-    }
-
-    function setSuggestKind(kind) {
-      if (kind !== "track" && kind !== "missing_event") return;
-      suggestUi.kind = kind;
-      let dialog = document.getElementById("suggestDialog");
-      setFormMessage(dialog.querySelector(".rec-form-msg"), null);
-      dialog.querySelectorAll("[data-kind]").forEach((btn) => btn.classList.toggle("on", btn.dataset.kind === kind));
-      dialog.querySelectorAll("[data-suggest]").forEach((el) => {el.hidden = !el.dataset.suggest.split(" ").includes(kind);});
-      let titles = {track: "Report a missing track", missing_event: "Report a missing event"};
-      let urlLabels = {track: "Website (optional)", missing_event: "Event link (optional)"};
-      document.getElementById("suggestTitle").textContent = titles[kind];
-      document.getElementById("suggestUrlLabel").textContent = urlLabels[kind];
-      if (kind === "missing_event") {
-        let date = dialog.querySelector("input[name=eventDate]");
-        if (date) {
-          let bounds = suggestEventDateBounds();
-          date.min = bounds.min.format("YYYY-MM-DD");
-          date.max = bounds.max.format("YYYY-MM-DD");
-        }
-      }
-    }
-
-    function setSuggestEventType(code) {
-      if (!["T", "S", "R"].includes(code)) return;
-      suggestUi.eventType = code;
-      document.querySelectorAll("#suggestDialog [data-event]").forEach((btn) => btn.classList.toggle("on", btn.dataset.event === code));
-    }
-
-    function toggleSuggestVehicle(button) {
-      button.classList.toggle("on");
-    }
-
-    function suggestTrackLabel(trackKey) {
-      if (!trackKey) return "";
-      if (typeof tracks === "undefined" || !tracks || !tracks[trackKey]) return trackKey;
-      return tracks[trackKey].name || tracks[trackKey].nickname || trackKey;
-    }
-
-    function resetSuggestForm(form, options) {
-      options = options || {};
-      if (!form) return;
-      form.reset();
-      form.querySelectorAll("[data-vehicle]").forEach((btn) => btn.classList.remove("on"));
-      form.querySelectorAll(".suggest-matches").forEach((box) => { box.hidden = true; });
-      setSuggestEventType("T");
-      fillTrackSelect(form.elements.track, options.trackKey || "", "Choose a track");
-      setSuggestKind(options.kind || "track");
-    }
-
-    function pinSuggestDialog(dialog) {
-      let top = Math.max(8, dialog.getBoundingClientRect().top);
-      dialog.style.top = top + "px";
-      dialog.style.bottom = "auto";
-      dialog.style.marginTop = "0";
-      dialog.style.maxHeight = (window.innerHeight - top - 8) + "px";
-      dialog.style.overflowY = "auto";
-    }
-
-    function unpinSuggestDialog(dialog) {
-      dialog.style.top = "";
-      dialog.style.bottom = "";
-      dialog.style.marginTop = "";
-      dialog.style.maxHeight = "";
-      dialog.style.overflowY = "";
-    }
-
-    function openSuggestDialog(kind, trackKey) {
-      let dialog = document.getElementById("suggestDialog");
-      let form = dialog.querySelector("form");
-      resetSuggestForm(form, {kind: kind || "track", trackKey: trackKey || ""});
-      if (dialog.open) {
-        focusReviewField(dialog);
-        return;
-      }
-      dialog.showModal();
-      pinSuggestDialog(dialog);
-      focusReviewField(dialog);
-    }
-
-    function reportMissingEvent() {
-      if (typeof tracks === "undefined" || !tracks || !tracks[lastOpenedTrack]) return;
-      openSuggestDialog("missing_event", lastOpenedTrack);
-    }
-
-    function closeSuggestDialog() {
-      closeReviewDialog(suggestUi, "suggestDialog");
-    }
-
-    function validateSuggestForm(form) {
-      let note = optionalField(form.elements.note.value, 300, "Note is too long");
-      if (!note.ok) return note.error;
-      if (suggestUi.kind === "missing_event") {
-        let trackKey = form.elements.track.value;
-        if (!trackKey) return "Choose a track";
-        let trackName = suggestTrackLabel(trackKey);
-        if (!trackName || trackName.length > 80) return "Choose a track";
-        let org = optionalField(form.elements.org.value, 80, "Host is too long");
-        if (!org.value) return "Enter the host";
-        if (!org.ok) return org.error;
-        let date = form.elements.eventDate.value.trim();
-        let multipleDates = form.elements.multipleDates.checked;
-        if (!date && !multipleDates) return "Enter a date or choose multiple dates";
-        if (date) {
-          let dateError = missingEventDateError(date);
-          if (dateError) return dateError;
-        }
-        if (!["T", "S", "R"].includes(suggestUi.eventType)) return "Choose an event type";
-        let eventUrl = optionalField(form.elements.url.value, 300, "Link must be an http(s) URL");
-        if (!eventUrl.ok || (eventUrl.value && !safeHttpUrl(eventUrl.value))) return "Link must be an http(s) URL";
-        return "";
-      }
-      let name = optionalField(form.elements.name.value, 80, "Name is too long");
-      if (!name.value) return "Enter a name";
-      if (!name.ok) return name.error;
-      let url = optionalField(form.elements.url.value, 300, "Link must be an http(s) URL");
-      if (!url.ok || (url.value && !safeHttpUrl(url.value))) return "Link must be an http(s) URL";
-      return "";
-    }
-
-    function suggestFormPayload(form) {
-      let note = form.elements.note.value.trim();
-      if (suggestUi.kind === "missing_event") {
-        let trackKey = form.elements.track.value;
-        let payload = {
-          kind: "missing_event",
-          trackName: suggestTrackLabel(trackKey),
-          org: form.elements.org.value.trim(),
-          eventType: suggestUi.eventType,
-        };
-        assignOptional(payload, "date", form.elements.eventDate.value.trim());
-        if (form.elements.multipleDates.checked) payload.multipleDates = true;
-        if (trackKey && trackKey.length <= 40) payload.track = trackKey;
-        assignOptional(payload, "url", form.elements.url.value.trim());
-        assignOptional(payload, "note", note);
-        return payload;
-      }
-      let payload = {
-        kind: suggestUi.kind,
-        name: form.elements.name.value.trim(),
-      };
-      assignOptional(payload, "url", form.elements.url.value.trim());
-      assignOptional(payload, "note", note);
-      if (suggestUi.kind === "track") {
-        let vehicleTypes = suggestVehicleTypes();
-        if (vehicleTypes) payload.vehicleTypes = vehicleTypes;
-      }
-      return payload;
-    }
-
-    async function submitSuggestForm(event) {
-      let form = event.target;
-      let kind = suggestUi.kind;
-      await submitReview(event, {
-        state: suggestUi,
-        messageEl: form.querySelector(".rec-form-msg"),
-        setSubmitting: (submitting) => setFormSubmitting(suggestUi, form, submitting),
-        validate: () => validateSuggestForm(form),
-        post: () => postJson(SUGGESTION_URL, suggestFormPayload(form)),
-        onSuccess() {
-          resetSuggestForm(form, {kind});
-        },
-      });
-    }
 
     function updateTrackPopup() {
       if (lastOpenedTrack === undefined) {return;}
@@ -1101,7 +580,7 @@
       }
       function saveBox(eventKey) {
         let saved = savedEventsSet.has(eventKey);
-        return `<button type="button" class="event-save-star" title="${saved ? "Unsave Event" : "Save Event"}" aria-label="${saved ? "Unsave Event" : "Save Event"}" aria-pressed="${saved ? "true" : "false"}" data-event-key="${encodeURIComponent(eventKey)}" onclick="onEventSaveToggle(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.8 7 19l.9-5.6-4-3.9 5.6-.8z"/></svg></button>`;
+        return `<button type="button" class="event-save-star" title="${saved ? "Unsave Event" : "Save Event"}" aria-label="${saved ? "Unsave Event" : "Save Event"}" aria-pressed="${saved ? "true" : "false"}" data-event-key="${encodeURIComponent(eventKey)}" data-popup-action="save-event"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.8 7 19l.9-5.6-4-3.9 5.6-.8z"/></svg></button>`;
       }
       function money(td) {
         return td.price >= 0 ? "$" + escapeHtml(td.price) : "";
@@ -1133,9 +612,9 @@
         return `<div class="event-item tl-item${saved}">${rowMain(td, meta, price, mark)}${saveBox(eventKey)}</div>`;
       }).join("");
       let list = trackdaysFiltered.length === 0 ? `<div class="empty">No Events Found</div>` : `<div class="tl">${rows}</div>`;
-      let report = `<button type="button" class="missing-event-link" onclick="reportMissingEvent()">Missing an event?</button>`;
+      let report = `<button type="button" class="missing-event-link" data-popup-action="missing-event">Missing an event?</button>`;
       let eventsBody = list + hiddenNote + report;
-      let tabs = `<div class="rec-tabs"><button type="button" class="${recordsUi.open ? "" : "on"}" onclick="setRecordsOpen(false)">Events</button><button type="button" class="${recordsUi.open ? "on" : ""}" onclick="setRecordsOpen(true)">Records</button></div>`;
+      let tabs = `<div class="rec-tabs"><button type="button" class="${recordsUi.open ? "" : "on"}" data-popup-action="records-tab" data-open="0">Events</button><button type="button" class="${recordsUi.open ? "on" : ""}" data-popup-action="records-tab" data-open="1">Records</button></div>`;
       let body = recordsUi.open ? recordsListHtml(lastOpenedTrack) : eventsBody;
       let popup = mapMarkers[lastOpenedTrack].getPopup();
       popup.setContent(`<div class="popup popup-timeline">${head}${tabs}<div class="tl-scroll">${body}</div></div>`);
@@ -1257,51 +736,24 @@
       }
     }
 
-    wireReviewDialog(document.getElementById("suggestDialog"), {
-      state: suggestUi,
-      form: document.getElementById("suggestDialog").querySelector("form"),
-      messageEl: document.querySelector("#suggestDialog .rec-form-msg"),
-      close: closeSuggestDialog,
-    });
-    {
-      let form = recordForm();
-      form.addEventListener("submit", submitLapRecord);
-      form.elements.track.addEventListener("change", () => {
-        let trackKey = form.elements.track.value;
-        if (form.elements.subtrack) form.elements.subtrack.value = "";
-        fillRecordSubtracks(form, trackKey, trackSubtracks);
-        refillRecordClasses(form, form.elements.vehicleType.value, "reset", formClasses);
-        if (trackKey) loadTrackRecords(trackKey);
-      });
-      form.elements.vehicleType.addEventListener("change", () => {
-        let code = form.elements.vehicleType.value;
-        if (!suggestedClasses(code).length) return;
-        refillRecordClasses(form, code, "named", formClasses);
-        setFormMessage(form.querySelector(".rec-form-msg"), null);
-      });
-      form.elements.vehicleClass.addEventListener("change", () => {
-        let show = form.elements.vehicleClass.value === CUSTOM_CLASS_VALUE;
-        showRecordCustomClass(form, show);
-        if (show && form.elements.customClass) form.elements.customClass.focus();
-      });
-      wireReviewDialog(document.getElementById("recordDialog"), {
-        state: recordsUi,
-        form,
-        messageEl: document.getElementById("recordMessage"),
-        close: closeRecordForm,
-      });
+    function wirePopupActions() {
+      // capture: Leaflet stopPropagation on popups blocks bubble to document
+      document.addEventListener("click", (event) => {
+        let el = event.target.closest("[data-popup-action]");
+        if (!el || !el.closest(".leaflet-popup")) return;
+        let action = el.dataset.popupAction;
+        if (action === "save-event") onEventSaveToggle(el);
+        else if (action === "missing-event") reportMissingEvent();
+        else if (action === "records-tab") setRecordsOpen(el.dataset.open === "1");
+        else if (action === "add-record") openRecordForm();
+      }, true);
     }
-    document.getElementById("suggestDialog").addEventListener("close", () => {
-      let dialog = document.getElementById("suggestDialog");
-      unpinSuggestDialog(dialog);
-      dialog.querySelectorAll(".suggest-matches").forEach(box => { box.hidden = true; });
+    wirePopupActions();
+    document.getElementById("lastSyncMessage").addEventListener("click", (event) => {
+      event.preventDefault();
+      toggleSyncInfo();
     });
-    window.addEventListener("resize", () => {
-      let dialog = document.getElementById("suggestDialog");
-      if (!dialog.open) return;
-      unpinSuggestDialog(dialog);
-      pinSuggestDialog(dialog);
-    });
+
     document.getElementById("calendar").addEventListener("click", (event) => {
       let nav = event.target.closest(".cld-rwd, .cld-fwd");
       if (!nav) return;
