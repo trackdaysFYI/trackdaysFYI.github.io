@@ -937,34 +937,22 @@
       renderRows();
     }
 
-    trackSelect.addEventListener("change", () => {
-      fillDependentSelects();
+    function onFilterChange({ refillDependents } = {}) {
+      if (refillDependents) fillDependentSelects();
       syncParams();
       renderRows();
-    });
-    vehicleSelect.addEventListener("change", () => {
-      fillDependentSelects();
-      syncParams();
-      renderRows();
-    });
-    classSelect.addEventListener("change", () => {
-      syncParams();
-      renderRows();
-    });
-    subtrackSelect.addEventListener("change", () => {
-      syncParams();
-      renderRows();
-    });
-    nameInput.addEventListener("input", () => {
-      syncParams();
-      renderRows();
-    });
+    }
+
+    trackSelect.addEventListener("change", () => onFilterChange({ refillDependents: true }));
+    vehicleSelect.addEventListener("change", () => onFilterChange({ refillDependents: true }));
+    classSelect.addEventListener("change", () => onFilterChange());
+    subtrackSelect.addEventListener("change", () => onFilterChange());
+    nameInput.addEventListener("input", () => onFilterChange());
     function setView(mode) {
       viewMode = mode;
       viewClassButton.classList.toggle("on", mode === "class");
       viewTimeButton.classList.toggle("on", mode === "time");
-      syncParams();
-      renderRows();
+      onFilterChange();
     }
     viewClassButton.addEventListener("click", () => setView("class"));
     viewTimeButton.addEventListener("click", () => setView("time"));
