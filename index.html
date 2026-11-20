@@ -1147,6 +1147,7 @@
 
     function lapRecordPayload(draft, trackKey) {
       let payload = {
+        action: "create",
         track: trackKey,
         vehicleType: draft.vehicleType,
         vehicleClass: draft.vehicleClass.trim(),
