@@ -1008,9 +1008,12 @@
         if (draft.note.length > 300) return "Note is too long.";
         return "";
       }
-      let year = Number(draft.vehicleYear);
-      let maxYear = new Date().getFullYear() + 1;
-      if (!Number.isInteger(year) || year < 1885 || year > maxYear) return "Enter a vehicle year.";
+      let year = null;
+      if (draft.vehicleYear) {
+        year = Number(draft.vehicleYear);
+        let maxYear = new Date().getFullYear() + 1;
+        if (!Number.isInteger(year) || year < 1885 || year > maxYear) return "Enter a vehicle year.";
+      }
       if (!draft.vehicleMake || draft.vehicleMake.length > 40) return "Enter a vehicle make.";
       if (!draft.vehicleModel || draft.vehicleModel.length > 60) return "Enter a vehicle model.";
       if (!LAP_TIME_RE.test(draft.time)) return "Enter a time like 1:23.456 or 54.32.";
@@ -1019,8 +1022,11 @@
         return "Evidence link must be an http(s) URL.";
       }
       if (draft.note.length > 300) return "Note is too long.";
+      let currentYear = record.vehicleYear != null && record.vehicleYear !== ""
+        ? Number(record.vehicleYear)
+        : null;
       let changed =
-        year !== Number(record.vehicleYear) ||
+        year !== currentYear ||
         draft.vehicleMake !== (record.vehicleMake || "") ||
         draft.vehicleModel !== (record.vehicleModel || "") ||
         !sameLapTime(draft.time, record.time) ||
@@ -1041,7 +1047,7 @@
       if (changeUi.action === "contest") return payload;
       payload.time = formatLapTime(draft.time);
       payload.date = draft.date;
-      payload.vehicleYear = Number(draft.vehicleYear);
+      payload.vehicleYear = draft.vehicleYear ? Number(draft.vehicleYear) : null;
       payload.vehicleMake = draft.vehicleMake;
       payload.vehicleModel = draft.vehicleModel;
       payload.evidence = draft.evidence;
@@ -1312,9 +1318,11 @@
       } else if (!formClasses(draft.vehicleType, draft.track).includes(draft.vehicleClass)) {
         return "Choose a class.";
       }
-      let year = Number(draft.vehicleYear);
-      let maxYear = new Date().getFullYear() + 1;
-      if (!Number.isInteger(year) || year < 1885 || year > maxYear) return "Enter a vehicle year.";
+      if (draft.vehicleYear) {
+        let year = Number(draft.vehicleYear);
+        let maxYear = new Date().getFullYear() + 1;
+        if (!Number.isInteger(year) || year < 1885 || year > maxYear) return "Enter a vehicle year.";
+      }
       if (!draft.vehicleMake || draft.vehicleMake.length > 40) return "Enter a vehicle make.";
       if (!draft.vehicleModel || draft.vehicleModel.length > 60) return "Enter a vehicle model.";
       let subtracks = [
@@ -1343,7 +1351,6 @@
         track: draft.track,
         vehicleType: draft.vehicleType,
         vehicleClass: draft.vehicleClass,
-        vehicleYear: Number(draft.vehicleYear),
         vehicleMake: draft.vehicleMake,
         vehicleModel: draft.vehicleModel,
         subtrack: draft.subtrack,
@@ -1351,6 +1358,7 @@
         holder: draft.holder,
         date: draft.date,
       };
+      if (draft.vehicleYear) payload.vehicleYear = Number(draft.vehicleYear);
       if (draft.evidence) payload.evidence = draft.evidence;
       if (draft.note) payload.note = draft.note;
       return payload;

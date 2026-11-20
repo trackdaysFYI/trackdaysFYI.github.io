@@ -670,7 +670,7 @@
       // class names are listed here only to fill the dropdown options
       vehicleTypes: {
         C: {label: "Car", classes: ["Open"]},
-        M: {label: "Motorcycle", classes: ["1000cc", "600cc", "Twins", "Lightweight", "Motard"]},
+        M: {label: "Motorcycle", classes: ["Open", "600cc", "Twins", "Lightweight", "Motard"]},
       },
       tracks: {},
     };
@@ -1127,9 +1127,12 @@
       } else if (!formClasses(draft.vehicleType, draft.track).includes(draft.vehicleClass)) {
         return "Choose a class.";
       }
-      let year = Number(draft.vehicleYear);
-      let maxYear = dayjs().year() + 1;
-      if (!Number.isInteger(year) || year < 1885 || year > maxYear) return "Enter a vehicle year";
+      let yearText = draft.vehicleYear.trim();
+      if (yearText) {
+        let year = Number(yearText);
+        let maxYear = dayjs().year() + 1;
+        if (!Number.isInteger(year) || year < 1885 || year > maxYear) return "Enter a vehicle year";
+      }
       if (!draft.vehicleMake.trim() || draft.vehicleMake.trim().length > 40) return "Enter a make";
       if (!draft.vehicleModel.trim() || draft.vehicleModel.trim().length > 60) return "Enter a model";
       let subtracks = trackSubtracks(draft.track);
@@ -1151,7 +1154,6 @@
         track: trackKey,
         vehicleType: draft.vehicleType,
         vehicleClass: draft.vehicleClass.trim(),
-        vehicleYear: Number(draft.vehicleYear),
         vehicleMake: draft.vehicleMake.trim(),
         vehicleModel: draft.vehicleModel.trim(),
         subtrack: draft.subtrack.trim(),
@@ -1159,6 +1161,8 @@
         holder: draft.holder.trim(),
         date: draft.date,
       };
+      let yearText = draft.vehicleYear.trim();
+      if (yearText) payload.vehicleYear = Number(yearText);
       assignOptional(payload, "evidence", draft.evidence.trim());
       assignOptional(payload, "note", draft.note.trim());
       return payload;
