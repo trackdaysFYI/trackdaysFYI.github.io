@@ -146,10 +146,6 @@ function trackSubtracks(trackKey) {
   return track.subtracks.map(name => String(name).trim()).filter(Boolean);
 }
 
-function applyRecordType(form, code) {
-  if (form.elements.vehicleType) form.elements.vehicleType.value = code;
-}
-
 function syncRecordDialog() {
   let dialog = recordDialog();
   let form = recordForm();
@@ -165,18 +161,6 @@ function resetRecordForm() {
   if (dialog && dialog.open) dialog.close();
 }
 
-function prepareRecordForm(form, trackKey, type) {
-  form.reset();
-  applyRecordType(form, type);
-  form.elements.customClass.value = "";
-  fillRecordTracks(form, trackKey);
-  let classes = formClasses(type, trackKey);
-  fillRecordClassOptions(form, classes, classes[0] || "");
-  fillRecordSubtracks(form, trackKey, trackSubtracks);
-  let date = form.elements.date;
-  if (date) date.max = todayIso();
-}
-
 function openRecordForm() {
   let dialog = recordDialog();
   let form = recordForm();
@@ -184,7 +168,7 @@ function openRecordForm() {
   let types = ["C", "M"].filter(code => suggestedClasses(code).length);
   let type = preferredRecordType(types);
   recordsUi.submitting = false;
-  prepareRecordForm(form, lastOpenedTrack, type);
+  prepareRecordForm(form, lastOpenedTrack, type, formClasses, fillRecordTracks, trackSubtracks);
   setFormSubmitting(recordsUi, form, false);
   setFormMessage(form.querySelector(".rec-form-msg"), null);
   if (!dialog.open) dialog.showModal();
@@ -210,7 +194,7 @@ async function submitLapRecord(event) {
     }),
     payload: () => createLapRecordPayload(draft),
     onSuccess() {
-      prepareRecordForm(form, trackKey, type);
+      prepareRecordForm(form, trackKey, type, formClasses, fillRecordTracks, trackSubtracks);
     },
   });
 }

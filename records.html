@@ -93,43 +93,7 @@
   </div>
   </div>
 
-  <dialog id="recordDialog" class="suggest-dialog" closedby="closerequest" aria-labelledby="recordTitle">
-    <form id="lap-record-form" class="rec-form" autocomplete="off" novalidate>
-      <div class="suggest-head">
-        <b id="recordTitle">Add a Lap Record</b>
-        <button type="button" class="suggest-close" id="record-close" aria-label="Close">×</button>
-      </div>
-      <label class="rec-field"><span>Track</span><select name="track"></select></label>
-      <label class="rec-field"><span>Subtrack</span><select name="subtrack"></select></label>
-      <div class="rec-type-class">
-        <label class="rec-field"><span>Vehicle type</span>
-          <select name="vehicleType">
-            <option value="C">Car</option>
-            <option value="M">Motorcycle</option>
-          </select>
-        </label>
-        <label class="rec-field"><span>Class</span><select name="vehicleClass"></select></label>
-      </div>
-      <label class="rec-field rec-custom-class" hidden><span>Other class</span><input name="customClass" maxlength="40"></label>
-      <div class="rec-ymm">
-        <label class="rec-field rec-year"><span>Year</span><input name="vehicleYear" inputmode="numeric" maxlength="4" size="4"></label>
-        <label class="rec-field"><span>Make</span><input name="vehicleMake" maxlength="40"></label>
-        <label class="rec-field"><span>Model</span><input name="vehicleModel" maxlength="60"></label>
-      </div>
-      <div class="rec-form-grid">
-        <label class="rec-field"><span>Time</span><input name="time" placeholder="1:23.456" inputmode="decimal"></label>
-        <label class="rec-field"><span>Lap date</span><input name="date" type="date"></label>
-      </div>
-      <label class="rec-field"><span>Holder name</span><input name="holder" maxlength="80"></label>
-      <label class="rec-field"><span>Evidence (optional)</span><input name="evidence" type="url" placeholder="https://" maxlength="300"></label>
-      <label class="rec-field"><span>Note (optional)</span><textarea name="note" maxlength="300" rows="1"></textarea></label>
-      <div class="rec-form-actions">
-        <button type="button" class="rec-cancel" id="record-cancel">Cancel</button>
-        <button type="submit" class="rec-submit">Submit for Review</button>
-      </div>
-      <div id="recordMessage" class="rec-form-msg" hidden></div>
-    </form>
-  </dialog>
+  <dialog id="recordDialog" class="suggest-dialog" closedby="closerequest" aria-labelledby="recordTitle"></dialog>
 
   <dialog id="changeDialog" class="suggest-dialog" closedby="closerequest" aria-labelledby="changeTitle">
     <form id="change-form" class="rec-form" autocomplete="off" novalidate>

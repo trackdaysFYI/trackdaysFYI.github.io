@@ -727,17 +727,6 @@ function subtracksForTrack(trackKey) {
   return [...new Set([...known, ...fromRecords])].sort((a, b) => a.localeCompare(b));
 }
 
-function prepareRecordForm(form, trackKey, type) {
-  form.reset();
-  form.elements.vehicleType.value = type;
-  form.elements.customClass.value = "";
-  fillRecordTracks(form, trackKey);
-  let classes = formClasses(type, trackKey);
-  fillRecordClassOptions(form, classes, classes[0] || "");
-  fillRecordSubtracks(form, trackKey, subtracksForTrack);
-  form.elements.date.max = todayIso();
-}
-
 function setRecordSubmitting(submitting) {
   setFormSubmitting(recordsUi, recordForm, submitting, [
     recordForm.elements.track,
@@ -751,7 +740,7 @@ function openRecordForm() {
   let preferredType = vehicleSelect.value === "M" ? "M" : "C";
   if (!suggestedClasses(preferredType).length) preferredType = "C";
   recordsUi.submitting = false;
-  prepareRecordForm(recordForm, preferredTrack, preferredType);
+  prepareRecordForm(recordForm, preferredTrack, preferredType, formClasses, fillRecordTracks, subtracksForTrack);
   setRecordSubmitting(false);
   setFormMessage(recordMessage, null);
   if (!recordDialog.open) recordDialog.showModal();
@@ -774,7 +763,7 @@ async function submitCreateForm(event) {
     }),
     payload: () => createLapRecordPayload(draft),
     onSuccess() {
-      prepareRecordForm(recordForm, draft.track, draft.vehicleType);
+      prepareRecordForm(recordForm, draft.track, draft.vehicleType, formClasses, fillRecordTracks, subtracksForTrack);
     },
   });
 }
