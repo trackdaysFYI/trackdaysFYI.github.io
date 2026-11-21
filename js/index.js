@@ -843,17 +843,8 @@ function wireFilterControls() {
     updateMaxDateVar();
     Array.from(daySelectElement.options).forEach((opt) => {
       opt.selected = true;
-      if (opt.listitemEl) {
-        opt.listitemEl.classList.add("checked");
-        opt.listitemEl.querySelector("input").checked = true;
-      }
     });
-    let dayDropdown = daySelectElement.nextElementSibling;
-    if (dayDropdown) {
-      dayDropdown.refresh();
-      let daySelectAll = dayDropdown.querySelector(".multiselect-dropdown-all-selector input");
-      if (daySelectAll) daySelectAll.checked = true;
-    }
+    daySelectElement.loadOptions();
     resetHome();
   });
 }

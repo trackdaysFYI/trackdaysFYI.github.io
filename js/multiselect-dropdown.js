@@ -119,8 +119,9 @@ function MultiselectDropdown(options) {
     el.loadOptions = () => {
       list.innerHTML = "";
       if (el.attributes["multiselect-select-all"]?.value == "true") {
+        var allSelected = el.options.length > 0 && Array.from(el.options).every(o => o.selected);
         var op = newEl("div", {class: "multiselect-dropdown-all-selector"})
-        var ic = newEl("input", {type: "checkbox"});
+        var ic = newEl("input", {type: "checkbox", checked: allSelected});
         op.appendChild(ic);
         op.appendChild(newEl("label", {text: el.getAttribute("data-txtAll") || config.txtAll}));
 
@@ -168,7 +169,6 @@ function MultiselectDropdown(options) {
           ic.checked = !ic.checked;
         });
         
-        o.listitemEl = op;
         list.appendChild(op);
       });
       div.listEl = listWrap;
