@@ -202,65 +202,54 @@ button.rec-change svg {display: block; width: 14px; height: 14px; fill: none; st
 @media (hover: hover) {
   button.rec-change:hover {border-color: var(--accent); color: var(--text);}
 }
+/* Darker dialog theme. The shared layout is in record-form.css. */
 .suggest-dialog {
-  width: min(36rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); padding: 1.1rem 1.15rem 1rem;
-  border: 0; border-radius: 16px; overflow: auto;
-  background: rgb(40, 44, 50); color: var(--soft); text-align: left;
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45);
-}
-.suggest-dialog::backdrop {background: rgba(12, 14, 18, 0.65);}
-.suggest-dialog, .suggest-dialog input, .suggest-dialog textarea, .suggest-dialog select {
-  -webkit-user-select: text; -ms-user-select: text; user-select: text;
-}
-.suggest-head {display: flex; align-items: center; gap: 10px; margin: 0 0 0.75rem;}
-.suggest-head b {flex: 1; font-size: 1.15rem; font-weight: 650; color: var(--text);}
-.suggest-close {
-  border: 0; border-radius: 8px; width: 2rem; height: 2rem; padding: 0; font: inherit;
-  font-size: 1.25rem; line-height: 1; color: var(--muted); background: transparent; cursor: pointer;
-}
-.suggest-close:hover {background: rgba(255,255,255,0.06);}
-.suggest-dialog .rec-form {display: flex; flex-direction: column; gap: 0.65rem; position: relative;}
-.suggest-dialog .rec-types {display: flex; gap: 0.4rem; margin: 0; flex-wrap: wrap; align-items: center;}
-.suggest-dialog .rec-type {
-  border: 0; border-radius: 999px; padding: 0.3rem 0.75rem; font: inherit; font-size: 0.82rem; font-weight: 650;
-  color: var(--muted); background: rgba(255,255,255,0.06); cursor: pointer;
-}
-.suggest-dialog .rec-type.on {color: #fff; background: var(--accent);}
-.suggest-dialog .rec-meta {
-  margin: 0; padding: 0.55rem 0.7rem; border-radius: 10px; background: rgba(255,255,255,0.04);
-  font-size: 0.88rem; color: var(--muted); line-height: 1.4;
-}
-.suggest-dialog .rec-meta strong {color: var(--soft); font-weight: 650;}
-.suggest-dialog .rec-field {display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; position: relative;}
-.suggest-dialog .rec-field[hidden], .suggest-dialog .rec-edit-only[hidden] {display: none;}
-.suggest-dialog .rec-field span {
-  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);
-}
-.suggest-dialog .rec-field input,
-.suggest-dialog .rec-field textarea,
-.suggest-dialog .rec-field select {
-  width: 100%; box-sizing: border-box; border: 1px solid var(--input-border); border-radius: 8px;
-  min-height: 2.4rem; padding: 0.5rem 0.65rem; font: inherit; font-size: 0.95rem; color: var(--soft); background: var(--input-bg);
+  --form-max: 36rem;
+  --form-pad: 1.1rem 1.15rem 1rem;
+  --form-radius: 16px;
+  --form-bg: rgb(40, 44, 50);
+  --form-ink: var(--soft);
+  --form-shadow: 0 16px 50px rgba(0, 0, 0, 0.45);
+  --form-backdrop: rgba(12, 14, 18, 0.65);
+  --form-head-gap: 10px;
+  --form-head-margin: 0 0 0.75rem;
+  --form-title-size: 1.15rem;
+  --form-title-color: var(--text);
+  --form-close-size: 2rem;
+  --form-close-font: 1.25rem;
+  --form-muted: var(--muted);
+  --form-hover: rgba(255, 255, 255, 0.06);
+  --form-gap: 0.65rem;
+  --form-types-gap: 0.4rem;
+  --form-chip-pad: 0.3rem 0.75rem;
+  --form-chip-size: 0.82rem;
+  --form-chip-bg: rgba(255, 255, 255, 0.06);
+  --form-field-gap: 0.3rem;
+  --form-label-size: 0.7rem;
+  --form-label: var(--muted);
+  --form-input-border: 1px solid var(--input-border);
+  --form-input-radius: 8px;
+  --form-input-min: 2.4rem;
+  --form-input-pad: 0.5rem 0.65rem;
+  --form-input-size: 0.95rem;
+  --form-input-bg: var(--input-bg);
+  --form-scheme: dark;
+  --form-grid-gap: 0.65rem;
+  --form-year: calc(4.5ch + 1.2rem);
+  --form-note-min: 2.4rem;
+  --form-actions-gap: 0.5rem;
+  --form-actions-margin: 0.25rem;
+  --form-btn-radius: 10px;
+  --form-btn-min: 2.5rem;
+  --form-btn-pad: 0.55rem 0.85rem;
+  --form-btn-size: 0.9rem;
+  --form-msg-size: 0.88rem;
+  --form-ok: #7dcea0;
+  --form-err: var(--err);
 }
 .suggest-dialog .rec-field input:focus,
 .suggest-dialog .rec-field textarea:focus,
 .suggest-dialog .rec-field select:focus {outline: 2px solid var(--focus); outline-offset: 1px;}
-.suggest-dialog .rec-form-grid {display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;}
-.suggest-dialog .rec-type-class {display: grid; grid-template-columns: 11em 1fr; gap: 0.65rem; align-items: end;}
-.suggest-dialog .rec-ymm {display: grid; grid-template-columns: calc(4.5ch + 1.2rem) 1fr 1fr; gap: 0.65rem;}
-.suggest-dialog .rec-field input[type=date] {color-scheme: dark;}
-.suggest-dialog .rec-field textarea {resize: vertical; min-height: 2.4rem;}
-.suggest-dialog .rec-form-actions {display: flex; gap: 0.5rem; margin-top: 0.25rem;}
-.suggest-dialog .rec-form-actions button {
-  flex: 1; border: 0; border-radius: 10px; min-height: 2.5rem; padding: 0.55rem 0.85rem;
-  font: inherit; font-size: 0.9rem; font-weight: 650; cursor: pointer;
-}
-.suggest-dialog .rec-submit {color: #fff; background: var(--accent);}
-.suggest-dialog .rec-submit:disabled {opacity: 0.6; cursor: default;}
-.suggest-dialog .rec-cancel {color: var(--muted); background: rgba(255,255,255,0.06);}
-.suggest-dialog .rec-form-msg {margin: 0; font-size: 0.88rem; text-align: center;}
-.suggest-dialog .rec-form-msg.ok {color: #7dcea0;}
-.suggest-dialog .rec-form-msg.err {color: var(--err);}
 .print-filters {display: none;}
 @media print {
   body {

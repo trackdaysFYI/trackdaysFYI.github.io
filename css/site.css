@@ -127,47 +127,7 @@ svg {vertical-align: middle;}
 button.suggest-link {border: 0; padding: 0; background: none; font: inherit; color: inherit; text-decoration: underline; text-decoration-thickness: 1px; cursor: pointer;}
 .popup-timeline .missing-event-link {display: block; width: 100%; margin-top: 6px; border: 0; padding: 0; background: transparent; font: inherit; font-size: 11px; font-weight: 650; color: var(--accent); text-align: center; cursor: pointer;}
 .popup-timeline .missing-event-link:hover {text-decoration: underline;}
-.suggest-dialog {width: min(30rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; padding: 15px 15px 13px; border: 0; border-radius: 14px; background: var(--panel-bg); color: var(--panel-ink); font-size: 14px; text-align: left; box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);}
-.suggest-dialog::backdrop {background: rgba(20, 22, 26, 0.55);}
-.suggest-dialog, .suggest-dialog input, .suggest-dialog textarea, .suggest-dialog select {-webkit-user-select: text; -ms-user-select: text; user-select: text;}
-.suggest-head {display: flex; align-items: center; gap: 8px; margin: 0 0 9px;}
-.suggest-head b {flex: 1; font-size: 16px; font-weight: 650;}
-.suggest-close {border: 0; border-radius: 8px; width: 30px; height: 30px; padding: 0; font: inherit; font-size: 20px; line-height: 1; color: var(--panel-muted); background: transparent; cursor: pointer;}
-.suggest-close:hover {background: var(--panel-surface);}
-.suggest-dialog .rec-form {display: flex; flex-direction: column; gap: 7px; position: relative;}
-.suggest-dialog .rec-types {display: flex; gap: 5px; margin: 0; flex-wrap: wrap; align-items: center;}
-.suggest-dialog .rec-type {border: 0; border-radius: 999px; padding: 3px 10px; font: inherit; font-size: 13px; font-weight: 650; color: var(--panel-muted); background: var(--panel-soft); cursor: pointer;}
-.suggest-dialog .rec-type.on {color: #fff; background: var(--accent);}
-.suggest-dialog .rec-field {display: flex; flex-direction: column; gap: 3px; min-width: 0; position: relative;}
-.suggest-dialog .rec-field[hidden] {display: none;}
-.suggest-dialog .rec-field span {font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--panel-label);}
-.suggest-dialog .rec-field input,
-.suggest-dialog .rec-field textarea,
-.suggest-dialog .rec-field select {width: 100%; box-sizing: border-box; border: 0; border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 14px; color: var(--panel-ink); background: var(--panel-surface);}
-.suggest-dialog .rec-form-grid {display: grid; grid-template-columns: 1fr 1fr; gap: 7px;}
-.suggest-dialog .rec-type-class {display: grid; grid-template-columns: 11em 1fr; gap: 7px; align-items: end;}
-.suggest-dialog .rec-type-class .rec-field {min-width: 0;}
-.suggest-dialog .rec-ymm {display: grid; grid-template-columns: calc(4.1ch + 1.3rem) 1fr 1fr; gap: 7px;}
-.suggest-dialog .rec-ymm .rec-year input {width: 100%;}
-.suggest-dialog .rec-field input[type=date] {color-scheme: light;}
-.suggest-dialog .suggest-date-row {display: flex; align-items: center; gap: 9px;}
-.suggest-dialog .suggest-date-row input[type=date] {flex: 1 1 auto; width: auto; min-width: 0;}
-.suggest-dialog .suggest-multi {display: flex; align-items: center; gap: 5px; flex: 0 0 auto; margin: 0; font-size: 13px; font-weight: 650; letter-spacing: 0; text-transform: none; color: var(--panel-ink); white-space: nowrap; cursor: pointer;}
-.suggest-dialog .suggest-multi input {width: auto; margin: 0; accent-color: var(--accent);}
-.suggest-dialog .suggest-matches {display: flex; flex-direction: column; max-height: 8.5rem; overflow: auto; background: var(--panel-surface); border-radius: 6px;}
-.suggest-dialog .suggest-matches.overlay {position: absolute; top: 100%; left: 0; right: 0; z-index: 2; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);}
-.suggest-dialog .suggest-matches[hidden] {display: none;}
-.suggest-dialog .suggest-matches button {border: 0; background: transparent; text-align: left; padding: 5px 8px; font: inherit; font-size: 13px; color: var(--panel-ink); cursor: pointer;}
-.suggest-dialog .suggest-matches button:hover {background: var(--panel-soft);}
-.suggest-dialog .rec-field textarea {resize: vertical; min-height: 2rem;}
-.suggest-dialog .rec-form-actions {display: flex; gap: 6px; margin-top: 3px;}
-.suggest-dialog .rec-form-actions button {flex: 1; border: 0; border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer;}
-.suggest-dialog .rec-submit {color: #fff; background: var(--accent);}
-.suggest-dialog .rec-submit:disabled {opacity: 0.6; cursor: default;}
-.suggest-dialog .rec-cancel {color: var(--panel-muted); background: var(--panel-soft);}
-.suggest-dialog .rec-form-msg {margin: 0; font-size: 13px; text-align: center;}
-.suggest-dialog .rec-form-msg.ok {color: var(--panel-ok);}
-.suggest-dialog .rec-form-msg.err {color: var(--panel-err);}
+.suggest-dialog {--form-size: 14px;}
 .leaflet-container {font-family: unset}
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {background: rgb(240, 240, 240);}
 .leaflet-popup-content {text-align: center; padding-right: 5px; margin: 8px 5px 8px 5px;}
