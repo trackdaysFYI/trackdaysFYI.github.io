@@ -190,7 +190,7 @@ button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(
 .filter-bar .multiselect-dropdown:has(span.optext) {background-color: var(--accent-soft);}
 .filter-bar .multiselect-dropdown-list-wrapper {border-radius: 10px; top: calc(100% + 6px);}
 .date-range {position: relative; flex: 0 0 auto;}
-.date-range-btn {background: transparent; color: var(--soft); border: 1px solid var(--line); border-radius: 999px; box-sizing: border-box; font: inherit; font-size: 0.82rem; line-height: 1.35; padding: 0.32rem 0.75rem; cursor: pointer; white-space: nowrap;}
+.date-range-btn {background: transparent; color: var(--soft); border: 1px solid var(--line); border-radius: 999px; box-sizing: border-box; font: inherit; line-height: 1.35; padding: 0.35rem 0.8rem; cursor: pointer; white-space: nowrap;}
 .date-range-btn:hover {border-color: var(--accent); color: white;}
 .date-range-btn.is-set {background: var(--accent-soft); color: white; border-color: transparent;}
 .date-range-popover {display: flex; flex-direction: column; position: absolute; top: calc(100% + 6px); left: 0; z-index: 120; width: min(17.5rem, calc(100vw - 1.5rem)); padding: 0.55rem 0.55rem 0.45rem; border: 1px solid var(--line); border-radius: 12px; background: rgb(28, 32, 36); box-shadow: 0 12px 32px rgb(0 0 0 / 0.45); text-align: left; color: var(--soft);}
