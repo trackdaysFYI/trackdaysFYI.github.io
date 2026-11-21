@@ -39,7 +39,7 @@ let locationDefault = [39.50, -98.35];  // Central US or GPS location
 let isGPSLocation = false;
 let homeLocked = false;  // user moved the home pin or the travel radius
 let searchRadius, minDate, maxDate;
-let lastOpenedTrack, selectedMonth;
+let lastOpenedTrack, selectedMonth, selectedCalendarStart = null, selectedCalendarEnd = null;
 let tracks;
 const infiniteRadius = 0;
 const radiusValues = [];
@@ -74,6 +74,7 @@ function resetHome() {
   updateTrackDistances();
   updateSearchRadius(radiusValues[radiusSliderElement.value]);
   selectedMonth = undefined;  // updateCalendar updates to current month
+  setCalendarRange(null, null);
   refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
 }
 
@@ -268,7 +269,7 @@ function downloadSavedEventsICS() {
     .filter(td => savedEventsSet.has(getEventKey(td)))
     .sort((a, b) => (a.date > b.date ? 1 : -1));
   if (savedEvents.length === 0) {
-    alert("No saved events to export.\nOpen a track on the map and star events to save them.");
+    alert("No saved events to export.\nStar events to save them.");
     return;
   }
 
@@ -387,35 +388,18 @@ function updateTrackPopup() {
 }
 
 function updateCalendar() {
-  // trackdays should be sorted by distance before this
-  let calendarEvents = [];
-  trackdays.forEach((td) => {
-    if (td.visibilityCalendar) {
-      let price = (td.price === -1 ? "" : "$" + td.price);
-      let orgStr = (tracks[td.track].nickname === td.org ? "" : " - " + td.org);
-      let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
-      let noteStr = (td.note ? " (" + td.note + ")" : "");
-      let savedClass = savedEventsSet.has(getEventKey(td)) ? "saved-calendar-event" : "";
-      let label = `• ${tracks[td.track].nickname}${orgStr}`;
-      let tooltip = `${price}${subtrackStr}${noteStr}`;
-      // caleandar wraps an http(s) Link in <a>, so Title must not contain its own link
-      let calendarStr = `<span class="${savedClass}" title="${escapeHtml(tooltip)}">${escapeHtml(label)}</span>`;
-      calendarEvents.push({Date: td.date.toDate(), Title: calendarStr, Link: safeHttpUrl(td.url)});
-    }
-  });
-  let calendar = document.getElementById("calendar");
   if (selectedMonth === undefined) {
     selectedMonth = dayjs().startOf("month").toDate();
   }
-  calendar.innerHTML = "";  // delete old calendar
-  let calendarObj = caleandar(calendar, calendarEvents, {Color: "#999999", LinkColor: "#ffffff", NavShow: true, DateTimeShow: true}, selectedMonth);
+  // trackdays should be sorted by distance before this
+  renderCalendarView();
   updatePillCounts();
 }
 
-// caleandar moves between months on its own and replaces its markup, so track the month here
 function shiftSelectedMonth(delta) {
   if (selectedMonth === undefined) return;
   selectedMonth = dayjs(selectedMonth).startOf("month").add(delta, "month").toDate();
+  setCalendarRange(null, null);
 }
 
 function updatePillCounts() {
@@ -521,10 +505,112 @@ document.getElementById("lastSyncMessage").addEventListener("click", (event) => 
 });
 
 document.getElementById("calendar").addEventListener("click", (event) => {
-  let nav = event.target.closest(".cld-rwd, .cld-fwd");
+  let star = event.target.closest(".event-save-star");
+  if (star) {
+    event.preventDefault();
+    onEventSaveToggle(star);
+    return;
+  }
+  if (event.target.closest("[data-cal-show-month]")) {
+    setCalendarRange(null, null);
+    updateCalendar();
+    return;
+  }
+  let nav = event.target.closest("[data-month-delta]");
   if (!nav) return;
-  shiftSelectedMonth(nav.classList.contains("cld-fwd") ? 1 : -1);
+  shiftSelectedMonth(Number(nav.dataset.monthDelta));
+  updateCalendar();
 }, true);
+
+let calendarDrag = null;
+
+function setCalendarRange(start, end) {
+  if (!start || !end) {
+    selectedCalendarStart = null;
+    selectedCalendarEnd = null;
+    return;
+  }
+  if (start <= end) {
+    selectedCalendarStart = start;
+    selectedCalendarEnd = end;
+  } else {
+    selectedCalendarStart = end;
+    selectedCalendarEnd = start;
+  }
+}
+
+function calendarDayAt(x, y) {
+  let days = document.querySelectorAll("#calendar [data-cal-day]");
+  for (let day of days) {
+    let box = day.getBoundingClientRect();
+    if (x >= box.left && x <= box.right && y >= box.top && y <= box.bottom) return day.dataset.calDay;
+  }
+  return null;
+}
+
+function paintCalendarRange(start, end) {
+  let lo = null;
+  let hi = null;
+  if (start && end) {
+    lo = start < end ? start : end;
+    hi = start < end ? end : start;
+  }
+  document.querySelectorAll("#calendar [data-cal-day]").forEach((day) => {
+    let on = lo !== null && day.dataset.calDay >= lo && day.dataset.calDay <= hi;
+    day.classList.toggle("is-selected", on);
+    day.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+}
+
+function finishCalendarDrag() {
+  if (!calendarDrag) return;
+  let drag = calendarDrag;
+  calendarDrag = null;
+  if (!drag.moved) {
+    if (drag.beforeStart === drag.anchor && drag.beforeEnd === drag.anchor) setCalendarRange(null, null);
+    else setCalendarRange(drag.anchor, drag.anchor);
+  } else {
+    setCalendarRange(drag.anchor, drag.current);
+  }
+  updateCalendar();
+}
+
+let calendarEl = document.getElementById("calendar");
+calendarEl.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0) return;
+  let day = event.target.closest("[data-cal-day]");
+  if (!day) return;
+  calendarDrag = {
+    pointerId: event.pointerId,
+    anchor: day.dataset.calDay,
+    current: day.dataset.calDay,
+    moved: false,
+    beforeStart: selectedCalendarStart,
+    beforeEnd: selectedCalendarEnd,
+  };
+  try { calendarEl.setPointerCapture(event.pointerId); } catch (e) {}
+  event.preventDefault();
+  paintCalendarRange(calendarDrag.anchor, calendarDrag.anchor);
+});
+calendarEl.addEventListener("pointermove", (event) => {
+  if (!calendarDrag || event.pointerId !== calendarDrag.pointerId) return;
+  let key = calendarDayAt(event.clientX, event.clientY);
+  if (!key || key === calendarDrag.current) return;
+  if (key !== calendarDrag.anchor) calendarDrag.moved = true;
+  if (!calendarDrag.moved) return;
+  calendarDrag.current = key;
+  paintCalendarRange(calendarDrag.anchor, key);
+});
+calendarEl.addEventListener("pointerup", (event) => {
+  if (!calendarDrag || event.pointerId !== calendarDrag.pointerId) return;
+  finishCalendarDrag();
+});
+calendarEl.addEventListener("pointercancel", (event) => {
+  if (!calendarDrag || event.pointerId !== calendarDrag.pointerId) return;
+  let drag = calendarDrag;
+  calendarDrag = null;
+  paintCalendarRange(drag.beforeStart, drag.beforeEnd);
+});
 
 const headerAd = document.getElementById("fotosort-ad");
 if (localStorage.getItem("headerAdClosed")) {
