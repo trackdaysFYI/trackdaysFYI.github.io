@@ -995,7 +995,7 @@ let tiles = new L.TileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
 ).addTo(map);
 map.attributionControl.setPrefix("");
 
-let homeMarker = new L.Marker(locationDefault, {icon: homeIconMoto, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
+let homeMarker = new L.Marker(locationDefault, {title: "Home", icon: homeIconMoto, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
 let searchCircle = new L.Circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
 let searchCircleHandle = new L.Circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0, weight: 22, fill: false, interactive: true, bubblingPointerEvents: false, radius: infiniteRadius, className: "search-radius-handle"});
 
