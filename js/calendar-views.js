@@ -121,30 +121,25 @@ function monthCellsHtml(month, byDay, bounds, selection) {
     let selected = selection && key >= selection.start && key <= selection.end;
     if (selected) classes.push("is-selected");
     if (items.length) classes.push("has-events");
+    if (items.some(td => savedEventsSet.has(getEventKey(td)))) classes.push("is-saved");
     if (key < minKey || key > maxKey) {
       cells.push(`<button type="button" class="${classes.join(" ")} is-disabled" disabled><span class="cal-day-num">${cursor.date()}</span></button>`);
       continue;
     }
     let countLabel = items.length ? `, ${items.length} ${items.length === 1 ? "event" : "events"}` : "";
-    cells.push(`<button type="button" class="${classes.join(" ")}" data-cal-day="${key}" aria-pressed="${selected ? "true" : "false"}" aria-label="${escapeHtml(cursor.format("MMMM D, YYYY"))}${countLabel}"><span class="cal-day-num">${cursor.date()}</span>${dayMarksHtml(items)}</button>`);
+    cells.push(`<button type="button" class="${classes.join(" ")}" data-cal-day="${key}" aria-pressed="${selected ? "true" : "false"}" aria-label="${escapeHtml(cursor.format("MMMM D, YYYY"))}${countLabel}"><span class="cal-day-num">${cursor.date()}</span></button>`);
   }
   return `<div class="cal-grid">${cells.join("")}</div>`;
 }
 
 function dateRangeButtonLabel() {
-  if (!selectedCalendarStart || !selectedCalendarEnd) return dayjs().format("MMM D") + " onward";
+  if (!selectedCalendarStart || !selectedCalendarEnd) return "Today onward";
   let start = dayjs(selectedCalendarStart, "YYYY-MM-DD", true);
   let end = dayjs(selectedCalendarEnd, "YYYY-MM-DD", true);
   if (selectedCalendarStart === selectedCalendarEnd) return start.format("MMM D");
   if (!start.isSame(end, "year")) return `${start.format("MMM D, YYYY")} – ${end.format("MMM D, YYYY")}`;
   if (start.isSame(end, "month")) return `${start.format("MMM D")} – ${end.format("D")}`;
   return `${start.format("MMM D")} – ${end.format("MMM D")}`;
-}
-
-function dayMarksHtml(items) {
-  if (!items.length) return "";
-  let saved = items.some(td => savedEventsSet.has(getEventKey(td))) ? " is-saved" : "";
-  return `<span class="cal-dots"><span class="cal-dot${saved}"></span></span>`;
 }
 
 function agendaHtml(byDay, keys) {
