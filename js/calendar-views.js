@@ -117,7 +117,7 @@ function eventRowHtml(td) {
   let fullHost = org ? org.org : td.org;
   let shortHost = (org && org.orgNickname) || td.org;
   let titleInner = (trackLabel, hostLabel) => {
-    let host = showOrg ? ` <span class="cal-event-org">hosted by ${escapeHtml(hostLabel)}</span>` : "";
+    let host = showOrg ? ` <span class="cal-event-org">${escapeHtml(hostLabel)}</span>` : "";
     return `${escapeHtml(trackLabel)}${host}`;
   };
   let metaHtml = meta ? `<span class="cal-event-meta">${escapeHtml(meta)}</span>` : "";
