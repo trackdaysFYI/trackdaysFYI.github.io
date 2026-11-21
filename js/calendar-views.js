@@ -140,15 +140,27 @@ function saveStarHtml(td) {
 }
 
 function fitCalendarTitles() {
-  // Keep the full names when they fit. Otherwise show the track and host nicknames.
+  // Full names stay when they fit. Otherwise use nicknames, then drop price and distance if the name still does not fit.
   document.querySelectorAll("#calendar .cal-gutter-day .cal-event-title").forEach((title) => {
     let full = title.querySelector(".cal-event-full");
     let short = title.querySelector(".cal-event-short");
-    if (!full || !short || title.clientWidth === 0) return;
+    let main = title.closest(".cal-event-main");
+    if (!full || !short || !main || title.clientWidth === 0) return;
+    let side = main.querySelector(".cal-event-side");
+    let overflows = () => title.scrollWidth > title.clientWidth + 1;
+    let canNick = full.textContent !== short.textContent;
     title.classList.remove("is-nick");
-    let overflow = full.textContent !== short.textContent && title.scrollWidth > title.clientWidth + 1;
-    title.classList.toggle("is-nick", overflow);
-    if (overflow) {
+    main.classList.remove("is-hide-side");
+    if (overflows() && canNick) title.classList.add("is-nick");
+    if (overflows() && side) {
+      main.classList.add("is-hide-side");
+      if (canNick) {
+        title.classList.remove("is-nick");
+        if (overflows()) title.classList.add("is-nick");
+      }
+    }
+    let nick = title.classList.contains("is-nick");
+    if (nick) {
       full.setAttribute("aria-hidden", "true");
       short.removeAttribute("aria-hidden");
       title.title = full.textContent;
@@ -157,6 +169,7 @@ function fitCalendarTitles() {
       short.setAttribute("aria-hidden", "true");
       title.removeAttribute("title");
     }
+    if (side) side.toggleAttribute("aria-hidden", main.classList.contains("is-hide-side"));
   });
 }
 
