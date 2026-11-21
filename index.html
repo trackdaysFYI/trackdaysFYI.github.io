@@ -560,7 +560,7 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     const TRACKDAYS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays";

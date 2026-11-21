@@ -374,6 +374,8 @@
 
     function csvEscape(value) {
       let text = String(value == null ? "" : value);
+      // a leading formula character would run when the file is opened in a spreadsheet
+      if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
       if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
       return text;
     }
@@ -397,12 +399,18 @@
         ].map(csvEscape).join(","));
       });
       let blob = new Blob(["\uFEFF" + lines.join("\r\n")], {type: "text/csv;charset=utf-8"});
+      downloadBlob(blob, "lap-records.csv");
+    }
+
+    function downloadBlob(blob, fileName) {
       let url = URL.createObjectURL(blob);
       let link = document.createElement("a");
       link.href = url;
-      link.download = "lap-records.csv";
+      link.download = fileName;
+      document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     function activeFilterSummary() {
@@ -422,7 +430,6 @@
 
     function printRecords() {
       if (!filteredRecords().length) return;
-      printFiltersEl.textContent = activeFilterSummary();
       window.print();
     }
 
@@ -654,6 +661,9 @@
     viewTimeButton.addEventListener("click", () => setView("time"));
     exportCsvButton.addEventListener("click", exportCsv);
     printButton.addEventListener("click", printRecords);
+    window.addEventListener("beforeprint", () => {
+      printFiltersEl.textContent = activeFilterSummary();
+    });
     rowsEl.addEventListener("click", (event) => {
       let changeBtn = event.target.closest("button.rec-change");
       if (changeBtn) {
