@@ -9,71 +9,142 @@ function eventsByDay(include) {
   return byDay;
 }
 
+let pendingCalendarDay = null;
+
 function renderCalendarView() {
   let root = document.getElementById("calendar");
-  let month = dayjs(selectedMonth).startOf("month");
-  let byDay = eventsByDay((td) => td.date.isSame(month, "month"));
-  let grid = calendarGridOpen ? monthGridHtml(month, byDay) : "";
-  root.innerHTML = `<div class="cal">${monthNavHtml(month)}${grid}${monthListHtml(month, byDay)}</div>`;
+  let range = activeCalendarRange();
+  if (range) {
+    let byDay = eventsByDay((td) => {
+      let key = td.date.format("YYYY-MM-DD");
+      return key >= range.start && key <= range.end;
+    });
+    let keys = [...byDay.keys()].sort();
+    let empty = range.start === range.end ? "No events this day" : "No events these days";
+    let body = keys.length ? agendaHtml(byDay, keys) : `<div class="cal-empty">${empty}</div>`;
+    root.innerHTML = `<div class="cal"><div class="cal-list"><div class="cal-focushead"><span>${escapeHtml(selectionLabel(range))}</span><button type="button" class="cal-show-month" data-cal-show-month>Show month</button></div>${body}</div></div>`;
+  } else {
+    let month = dayjs(selectedMonth).startOf("month");
+    let byDay = eventsByDay((td) => td.date.isSame(month, "month"));
+    let list = byDay.size === 0 ? `<div class="cal-empty">No events this month</div>` : `<div class="cal-list">${agendaHtml(byDay)}</div>`;
+    root.innerHTML = `<div class="cal">${monthNavHtml(month)}${list}</div>`;
+  }
   fitCalendarTitles();
+}
+
+function activeCalendarRange() {
+  if (!selectedCalendarStart || !selectedCalendarEnd) return null;
+  return {start: selectedCalendarStart, end: selectedCalendarEnd};
 }
 
 function monthNavHtml(month) {
   let label = escapeHtml(month.format("MMMM YYYY"));
-  let expanded = calendarGridOpen ? "true" : "false";
-  let toggleLabel = calendarGridOpen ? "Hide calendar" : "Show calendar";
   return `<div class="cal-nav">
     <button type="button" class="cal-nav-btn" data-month-delta="-1" aria-label="Previous month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <button type="button" class="cal-nav-title" data-cal-toggle-grid aria-expanded="${expanded}" aria-label="${toggleLabel}">${label}<svg class="cal-nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 9.5 12 15l5.5-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="cal-nav-title">${label}</span>
     <button type="button" class="cal-nav-btn" data-month-delta="1" aria-label="Next month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>`;
 }
 
-function monthGridHtml(month, byDay) {
-  let labels = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
-    .map(label => `<span class="cal-weekday">${label}</span>`).join("");
+function selectableDateBounds() {
+  return {
+    min: dayjs().startOf("day").subtract(1, "day"),
+    max: dayjs().startOf("day").add(1, "year"),
+  };
+}
+
+function dateDotEvents() {
+  let byDay = new Map();
+  if (typeof trackdays === "undefined" || typeof tracks === "undefined") return byDay;
+  let selectedDays = selectedWeekdays();
+  trackdays.forEach((td) => {
+    let saved = savedEventsSet.has(getEventKey(td));
+    let passes = passesFilters(td, {radius: true, day: true, org: true, vehicle: true, event: true, selectedDays});
+    if (!saved && !passes) return;
+    let key = td.date.format("YYYY-MM-DD");
+    if (!byDay.has(key)) byDay.set(key, []);
+    byDay.get(key).push(td);
+  });
+  return byDay;
+}
+
+function popoverSelection() {
+  if (pendingCalendarDay) return {start: pendingCalendarDay, end: pendingCalendarDay};
+  return activeCalendarRange();
+}
+
+function renderDateRangePopover() {
+  let scroller = document.getElementById("dateRangeScroll");
+  if (!scroller) return;
+  let scrollTop = scroller.scrollTop;
+  let activeKey = document.activeElement && scroller.contains(document.activeElement) ? document.activeElement.dataset.calDay : null;
+  scroller.innerHTML = dateRangeMonthsHtml();
+  scroller.scrollTop = scrollTop;
+  let days = [...scroller.querySelectorAll("[data-cal-day]")];
+  let preferred = (activeKey && scroller.querySelector(`[data-cal-day="${activeKey}"]`)) || days[0];
+  days.forEach((day) => {day.tabIndex = day === preferred ? 0 : -1;});
+  if (activeKey && preferred) preferred.focus({preventScroll: true});
+}
+
+function dateRangeMonthsHtml() {
+  let bounds = selectableDateBounds();
+  let byDay = dateDotEvents();
+  let selection = popoverSelection();
+  let months = [];
+  for (let month = bounds.min.startOf("month"); !month.isAfter(bounds.max, "month"); month = month.add(1, "month")) {
+    months.push(`<section class="date-range-month" data-cal-month="${month.format("YYYY-MM")}">
+      <h3 class="date-range-month-label">${escapeHtml(month.format("MMMM YYYY"))}</h3>
+      ${monthCellsHtml(month, byDay, bounds, selection)}
+    </section>`);
+  }
+  return months.join("");
+}
+
+function monthCellsHtml(month, byDay, bounds, selection) {
   let start = month.startOf("month");
   let end = month.endOf("month");
   let cursor = start.subtract(start.day(), "day");
   let last = end.add(6 - end.day(), "day");
-  let selection = calendarSelection(month);
   let today = dayjs().startOf("day");
+  let minKey = bounds.min.format("YYYY-MM-DD");
+  let maxKey = bounds.max.format("YYYY-MM-DD");
   let cells = [];
   for (; !cursor.isAfter(last, "day"); cursor = cursor.add(1, "day")) {
-    let key = cursor.format("YYYY-MM-DD");
-    let inMonth = cursor.isSame(month, "month");
-    let items = byDay.get(key) || [];
-    if (!inMonth) {
-      cells.push(`<span class="cal-day is-outside" aria-hidden="true"><span class="cal-day-num">${cursor.date()}</span></span>`);
+    if (!cursor.isSame(month, "month")) {
+      cells.push(`<span class="cal-day is-outside" aria-hidden="true"></span>`);
       continue;
     }
+    let key = cursor.format("YYYY-MM-DD");
+    let items = byDay.get(key) || [];
     let classes = ["cal-day"];
     if (cursor.isSame(today, "day")) classes.push("is-today");
     let selected = selection && key >= selection.start && key <= selection.end;
     if (selected) classes.push("is-selected");
     if (items.length) classes.push("has-events");
-    let countLabel = items.length ? `, ${items.length} ${items.length === 1 ? "event" : "events"}` : ", no events";
-    cells.push(`<button type="button" class="${classes.join(" ")}" data-cal-day="${key}" aria-pressed="${selected ? "true" : "false"}" aria-label="${escapeHtml(cursor.format("MMMM D"))}${countLabel}"><span class="cal-day-num">${cursor.date()}</span>${dayMarksHtml(items)}</button>`);
+    if (key < minKey || key > maxKey) {
+      cells.push(`<button type="button" class="${classes.join(" ")} is-disabled" disabled><span class="cal-day-num">${cursor.date()}</span></button>`);
+      continue;
+    }
+    let countLabel = items.length ? `, ${items.length} ${items.length === 1 ? "event" : "events"}` : "";
+    cells.push(`<button type="button" class="${classes.join(" ")}" data-cal-day="${key}" aria-pressed="${selected ? "true" : "false"}" aria-label="${escapeHtml(cursor.format("MMMM D, YYYY"))}${countLabel}"><span class="cal-day-num">${cursor.date()}</span>${dayMarksHtml(items)}</button>`);
   }
-  return `<div class="cal-weekdays" aria-hidden="true">${labels}</div><div class="cal-grid">${cells.join("")}</div>`;
+  return `<div class="cal-grid">${cells.join("")}</div>`;
+}
+
+function dateRangeButtonLabel() {
+  if (!selectedCalendarStart || !selectedCalendarEnd) return dayjs().format("MMM D") + " onward";
+  let start = dayjs(selectedCalendarStart, "YYYY-MM-DD", true);
+  let end = dayjs(selectedCalendarEnd, "YYYY-MM-DD", true);
+  if (selectedCalendarStart === selectedCalendarEnd) return start.format("MMM D");
+  if (!start.isSame(end, "year")) return `${start.format("MMM D, YYYY")} – ${end.format("MMM D, YYYY")}`;
+  if (start.isSame(end, "month")) return `${start.format("MMM D")} – ${end.format("D")}`;
+  return `${start.format("MMM D")} – ${end.format("MMM D")}`;
 }
 
 function dayMarksHtml(items) {
   if (!items.length) return "";
   let saved = items.some(td => savedEventsSet.has(getEventKey(td))) ? " is-saved" : "";
   return `<span class="cal-dots"><span class="cal-dot${saved}"></span></span>`;
-}
-
-function monthListHtml(month, byDay) {
-  let selection = calendarSelection(month);
-  if (selection) {
-    let keys = [...byDay.keys()].filter(key => key >= selection.start && key <= selection.end).sort();
-    let empty = selection.start === selection.end ? "No events this day" : "No events these days";
-    let body = keys.length ? agendaHtml(byDay, keys) : `<div class="cal-empty">${empty}</div>`;
-    return `<div class="cal-list"><div class="cal-focushead"><span>${escapeHtml(selectionLabel(selection))}</span><button type="button" class="cal-show-month" data-cal-show-month>Show month</button></div>${body}</div>`;
-  }
-  if (byDay.size === 0) return `<div class="cal-empty">No events this month</div>`;
-  return `<div class="cal-list">${agendaHtml(byDay)}</div>`;
 }
 
 function agendaHtml(byDay, keys) {
@@ -87,17 +158,11 @@ function agendaHtml(byDay, keys) {
   }).join("");
 }
 
-function calendarSelection(month) {
-  if (!selectedCalendarStart || !selectedCalendarEnd) return null;
-  let start = dayjs(selectedCalendarStart, "YYYY-MM-DD", true);
-  if (!start.isValid() || !start.isSame(month, "month")) return null;
-  return {start: selectedCalendarStart, end: selectedCalendarEnd};
-}
-
 function selectionLabel(selection) {
   let start = dayjs(selection.start, "YYYY-MM-DD", true);
   let end = dayjs(selection.end, "YYYY-MM-DD", true);
   if (selection.start === selection.end) return start.format("dddd, MMM D");
+  if (!start.isSame(end, "year")) return `${start.format("MMM D, YYYY")}–${end.format("MMM D, YYYY")}`;
   if (start.isSame(end, "month")) return `${start.format("MMM D")}–${end.format("D")}`;
   return `${start.format("MMM D")}–${end.format("MMM D")}`;
 }
