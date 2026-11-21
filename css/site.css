@@ -243,8 +243,9 @@ button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(
 
 #calendar .cal {text-align: left; color: var(--soft);}
 #calendar .cal-nav {display: flex; align-items: center; justify-content: center; gap: 0.25rem; max-width: 16.5rem; margin: 0 auto 0.35rem;}
-#calendar .cal-nav.is-range {flex-direction: column; gap: 0; max-width: none;}
-#calendar .cal-nav.is-range .cal-nav-title {min-width: 0; max-width: calc(100vw - 2rem); white-space: normal;}
+#calendar .cal-nav.is-range {max-width: none; width: fit-content;}
+#calendar .cal-nav.is-range .cal-nav-title {min-width: 0; max-width: calc(100vw - 5rem); white-space: normal;}
+#calendar .cal-nav-spacer {flex: 0 0 28px; width: 28px; height: 28px;}
 #calendar .cal-nav-title {display: inline-flex; align-items: center; justify-content: center; min-width: 8.25rem; margin: 0; padding: 0.2rem 0.35rem; text-align: center; font-size: 0.95rem; font-weight: 700; color: white;}
 #calendar .cal-nav-btn {display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--soft); cursor: pointer;}
 #calendar .cal-nav-btn svg {width: 14px; height: 14px;}
@@ -269,8 +270,6 @@ button.cal-day {cursor: pointer;}
 #calendar .cal-gutter-day.is-today .cal-gutter-dow,
 #calendar .cal-gutter-day.is-today .cal-gutter-num {color: white;}
 #calendar .cal-gutter-events {display: flex; flex-direction: column; gap: 0.35rem; min-width: 0;}
-#calendar .cal-show-month {border: 0; padding: 0.35rem 0; background: none; color: var(--accent); font: inherit; font-size: 0.85rem; font-weight: 650; cursor: pointer;}
-#calendar .cal-show-month:hover {text-decoration: underline;}
 #calendar .cal-event {display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 12px; background: rgb(255 255 255 / 0.03);}
 #calendar .cal-event.is-saved {border-color: rgb(245 215 110 / 0.55); box-shadow: inset 3px 0 0 #f5d76e;}
 #calendar .cal-event-main {flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 0.75rem; row-gap: 0.12rem; align-items: baseline; padding: 0.35rem 0.35rem 0.35rem 0.7rem; border-radius: 12px; color: inherit; text-decoration: none; text-align: left;}
@@ -292,7 +291,7 @@ button.cal-day {cursor: pointer;}
 #calendar .event-save-star:hover {color: #e0b000;}
 #calendar .event-save-star[aria-pressed="true"] {color: #f5d76e;}
 #calendar .event-save-star[aria-pressed="true"] svg {fill: currentColor;}
-#calendar .cal-nav-btn:focus-visible, #calendar .cal-show-month:focus-visible, #calendar .event-save-star:focus-visible, .cal .cal-day:focus-visible, .date-range-btn:focus-visible, .date-range-clear:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
+#calendar .cal-nav-btn:focus-visible, #calendar .event-save-star:focus-visible, .cal .cal-day:focus-visible, .date-range-btn:focus-visible, .date-range-clear:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 #calendar .cal-empty {text-align: center; color: var(--muted); padding: 1.25rem 0.5rem;}
 @media (max-width: 720px) {
   #calendar .cal-nav {max-width: 15.5rem;}
