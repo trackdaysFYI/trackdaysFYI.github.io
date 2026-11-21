@@ -15,6 +15,7 @@ function renderCalendarView() {
   let byDay = eventsByDay((td) => td.date.isSame(month, "month"));
   let grid = calendarGridOpen ? monthGridHtml(month, byDay) : "";
   root.innerHTML = `<div class="cal">${monthNavHtml(month)}${grid}${monthListHtml(month, byDay)}</div>`;
+  fitCalendarTitles();
 }
 
 function monthNavHtml(month) {
@@ -111,14 +112,19 @@ function eventRowHtml(td) {
   let event = selectedEventTypes.size > 1 ? [...td.eventType].map(t => ({T: "Trackday", S: "School", R: "Race"}[t] || t)).filter(Boolean).join("/") : "";
   let meta = [vehicle, event, td.subtrack, td.note].filter(Boolean).join(" · ");
   let dist = formatMiles(track.dist);
-  let hostName = org ? org.org : td.org;
-  let host = showOrg ? ` <span class="cal-event-org">hosted by ${escapeHtml(hostName)}</span>` : "";
-  let trackNick = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
+  let fullTrack = track.showNickname && track.nickname ? `${track.name} (${track.nickname})` : track.name;
+  let shortTrack = track.nickname || track.name;
+  let fullHost = org ? org.org : td.org;
+  let shortHost = (org && org.orgNickname) || td.org;
+  let titleInner = (trackLabel, hostLabel) => {
+    let host = showOrg ? ` <span class="cal-event-org">hosted by ${escapeHtml(hostLabel)}</span>` : "";
+    return `${escapeHtml(trackLabel)}${host}`;
+  };
   let metaHtml = meta ? `<span class="cal-event-meta">${escapeHtml(meta)}</span>` : "";
   let priceHtml = price ? `<span class="cal-event-price">${escapeHtml(price)}</span>` : "";
   let distHtml = dist ? `<span class="cal-event-dist">${escapeHtml(dist)}</span>` : "";
   let side = (priceHtml || distHtml) ? `<span class="cal-event-side">${priceHtml}${distHtml}</span>` : "";
-  let inner = `<span class="cal-event-title allowSelect">${escapeHtml(track.name)}${trackNick}${host}</span>${side}${metaHtml}`;
+  let inner = `<span class="cal-event-title allowSelect"><span class="cal-event-full">${titleInner(fullTrack, fullHost)}</span><span class="cal-event-short" aria-hidden="true">${titleInner(shortTrack, shortHost)}</span></span>${side}${metaHtml}`;
   let url = safeHttpUrl(td.url);
   let main = url
     ? `<a class="cal-event-main" href="${escapeHtml(url)}" target="_blank" rel="noopener">${inner}</a>`
@@ -132,6 +138,42 @@ function saveStarHtml(td) {
   let label = saved ? "Unsave Event" : "Save Event";
   return `<button type="button" class="event-save-star" title="${label}" aria-label="${label}" aria-pressed="${saved ? "true" : "false"}" data-event-key="${encodeURIComponent(key)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.8 7 19l.9-5.6-4-3.9 5.6-.8z"/></svg></button>`;
 }
+
+function fitCalendarTitles() {
+  // Keep the full names when they fit. Otherwise show the track and host nicknames.
+  document.querySelectorAll("#calendar .cal-gutter-day .cal-event-title").forEach((title) => {
+    let full = title.querySelector(".cal-event-full");
+    let short = title.querySelector(".cal-event-short");
+    if (!full || !short || title.clientWidth === 0) return;
+    title.classList.remove("is-nick");
+    let overflow = full.textContent !== short.textContent && title.scrollWidth > title.clientWidth + 1;
+    title.classList.toggle("is-nick", overflow);
+    if (overflow) {
+      full.setAttribute("aria-hidden", "true");
+      short.removeAttribute("aria-hidden");
+      title.title = full.textContent;
+    } else {
+      full.removeAttribute("aria-hidden");
+      short.setAttribute("aria-hidden", "true");
+      title.removeAttribute("title");
+    }
+  });
+}
+
+let calendarFitFrame = 0;
+function scheduleFitCalendarTitles() {
+  if (calendarFitFrame) return;
+  calendarFitFrame = requestAnimationFrame(() => {
+    calendarFitFrame = 0;
+    fitCalendarTitles();
+  });
+}
+
+let calendarRoot = document.getElementById("calendar");
+if (calendarRoot && typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(scheduleFitCalendarTitles).observe(calendarRoot);
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleFitCalendarTitles);
 
 function formatMiles(dist) {
   if (typeof dist !== "number" || !isFinite(dist)) return "";
