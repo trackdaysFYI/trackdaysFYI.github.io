@@ -1,13 +1,18 @@
-function renderCalendarView() {
-  let root = document.getElementById("calendar");
-  let month = dayjs(selectedMonth).startOf("month");
+function eventsByDay(include) {
   let byDay = new Map();
   trackdays.forEach((td) => {
-    if (!td.visibilityCalendar || !td.date.isSame(month, "month")) return;
+    if (!td.visibilityCalendar || (include && !include(td))) return;
     let key = td.date.format("YYYY-MM-DD");
     if (!byDay.has(key)) byDay.set(key, []);
     byDay.get(key).push(td);
   });
+  return byDay;
+}
+
+function renderCalendarView() {
+  let root = document.getElementById("calendar");
+  let month = dayjs(selectedMonth).startOf("month");
+  let byDay = eventsByDay((td) => td.date.isSame(month, "month"));
   root.innerHTML = `<div class="cal">${monthNavHtml(month)}${monthGridHtml(month, byDay)}${monthListHtml(month, byDay)}</div>`;
 }
 
@@ -35,7 +40,7 @@ function monthGridHtml(month, byDay) {
     let inMonth = cursor.isSame(month, "month");
     let items = byDay.get(key) || [];
     if (!inMonth) {
-      cells.push(`<span class="cal-day is-outside" aria-hidden="true"><span class="cal-day-num">${cursor.date()}</span><span class="cal-dots"></span></span>`);
+      cells.push(`<span class="cal-day is-outside" aria-hidden="true"><span class="cal-day-num">${cursor.date()}</span></span>`);
       continue;
     }
     let classes = ["cal-day"];
@@ -50,18 +55,9 @@ function monthGridHtml(month, byDay) {
 }
 
 function dayMarksHtml(items) {
-  if (!items.length) return `<span class="cal-dots"></span>`;
-  let dots = items.slice(0, 3).map((td) => {
-    let saved = savedEventsSet.has(getEventKey(td)) ? " is-saved" : "";
-    return `<span class="cal-dot${saved}"></span>`;
-  }).join("");
-  let extra = items.length - 3;
-  let more = "";
-  if (extra > 0) {
-    let hiddenSaved = items.slice(3).some(td => savedEventsSet.has(getEventKey(td)));
-    more = `<span class="cal-more${hiddenSaved ? " is-saved" : ""}">+${extra}</span>`;
-  }
-  return `<span class="cal-dots">${dots}${more}</span>`;
+  if (!items.length) return "";
+  let saved = items.some(td => savedEventsSet.has(getEventKey(td))) ? " is-saved" : "";
+  return `<span class="cal-dots"><span class="cal-dot${saved}"></span></span>`;
 }
 
 function monthListHtml(month, byDay) {
@@ -81,8 +77,9 @@ function agendaHtml(byDay, keys) {
   let todayKey = dayjs().format("YYYY-MM-DD");
   return list.map((key) => {
     let items = byDay.get(key);
+    let day = dayjs(key, "YYYY-MM-DD", true);
     let today = key === todayKey ? " is-today" : "";
-    return `<div class="cal-dayhead${today}"><span>${escapeHtml(dayjs(key, "YYYY-MM-DD", true).format("ddd, MMM D"))}</span><span class="cal-count">${items.length}</span></div>${items.map(td => eventRowHtml(td)).join("")}`;
+    return `<div class="cal-gutter-day${today}"><div class="cal-gutter"><span class="cal-gutter-dow">${escapeHtml(day.format("ddd"))}</span><span class="cal-gutter-num">${day.date()}</span></div><div class="cal-gutter-events">${items.map(td => eventRowHtml(td)).join("")}</div></div>`;
   }).join("");
 }
 
@@ -108,12 +105,12 @@ function eventRowHtml(td) {
   let price = td.price >= 0 ? "$" + td.price : "";
   let meta = [td.subtrack, td.note].filter(Boolean).join(" · ");
   let dist = formatMiles(track.dist);
-  let orgHtml = showOrg ? `<span class="cal-event-org allowSelect">${escapeHtml(td.org)}</span>` : "";
+  let title = showOrg ? `${track.nickname} · ${td.org}` : track.nickname;
   let metaHtml = meta ? `<span class="cal-event-meta">${escapeHtml(meta)}</span>` : "";
   let priceHtml = price ? `<span class="cal-event-price">${escapeHtml(price)}</span>` : "";
   let distHtml = dist ? `<span class="cal-event-dist">${escapeHtml(dist)}</span>` : "";
   let side = (priceHtml || distHtml) ? `<span class="cal-event-side">${priceHtml}${distHtml}</span>` : "";
-  let inner = `<span class="cal-event-title allowSelect">${escapeHtml(track.nickname)}</span>${side}${orgHtml}${metaHtml}`;
+  let inner = `<span class="cal-event-title allowSelect">${escapeHtml(title)}</span>${side}${metaHtml}`;
   let url = safeHttpUrl(td.url);
   let main = url
     ? `<a class="cal-event-main" href="${escapeHtml(url)}" target="_blank" rel="noopener">${inner}</a>`
