@@ -537,10 +537,9 @@ function updateTrackPopup() {
   }
   let directionsUrl = "https://www.google.com/maps?q=" + encodeURIComponent("directions " + track.name);
   let weatherUrl = "https://www.google.com/search?q=" + encodeURIComponent("weather " + track.name);
-  let videoUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(track.name + " track") + "&sp=CAISAhAB";
   let nickname = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
   let hiddenNote = numTrackdaysHidden ? `<span class="hidden-note">${hiddenEventNote(hiddenTrackdays)}</span>` : "";
-  let head = `<div class="popup-head"><b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><div class="popup-links"><a href="${escapeHtml(directionsUrl)}" target="_blank" rel="noopener" title="Directions">${directionImg}</a><a href="${escapeHtml(weatherUrl)}" target="_blank" rel="noopener" title="Weather">${weatherImg}</a><a href="${escapeHtml(videoUrl)}" target="_blank" rel="noopener" title="Videos">${videoImg}</a></div></div>`;
+  let head = `<div class="popup-head"><b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><div class="popup-links"><a href="${escapeHtml(directionsUrl)}" target="_blank" rel="noopener" title="Directions">${directionImg}</a><a href="${escapeHtml(weatherUrl)}" target="_blank" rel="noopener" title="Weather">${weatherImg}</a></div></div>`;
   let lastDate = "";
   let rows = trackdaysFiltered.map((td) => {
     let eventKey = getEventKey(td);
@@ -1021,7 +1020,6 @@ applyCalendarBounds();
 const checkeredFlagImg = `<svg xmlns="http://www.w3.org/2000/svg" fill="#000000" viewBox="0 0 24 24"><path d="M4 2v18H3v2h4v-2H6v-5h13a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H6V2H4zm4 3v2h2V5h2v2h2V5h2v2h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H8v-2H6V9h2V7H6V5h2z"/><path d="M8 9h2v2H8zm4 0h2v2h-2zm-2-2h2v2h-2zm4 0h2v2h-2z"/></svg>`;
 const directionImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m2.3 12.7 9 9c.4.4 1 .4 1.4 0l9-9a1 1 0 0 0 0-1.4l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4zM9 10h5V8l3 3-3 3v-2h-3v4H9v-6z"/></svg>`;
 const weatherImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="M7 12a5 5 0 1 0 10 0 5 5 0 0 0-10 0zm4 7h2v3h-2zm0-17h2v3h-2zm-9 9h3v2H2zm17 0h3v2h-3zM5.6 19.8l-1.4-1.4 2.1-2.2 1.5 1.5zM16.2 6.3l2.2-2 1.4 1.3-2.1 2.2zM6.3 7.8l-2-2.2 1.3-1.4 2.2 2.1zm13.5 10.6-1.4 1.4-2.2-2.1 1.5-1.5z"/></svg>`;
-const videoImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m18 7-2-2H4L2 7v10l2 2h12l2-2v-3l4 3V7l-4 3V7z"/></svg>`;
 
 const trackIconCheckered = new L.DivIcon({html: checkeredFlagImg, className: "", iconSize: [32, 32], iconAnchor: [6, 24], popupAnchor: [10, -20]});
 const trackIconRed = new L.DivIcon({html: checkeredFlagImg.replace("#000000", "#ff0000"), className: "", iconSize: [32, 32], iconAnchor: [6, 24], popupAnchor: [10, -20]});
