@@ -329,13 +329,47 @@ function downloadSavedEventsICS() {
 
 const TRACKDAYS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays";
 
+function hiddenEventNote(hidden) {
+  // Only name a filter when it is off and one of these events is actually that kind.
+  // Two reasons still read clearly. More than that collapses back to a generic line.
+  let days = selectedWeekdays();
+  let reasons = new Set();
+  let addVehicle = (td, code, label) => {
+    let types = [...td.vehicleType];
+    if (types.some(t => selectedVehicleTypes.has(t))) return;
+    if (types.includes(code) && !selectedVehicleTypes.has(code)) reasons.add(label);
+  };
+  let addEvent = (td, code, label) => {
+    let types = [...td.eventType];
+    if (types.some(t => selectedEventTypes.has(t))) return;
+    if (types.includes(code) && !selectedEventTypes.has(code)) reasons.add(label);
+  };
+  hidden.forEach((td) => {
+    addVehicle(td, "C", "car");
+    addVehicle(td, "M", "motorcycle");
+    addVehicle(td, "S", "supermoto");
+    addEvent(td, "T", "trackday");
+    addEvent(td, "S", "school");
+    addEvent(td, "R", "race");
+    if (!dateInRange(td.date)) reasons.add("date");
+    if (!days.has(td.date.format("ddd"))) reasons.add("weekday");
+    if (orgs[td.org] && !orgs[td.org].dropdownSelected) reasons.add("host");
+  });
+  let n = hidden.length;
+  let noun = n === 1 ? "event" : "events";
+  let ordered = ["car", "motorcycle", "supermoto", "trackday", "school", "race", "date", "weekday", "host"].filter(label => reasons.has(label));
+  if (ordered.length === 1) return `${n} ${ordered[0]} ${noun} hidden`;
+  if (ordered.length === 2) return `${n} ${ordered[0]} and ${ordered[1]} ${noun} hidden`;
+  return `${n} filtered ${noun} hidden`;
+}
+
 function updateTrackPopup() {
   if (lastOpenedTrack === undefined) {return;}
   let track = tracks[lastOpenedTrack];
-  let trackdaysFiltered = trackdays.filter(td => td.track === lastOpenedTrack);
-  let numTrackdaysBeforeFilter = trackdaysFiltered.length;
-  trackdaysFiltered = trackdaysFiltered.filter(td => td.visibilityMap);
-  let numTrackdaysHidden = numTrackdaysBeforeFilter - trackdaysFiltered.length;
+  let trackdaysAtTrack = trackdays.filter(td => td.track === lastOpenedTrack);
+  let trackdaysFiltered = trackdaysAtTrack.filter(td => td.visibilityMap);
+  let hiddenTrackdays = trackdaysAtTrack.filter(td => !td.visibilityMap);
+  let numTrackdaysHidden = hiddenTrackdays.length;
   let multipleVehicleTypes = (selectedVehicleTypes.size > 1);
   let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") && (selectedEventTypes.size > 1);
   const eventLabel = {"T": "Trackday", "S": "School", "R": "Race"};
@@ -364,7 +398,7 @@ function updateTrackPopup() {
   let weatherUrl = "https://www.google.com/search?q=" + encodeURIComponent("weather " + track.name);
   let videoUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(track.name + " track") + "&sp=CAISAhAB";
   let nickname = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
-  let hiddenNote = numTrackdaysHidden ? `<span class="hidden-note">${numTrackdaysHidden} Filtered Events Hidden</span>` : "";
+  let hiddenNote = numTrackdaysHidden ? `<span class="hidden-note">${hiddenEventNote(hiddenTrackdays)}</span>` : "";
   let head = `<div class="popup-head"><b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><div class="popup-links"><a href="${escapeHtml(directionsUrl)}" target="_blank" rel="noopener" title="Directions">${directionImg}</a><a href="${escapeHtml(weatherUrl)}" target="_blank" rel="noopener" title="Weather">${weatherImg}</a><a href="${escapeHtml(videoUrl)}" target="_blank" rel="noopener" title="Videos">${videoImg}</a></div></div>`;
   let lastDate = "";
   let rows = trackdaysFiltered.map((td) => {
