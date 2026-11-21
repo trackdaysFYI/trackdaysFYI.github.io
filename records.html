@@ -241,7 +241,6 @@
     function syncSubtrackVisibility() {
       let show = showSubtracks();
       subtrackFilter.hidden = !show;
-      subtrackCol.hidden = !show;
       if (!show) subtrackSelect.value = "";
       return show;
     }
@@ -456,15 +455,10 @@
       </tr>`;
     }
 
-    function classGroups(shown) {
+    function groupRows(shown, keyFor) {
       let groups = new Map();
       shown.forEach(record => {
-        let key = [
-          String(record.track || "").toUpperCase(),
-          record.subtrack || "",
-          record.vehicleType || "",
-          record.vehicleClass || "",
-        ].join("\0");
+        let key = keyFor(record);
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(record);
       });
@@ -476,15 +470,44 @@
       });
     }
 
+    function classGroups(shown) {
+      return groupRows(shown, record => [
+        String(record.track || "").toUpperCase(),
+        record.subtrack || "",
+        record.vehicleType || "",
+        record.vehicleClass || "",
+      ].join("\0"));
+    }
+
+    function subtrackGroups(shown) {
+      return groupRows(shown, record => [
+        String(record.track || "").toUpperCase(),
+        record.subtrack || "",
+      ].join("\0"));
+    }
+
     function groupLabel(key, flags) {
       let [track, subtrack, typeCode, className] = key.split("\0");
       let type = VEHICLE_LABELS[typeCode] || typeCode || "";
       let parts = [];
+      if (flags.subtrack && subtrack) parts.push(subtrack);
       if (flags.track) parts.push(trackLabel(track));
       if (flags.includeType && type) parts.push(type);
       if (className) parts.push(className);
-      if (flags.subtrack && subtrack) parts.push(subtrack);
       return parts.filter(Boolean).join(" · ");
+    }
+
+    function subtrackDividerLabel(key, flags) {
+      let [track, subtrack] = key.split("\0");
+      let parts = [];
+      if (subtrack) parts.push(subtrack);
+      if (flags.track) parts.push(trackLabel(track));
+      return parts.join(" · ");
+    }
+
+    function groupHead(label, colspan) {
+      if (!label) return "";
+      return `<tr class="group"><td colspan="${colspan}">${escapeHtml(label)}</td></tr>`;
     }
 
     function visibleColumnCount({ byClass, includeTrack, includeSubtrack }) {
@@ -501,7 +524,10 @@
       if (referenceKey && !shown.some(record => recordKey(record) === referenceKey)) referenceKey = null;
       let byClass = viewMode === "class";
       let includeTrack = syncTrackVisibility();
-      let includeSubtrack = syncSubtrackVisibility();
+      syncSubtrackVisibility();
+      // Subtrack is shown in group dividers, so the column is never needed.
+      let includeSubtrack = false;
+      subtrackCol.hidden = true;
       let includeType = !vehicleSelect.value;
       let refRecord = referenceKey && shown.find(record => recordKey(record) === referenceKey);
       let refMs = refRecord ? timeToMs(refRecord.time) : null;
@@ -515,29 +541,43 @@
         rowsEl.innerHTML = `<tr><td class="empty" colspan="${colspan}">No records match</td></tr>`;
         return;
       }
+      let multipleTracks = includeTrack && new Set(shown.map(record => String(record.track || "").toUpperCase())).size > 1;
       if (!byClass) {
-        rowsEl.innerHTML = shown.sort(compareRecords).map(record => {
-          return recordRow(record, true, includeTrack, includeSubtrack, includeType, gapFromReference(record, refMs));
+        let row = record => recordRow(record, true, includeTrack, includeSubtrack, includeType, gapFromReference(record, refMs));
+        let withSubtrack = shown.filter(record => record.subtrack);
+        if (!withSubtrack.length) {
+          rowsEl.innerHTML = shown.sort(compareRecords).map(row).join("");
+          return;
+        }
+        let sections = [];
+        let plain = shown.filter(record => !record.subtrack);
+        if (plain.length) sections.push(["", plain.sort(compareRecords)]);
+        subtrackGroups(withSubtrack).forEach(([key, rows]) => {
+          rows.sort(compareRecords);
+          sections.push([key, rows]);
+        });
+        sections.sort((a, b) => timeToMs(a[1][0].time) - timeToMs(b[1][0].time) || a[0].localeCompare(b[0]));
+        rowsEl.innerHTML = sections.map(([key, rows]) => {
+          let head = key ? groupHead(subtrackDividerLabel(key, {track: multipleTracks}), colspan) : "";
+          return head + rows.map(row).join("");
         }).join("");
         return;
       }
       let flags = {
-        track: includeTrack && new Set(shown.map(record => String(record.track || "").toUpperCase())).size > 1,
+        track: multipleTracks,
         includeType,
-        subtrack: includeSubtrack && new Set(shown.map(record => record.subtrack || "")).size > 1,
+        subtrack: true,
       };
       rowsEl.innerHTML = classGroups(shown).map(([key, rows]) => {
-        let label = groupLabel(key, flags);
-        let head = `<tr class="group"><td colspan="${colspan}">${escapeHtml(label)}</td></tr>`;
         rows.sort(compareRecords);
         let best = timeToMs(rows[0].time);
-        return head + rows.map((record, index) => {
+        return groupHead(groupLabel(key, flags), colspan) + rows.map((record, index) => {
           let gap = refMs != null
             ? gapFromReference(record, refMs)
             : (index === 0 || timeToMs(record.time) === Number.MAX_SAFE_INTEGER || best === Number.MAX_SAFE_INTEGER
               ? null
               : timeToMs(record.time) - best);
-          return recordRow(record, false, includeTrack, includeSubtrack, includeType, gap);
+          return recordRow(record, false, includeTrack, false, includeType, gap);
         }).join("");
       }).join("");
     }
