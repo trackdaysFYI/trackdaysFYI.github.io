@@ -5,6 +5,11 @@ dayjs.extend(window.dayjs_plugin_customParseFormat);
 const STORAGE_KEY_USER_SAVED_EVENTS = "trackdaysFYI:userSavedEvents";
 const STORAGE_KEY_USER_VEHICLE_TYPES = "trackdaysFYI:userVehicleTypes";
 const STORAGE_KEY_USER_EVENT_TYPES = "trackdaysFYI:userEventTypes";
+const STORAGE_KEY_EMPTY_TRACKS = "trackdaysFYI:showEmptyTracks";
+const STORAGE_KEY_WEEKDAYS = "trackdaysFYI:userWeekdays";
+const STORAGE_KEY_HOSTS = "trackdaysFYI:userHosts";
+const STORAGE_KEY_TRAVEL_RADIUS = "trackdaysFYI:travelRadius";
+const STORAGE_KEY_HOME_LOCATION = "trackdaysFYI:homeLocation";
 let savedEventsSet = (function () {
   try {
     let raw = localStorage.getItem(STORAGE_KEY_USER_SAVED_EVENTS);
@@ -18,6 +23,78 @@ let savedEventsSet = (function () {
 
 function persistSavedEvents() {
   localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+}
+
+function readStoredList(key) {
+  try {
+    let raw = localStorage.getItem(key);
+    if (raw === null) return null;
+    let arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function persistWeekdays() {
+  localStorage.setItem(STORAGE_KEY_WEEKDAYS, JSON.stringify([...selectedWeekdays()]));
+}
+
+function persistHosts() {
+  let selected = Object.values(orgs).filter((org) => org.dropdownSelected).map((org) => org.orgNickname);
+  localStorage.setItem(STORAGE_KEY_HOSTS, JSON.stringify(selected));
+}
+
+function persistRadius() {
+  localStorage.setItem(STORAGE_KEY_TRAVEL_RADIUS, String(searchRadius));
+}
+
+function storedRadiusIndex() {
+  let raw = localStorage.getItem(STORAGE_KEY_TRAVEL_RADIUS);
+  if (raw === null) return null;
+  let index = radiusValues.indexOf(Number(raw));
+  return index === -1 ? null : index;
+}
+
+function storedHomeLocation() {
+  let stored = readStoredList(STORAGE_KEY_HOME_LOCATION);
+  if (!stored || stored.length !== 2) return null;
+  let lat = Number(stored[0]);
+  let lng = Number(stored[1]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return [lat, lng];
+}
+
+function persistHomeLocation(latlng) {
+  localStorage.setItem(STORAGE_KEY_HOME_LOCATION, JSON.stringify([latlng.lat, latlng.lng]));
+}
+
+function clearStoredFilters() {
+  localStorage.removeItem(STORAGE_KEY_EMPTY_TRACKS);
+  localStorage.removeItem(STORAGE_KEY_WEEKDAYS);
+  localStorage.removeItem(STORAGE_KEY_HOSTS);
+  localStorage.removeItem(STORAGE_KEY_TRAVEL_RADIUS);
+  localStorage.removeItem(STORAGE_KEY_HOME_LOCATION);
+}
+
+function applyStoredWeekdays() {
+  let stored = readStoredList(STORAGE_KEY_WEEKDAYS);
+  if (!stored) return;
+  let selected = new Set(stored);
+  Array.from(daySelectElement.options).forEach((opt) => {
+    opt.selected = selected.has(opt.value);
+  });
+  daySelectElement.loadOptions();
+}
+
+function applyStoredHosts() {
+  let stored = readStoredList(STORAGE_KEY_HOSTS);
+  if (!stored) return;
+  let selected = new Set(stored);
+  Object.values(orgs).forEach((org) => {
+    org.dropdownSelected = selected.has(org.orgNickname);
+  });
 }
 
 function removePastSavedEvents() {
@@ -64,12 +141,16 @@ function getGPSLocation() {
 }
 
 function resetHome() {
-  homeMarker.setLatLng(locationDefault);
-  searchCircle.setLatLng(locationDefault);
-  map.setView(locationDefault, isGPSLocation ? 6 : 3);
+  let savedHome = storedHomeLocation();
+  let home = savedHome || locationDefault;
+  homeMarker.setLatLng(home);
+  searchCircle.setLatLng(home);
+  map.setView(home, savedHome || isGPSLocation ? 6 : 3);
   radiusSliderElement.max = String(radiusValues.length - 1);
-  radiusSliderElement.value = String(isGPSLocation ? radiusValues.indexOf(200) : radiusValues.length - 1);
-  new L.Popup(locationDefault, {"content": "<b>Drag Me</b>", "className": "dragMe", "autoPan": false, "closeButton": false, "offset": [0, 50]}).openOn(map);
+  let radiusIndex = storedRadiusIndex();
+  if (radiusIndex === null) radiusIndex = isGPSLocation ? radiusValues.indexOf(200) : radiusValues.length - 1;
+  radiusSliderElement.value = String(radiusIndex);
+  new L.Popup(home, {"content": "<b>Drag Me</b>", "className": "dragMe", "autoPan": false, "closeButton": false, "offset": [0, 50]}).openOn(map);
 
   updateTrackDistances();
   updateSearchRadius(radiusValues[radiusSliderElement.value]);
@@ -357,9 +438,9 @@ function hiddenEventNote(hidden) {
   let n = hidden.length;
   let noun = n === 1 ? "event" : "events";
   let ordered = ["car", "motorcycle", "supermoto", "trackday", "school", "race", "date", "weekday", "host"].filter(label => reasons.has(label));
-  if (ordered.length === 1) return `${n} ${ordered[0]} ${noun} hidden`;
-  if (ordered.length === 2) return `${n} ${ordered[0]} and ${ordered[1]} ${noun} hidden`;
-  return `${n} filtered ${noun} hidden`;
+  if (ordered.length === 1) return `${n} ${ordered[0]} ${noun} filtered`;
+  if (ordered.length === 2) return `${n} ${ordered[0]} and ${ordered[1]} ${noun} filtered`;
+  return `${n} ${noun} filtered`;
 }
 
 function syncPopupFade(scroll) {
@@ -1039,6 +1120,7 @@ function wireHomeAndRadius() {
     let latlng = homeMarker.getLatLng();
     searchCircle.setLatLng(latlng);
     searchCircleHandle.setLatLng(latlng);
+    persistHomeLocation(latlng);
     updateTrackDistances();
     refresh({calendar: true, dropdown: true});
   });
@@ -1061,6 +1143,7 @@ function wireHomeAndRadius() {
     map.getContainer().classList.remove("travel-dragging");
     map.off("pointermove", onTravelDrag);
     L.DomEvent.off(document, "pointerup", endTravelDrag);
+    persistRadius();
     refresh({calendar: true, dropdown: true});
   }
   searchCircleHandle.on("pointerdown", (e) => {
@@ -1078,6 +1161,7 @@ function wireHomeAndRadius() {
   });
 
   radiusSliderElement.addEventListener("change", () => {
+    persistRadius();
     refresh({calendar: true, dropdown: true});
   });
 
@@ -1119,10 +1203,12 @@ function wireFilterControls() {
   const vehiclePairs = [[showCarEventsButton, "C"], [showMotoEventsButton, "M"], [showSumoEventsButton, "S"]];
   const eventPairs = [[showTrackdaysToggleElement, "T"], [showSchoolsToggleElement, "S"], [showRacesToggleElement, "R"]];
 
+  applyStoredHosts();
   orgSelectElement.addEventListener("change", () => {
     Array.from(orgSelectElement.options).forEach((opt) => {
       orgs[opt.value].dropdownSelected = opt.selected;
     });
+    persistHosts();
     refresh({trackVisibility: true, popup: true, calendar: true});
   });
 
@@ -1155,16 +1241,21 @@ function wireFilterControls() {
     },
   });
 
+  applyStoredWeekdays();
   daySelectElement.addEventListener("change", () => {
+    persistWeekdays();
     refresh({trackVisibility: true, popup: true, calendar: true});
   });
 
   showTracksWithoutEventsToggleElement.addEventListener("click", () => {
     let nowEnabled = !showTracksWithoutEventsToggleElement.classList.contains("on");
     setFilterToggle(showTracksWithoutEventsToggleElement, nowEnabled);
+    localStorage.setItem(STORAGE_KEY_EMPTY_TRACKS, nowEnabled ? "1" : "0");
     refresh({trackVisibility: true});
   });
-  setFilterToggle(showTracksWithoutEventsToggleElement, showTracksWithoutEventsToggleElement.classList.contains("on"));
+  let storedEmptyTracks = localStorage.getItem(STORAGE_KEY_EMPTY_TRACKS);
+  let emptyTracksOn = storedEmptyTracks === null ? showTracksWithoutEventsToggleElement.classList.contains("on") : storedEmptyTracks === "1";
+  setFilterToggle(showTracksWithoutEventsToggleElement, emptyTracksOn);
 
   exportSavedEventsElement.addEventListener("click", () => {
     downloadSavedEventsICS();
@@ -1183,6 +1274,8 @@ function wireFilterControls() {
       savedEventsSet.clear();
       localStorage.removeItem(STORAGE_KEY_USER_SAVED_EVENTS);
     }
+
+    clearStoredFilters();
 
     enableAllToggles(vehiclePairs, selectedVehicleTypes, STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(vehicleTypeMap));
     enableAllToggles(eventPairs, selectedEventTypes, STORAGE_KEY_USER_EVENT_TYPES, Object.keys(eventTypeMap));
