@@ -13,14 +13,17 @@ function renderCalendarView() {
   let root = document.getElementById("calendar");
   let month = dayjs(selectedMonth).startOf("month");
   let byDay = eventsByDay((td) => td.date.isSame(month, "month"));
-  root.innerHTML = `<div class="cal">${monthNavHtml(month)}${monthGridHtml(month, byDay)}${monthListHtml(month, byDay)}</div>`;
+  let grid = calendarGridOpen ? monthGridHtml(month, byDay) : "";
+  root.innerHTML = `<div class="cal">${monthNavHtml(month)}${grid}${monthListHtml(month, byDay)}</div>`;
 }
 
 function monthNavHtml(month) {
   let label = escapeHtml(month.format("MMMM YYYY"));
+  let expanded = calendarGridOpen ? "true" : "false";
+  let toggleLabel = calendarGridOpen ? "Hide calendar" : "Show calendar";
   return `<div class="cal-nav">
     <button type="button" class="cal-nav-btn" data-month-delta="-1" aria-label="Previous month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <div class="cal-nav-title">${label}</div>
+    <button type="button" class="cal-nav-title" data-cal-toggle-grid aria-expanded="${expanded}" aria-label="${toggleLabel}">${label}<svg class="cal-nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 9.5 12 15l5.5-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <button type="button" class="cal-nav-btn" data-month-delta="1" aria-label="Next month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>`;
 }

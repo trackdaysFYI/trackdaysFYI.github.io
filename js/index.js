@@ -40,6 +40,7 @@ let isGPSLocation = false;
 let homeLocked = false;  // user moved the home pin or the travel radius
 let searchRadius, minDate, maxDate;
 let lastOpenedTrack, selectedMonth, selectedCalendarStart = null, selectedCalendarEnd = null;
+let calendarGridOpen = false;
 let tracks;
 const infiniteRadius = 0;
 const radiusValues = [];
@@ -577,6 +578,11 @@ document.getElementById("calendar").addEventListener("click", (event) => {
   }
   if (event.target.closest("[data-cal-show-month]")) {
     setCalendarRange(null, null);
+    updateCalendar();
+    return;
+  }
+  if (event.target.closest("[data-cal-toggle-grid]")) {
+    calendarGridOpen = !calendarGridOpen;
     updateCalendar();
     return;
   }
