@@ -1,3 +1,7 @@
+dayjs.extend(window.dayjs_plugin_relativeTime);
+dayjs.extend(window.dayjs_plugin_utc);
+dayjs.extend(window.dayjs_plugin_customParseFormat);
+
 const STORAGE_KEY_USER_SAVED_EVENTS = "trackdaysFYI:userSavedEvents";
 const STORAGE_KEY_USER_VEHICLE_TYPES = "trackdaysFYI:userVehicleTypes";
 const STORAGE_KEY_USER_EVENT_TYPES = "trackdaysFYI:userEventTypes";
