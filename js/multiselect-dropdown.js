@@ -1,6 +1,6 @@
 var style = document.createElement("style");
 style.setAttribute("id", "multiselect_dropdown_styles");
-style.innerHTML = `
+style.textContent = `
 .multiselect-dropdown{
   border-radius: 0px;
   border: solid 1px rgb(100,100,100);
@@ -32,6 +32,10 @@ style.innerHTML = `
 }
 .multiselect-dropdown-list-wrapper .multiselect-dropdown-search{
   margin-bottom:5px;
+  width: 100%;
+  box-sizing: border-box;
+  user-select: text;
+  -webkit-user-select: text;
 }
 .multiselect-dropdown-list{
   text-align: left;
@@ -40,178 +44,200 @@ style.innerHTML = `
   overflow-y:auto;
   overflow-x: hidden;
 }
-.multiselect-dropdown-list::-webkit-scrollbar {
-  width: 6px;
-}
-.multiselect-dropdown-list::-webkit-scrollbar-thumb {
-  background-color: rgb(130,130,130);
-  border-radius:3px;
-}
-
-.multiselect-dropdown-list div{
-  padding: 0px;
-}
+.multiselect-dropdown-list::-webkit-scrollbar {width: 6px;}
+.multiselect-dropdown-list::-webkit-scrollbar-thumb {background-color: rgb(130,130,130); border-radius:3px;}
+.multiselect-dropdown-list div{padding: 0px; cursor: pointer;}
 .multiselect-dropdown-list input{
   height: 1.15em;
   width: 1.15em;
   margin-right: 0.35em;
   cursor: pointer;
 }
-.multiselect-dropdown-list div:hover{
-  background-color: rgb(64,73,82);
-}
+.multiselect-dropdown-list div:hover{background-color: rgb(64,73,82);}
 .multiselect-dropdown span.maxselected {width:100%;}
 .multiselect-dropdown-all-selector {border-bottom:solid 1px #999;}
 `;
 document.head.appendChild(style);
 
+// The select stays the source of truth. loadOptions() rebuilds the rows from each option's selected flag.
 function MultiselectDropdown(options) {
-  var config = {
-    search: true,
-    height: "16rem",  // override with data-height
-    txtNothingSelected: "None Selected",  // override with data-txtNothingSelected
-    txtNothingAvailable: "None Found",  // override with data-txtNothingAvailable
-    txtSelectedSuffix: "selected",  // override with data-txtSelectedSuffix
-    txtAll: "Select All",  // override with data-txtAll
-    txtSearch: "Search",  // override with data-txtSearch
+  let config = {
+    height: "16rem",
+    txtNothingSelected: "None Selected",
+    txtNothingAvailable: "None Found",
+    txtSelectedSuffix: "selected",
+    txtAll: "Select All",
+    txtSearch: "Search",
     ...options
   };
 
-  function newEl(tag, attrs) {
-    var e = document.createElement(tag);
-    if (attrs !== undefined) Object.keys(attrs).forEach(k => {
-      if (k === "class") {
-        Array.isArray(attrs[k]) ? attrs[k].forEach(o => o !== "" ? e.classList.add(o) : 0) : (attrs[k] !== "" ? e.classList.add(attrs[k]) : 0)
-      } else if (k === "style") {
-        Object.keys(attrs[k]).forEach(ks => {
-          e.style[ks] = attrs[k][ks];
-        });
-      } else if (k === "text") {
-        attrs[k] === "" ? e.innerHTML = "&nbsp;" : e.innerText = attrs[k]
-      } else e[k] = attrs[k];
-    });
-    return e;
-  }
+  document.querySelectorAll("select[multiple]").forEach((select) => {
+    if (select.loadOptions) return;
 
+    let showSearch = select.getAttribute("multiselect-search") === "true";
+    let showAll = select.getAttribute("multiselect-select-all") === "true";
+    let suffix = select.getAttribute("data-txtSelectedSuffix") || config.txtSelectedSuffix;
+    let nothingSelected = select.getAttribute("data-txtNothingSelected") || config.txtNothingSelected;
+    let nothingAvailable = select.getAttribute("data-txtNothingAvailable") || config.txtNothingAvailable;
+    let allLabel = select.getAttribute("data-txtAll") || config.txtAll;
+    let searchLabel = select.getAttribute("data-txtSearch") || config.txtSearch;
 
-  document.querySelectorAll("select[multiple]").forEach((el, k) => {
-    var div = newEl("div", {
-      class: "multiselect-dropdown",
-    });
-    el.style.display = "none";
-    el.parentNode.insertBefore(div, el.nextSibling);
-    var listWrap = newEl("div", {
-      class: "multiselect-dropdown-list-wrapper"
-    });
-    var list = newEl("div", {
-      class: "multiselect-dropdown-list",
-      style: {height:  el.getAttribute("data-height") || config.height}
-    });
-    var search = newEl("input", {
-      class: ["multiselect-dropdown-search"].concat([config.searchInput?.class ?? "form-control"]),
-      style: {width: "100%", display: el.attributes["multiselect-search"]?.value === "true" ? "block" : "none"},
-      placeholder: el.getAttribute("data-txtSearch") || config.txtSearch
-    });
-    listWrap.appendChild(search);
-    div.appendChild(listWrap);
-    listWrap.appendChild(list);
+    let root = document.createElement("div");
+    root.className = "multiselect-dropdown";
+    select.style.display = "none";
+    select.after(root);
 
-    el.loadOptions = () => {
-      list.innerHTML = "";
-      if (el.attributes["multiselect-select-all"]?.value == "true") {
-        var allSelected = el.options.length > 0 && Array.from(el.options).every(o => o.selected);
-        var op = newEl("div", {class: "multiselect-dropdown-all-selector"})
-        var ic = newEl("input", {type: "checkbox", checked: allSelected});
-        op.appendChild(ic);
-        op.appendChild(newEl("label", {text: el.getAttribute("data-txtAll") || config.txtAll}));
+    let listWrap = document.createElement("div");
+    listWrap.className = "multiselect-dropdown-list-wrapper";
+    let list = document.createElement("div");
+    list.className = "multiselect-dropdown-list";
+    list.style.height = select.getAttribute("data-height") || config.height;
+    let search = document.createElement("input");
+    search.type = "text";
+    search.className = "multiselect-dropdown-search form-control";
+    search.placeholder = searchLabel;
+    search.autocomplete = "off";
+    search.spellcheck = false;
+    search.style.display = showSearch ? "block" : "none";
+    listWrap.append(search, list);
+    root.append(listWrap);
 
-        op.addEventListener("click", () => {
-          op.classList.toggle("checked");
-          op.querySelector("input").checked = !op.querySelector("input").checked;
-          var ch = op.querySelector("input").checked;
-          list.querySelectorAll(":scope > div:not(.multiselect-dropdown-all-selector)").forEach(i => {
-            if (i.style.display !== "none") {
-              i.querySelector("input").checked = ch;
-              i.optEl.selected = ch
-            }
-          });
-          el.dispatchEvent(new Event("change"));
-        });
-        
-        ic.addEventListener("click", (ev) => {
-          ic.checked = !ic.checked;
-        });
-        
-        el.addEventListener("change", (ev) => {
-          let itms = Array.from(list.querySelectorAll(":scope > div:not(.multiselect-dropdown-all-selector)")).filter(e => e.style.display !== "none")
-          let existsNotSelected = itms.find(i => !i.querySelector("input").checked);
-          if (ic.checked && existsNotSelected) ic.checked = false;
-          else if (ic.checked == false && existsNotSelected === undefined) ic.checked = true;
-        });
+    let rows = [];
+    let allBox = null;
 
-        list.appendChild(op);
-      }
-
-      Array.from(el.options).map(o => {
-        var op = newEl("div", {class: o.selected ? "checked" : "", optEl: o});
-        var ic = newEl("input", {type: "checkbox", checked: o.selected});
-        op.appendChild(ic);
-        op.appendChild(newEl("label", {text: o.text}));
-
-        op.addEventListener("click", () => {
-          op.classList.toggle("checked");
-          op.querySelector("input").checked = !op.querySelector("input").checked;
-          op.optEl.selected = !!!op.optEl.selected;
-          el.dispatchEvent(new Event("change"));
-        });
-        
-        ic.addEventListener("click", (ev) => {
-          ic.checked = !ic.checked;
-        });
-        
-        list.appendChild(op);
-      });
-      div.listEl = listWrap;
-
-      div.refresh = () => {
-        div.querySelectorAll("span.optext, span.placeholder").forEach(t => div.removeChild(t));
-        var sels = Array.from(el.selectedOptions);
-        if (sels.length) {
-          let txt;
-          if (sels.length == el.options.length) {
-            txt = "All " + (el.getAttribute("data-txtSelectedSuffix") || config.txtSelectedSuffix);
-          } else {
-            txt = sels.length + "/" + el.options.length + " " + (el.getAttribute("data-txtSelectedSuffix") || config.txtSelectedSuffix);
-          }
-          div.appendChild(newEl("span", {class: ["optext", "maxselected"], text: txt}));
-        } else if (el.options.length == 0) {
-          div.appendChild(newEl("span", {class: "placeholder", text: el.attributes["placeholder"]?.value ?? (el.getAttribute("data-txtNothingAvailable") || config.txtNothingAvailable)}));
-        } else {
-          div.appendChild(newEl("span", {class: "placeholder", text: el.attributes["placeholder"]?.value ?? (el.getAttribute("data-txtNothingSelected") || config.txtNothingSelected)}));
-        }
-      };
-      div.refresh();
+    function visibleRows() {
+      return rows.filter((row) => row.style.display !== "none");
     }
-    el.loadOptions();
 
-    search.addEventListener("input", () => {
-      list.querySelectorAll(":scope div:not(.multiselect-dropdown-all-selector)").forEach(d => {
-        var txt = d.querySelector("label").innerText.toUpperCase();
-        d.style.display = txt.includes(search.value.toUpperCase()) ? "block" : "none";
-      });
-    });
+    function paint(row) {
+      row.classList.toggle("checked", row.option.selected);
+      row.querySelector("input").checked = row.option.selected;
+    }
 
-    div.addEventListener("click", () => {
-      div.listEl.style.display = "block";
-      search.focus();
-      search.select();
-    });
+    function syncAll() {
+      if (!allBox) return;
+      let visible = visibleRows();
+      allBox.checked = visible.length > 0 && visible.every((row) => row.option.selected);
+    }
 
-    document.addEventListener("click", function(event) {
-      if (!div.contains(event.target)) {
-        listWrap.style.display = "none";
-        div.refresh();
+    function summary() {
+      root.querySelectorAll("span.optext, span.placeholder").forEach((node) => node.remove());
+      let selected = Array.from(select.selectedOptions);
+      let span = document.createElement("span");
+      if (selected.length) {
+        span.className = "optext maxselected";
+        span.textContent = selected.length === select.options.length
+          ? "All " + suffix
+          : selected.length + "/" + select.options.length + " " + suffix;
+      } else {
+        span.className = "placeholder";
+        let placeholder = select.getAttribute("placeholder");
+        span.textContent = placeholder !== null
+          ? placeholder
+          : (select.options.length === 0 ? nothingAvailable : nothingSelected);
       }
+      root.append(span);
+    }
+
+    function applySearch() {
+      let query = search.value.toUpperCase();
+      rows.forEach((row) => {
+        let text = row.querySelector("label").textContent.toUpperCase();
+        row.style.display = text.includes(query) ? "block" : "none";
+      });
+      syncAll();
+    }
+
+    function emit() {
+      syncAll();
+      summary();
+      select.dispatchEvent(new Event("change"));
+    }
+
+    function loadOptions() {
+      list.replaceChildren();
+      rows = [];
+      allBox = null;
+      if (showAll) {
+        let allRow = document.createElement("div");
+        allRow.className = "multiselect-dropdown-all-selector";
+        allBox = document.createElement("input");
+        allBox.type = "checkbox";
+        let allText = document.createElement("label");
+        allText.textContent = allLabel;
+        allRow.append(allBox, allText);
+        allRow.addEventListener("click", () => {
+          let visible = visibleRows();
+          if (!visible.length) {
+            syncAll();
+            return;
+          }
+          let selectAll = visible.some((row) => !row.option.selected);
+          visible.forEach((row) => {
+            row.option.selected = selectAll;
+            paint(row);
+          });
+          emit();
+        });
+        list.append(allRow);
+      }
+      Array.from(select.options).forEach((option) => {
+        let row = document.createElement("div");
+        row.option = option;
+        let box = document.createElement("input");
+        box.type = "checkbox";
+        let text = document.createElement("label");
+        text.textContent = option.text;
+        row.append(box, text);
+        paint(row);
+        row.addEventListener("click", () => {
+          row.option.selected = !row.option.selected;
+          paint(row);
+          emit();
+        });
+        list.append(row);
+        rows.push(row);
+      });
+      applySearch();
+      summary();
+    }
+
+    select.loadOptions = loadOptions;
+
+    function isOpen() {
+      return listWrap.style.display === "block";
+    }
+
+    function close() {
+      if (!isOpen()) return;
+      listWrap.style.display = "none";
+      summary();
+    }
+
+    function open() {
+      document.querySelectorAll(".multiselect-dropdown-list-wrapper").forEach((menu) => {
+        if (menu !== listWrap) menu.style.display = "none";
+      });
+      listWrap.style.display = "block";
+      if (showSearch) {
+        search.focus();
+        search.select();
+      }
+    }
+
+    search.addEventListener("input", applySearch);
+    root.addEventListener("click", (event) => {
+      if (listWrap.contains(event.target)) return;
+      if (isOpen()) close();
+      else open();
     });
+    document.addEventListener("click", (event) => {
+      if (!root.contains(event.target)) close();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") close();
+    });
+
+    loadOptions();
   });
 }
