@@ -243,6 +243,8 @@ button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(
 
 #calendar .cal {text-align: left; color: var(--soft);}
 #calendar .cal-nav {display: flex; align-items: center; justify-content: center; gap: 0.25rem; max-width: 16.5rem; margin: 0 auto 0.35rem;}
+#calendar .cal-nav.is-range {flex-direction: column; gap: 0; max-width: none;}
+#calendar .cal-nav.is-range .cal-nav-title {min-width: 0; max-width: calc(100vw - 2rem); white-space: normal;}
 #calendar .cal-nav-title {display: inline-flex; align-items: center; justify-content: center; min-width: 8.25rem; margin: 0; padding: 0.2rem 0.35rem; text-align: center; font-size: 0.95rem; font-weight: 700; color: white;}
 #calendar .cal-nav-btn {display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--soft); cursor: pointer;}
 #calendar .cal-nav-btn svg {width: 14px; height: 14px;}
@@ -266,7 +268,6 @@ button.cal-day {cursor: pointer;}
 .cal .cal-day.is-selected .cal-dot {background: white;}
 .cal .cal-day.is-selected .cal-dot.is-saved {background: #f5d76e;}
 #calendar .cal-list {display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.75rem;}
-#calendar .cal-focushead {display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.15rem; font-weight: 700; color: white;}
 #calendar .cal-gutter-day {display: grid; grid-template-columns: 3.25rem minmax(0, 1fr); gap: 0.45rem; align-items: start;}
 #calendar .cal-gutter {display: flex; flex-direction: column; align-items: center; padding-top: 0.45rem; line-height: 1.05;}
 #calendar .cal-gutter-dow {font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);}

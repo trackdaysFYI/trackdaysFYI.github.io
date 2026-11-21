@@ -21,8 +21,8 @@ function renderCalendarView() {
     });
     let keys = [...byDay.keys()].sort();
     let empty = range.start === range.end ? "No events this day" : "No events these days";
-    let body = keys.length ? agendaHtml(byDay, keys) : `<div class="cal-empty">${empty}</div>`;
-    root.innerHTML = `<div class="cal"><div class="cal-list"><div class="cal-focushead"><span>${escapeHtml(selectionLabel(range))}</span><button type="button" class="cal-show-month" data-cal-show-month>Clear Range</button></div>${body}</div></div>`;
+    let list = keys.length ? `<div class="cal-list">${agendaHtml(byDay, keys)}</div>` : `<div class="cal-empty">${empty}</div>`;
+    root.innerHTML = `<div class="cal"><div class="cal-nav is-range"><span class="cal-nav-title">${escapeHtml(selectionLabel(range))}</span><button type="button" class="cal-show-month" data-cal-show-month>Clear Range</button></div>${list}</div>`;
   } else {
     let month = dayjs(selectedMonth).startOf("month");
     let byDay = eventsByDay((td) => td.date.isSame(month, "month"));
@@ -161,10 +161,10 @@ function agendaHtml(byDay, keys) {
 function selectionLabel(selection) {
   let start = dayjs(selection.start, "YYYY-MM-DD", true);
   let end = dayjs(selection.end, "YYYY-MM-DD", true);
-  if (selection.start === selection.end) return start.format("dddd, MMM D");
-  if (!start.isSame(end, "year")) return `${start.format("MMM D, YYYY")}–${end.format("MMM D, YYYY")}`;
-  if (start.isSame(end, "month")) return `${start.format("MMM D")}–${end.format("D")}`;
-  return `${start.format("MMM D")}–${end.format("MMM D")}`;
+  if (selection.start === selection.end) return start.format("MMMM D, YYYY");
+  if (!start.isSame(end, "year")) return `${start.format("MMMM D, YYYY")} – ${end.format("MMMM D, YYYY")}`;
+  if (start.isSame(end, "month")) return `${start.format("MMMM D")}–${end.format("D, YYYY")}`;
+  return `${start.format("MMMM D")} – ${end.format("MMMM D, YYYY")}`;
 }
 
 function eventRowHtml(td) {
