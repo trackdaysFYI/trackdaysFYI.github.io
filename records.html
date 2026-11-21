@@ -164,6 +164,8 @@
     const VEHICLE_LABELS = {C: "Car", M: "Motorcycle"};
 
     let records = [];
+    let allRecordsCache = null;
+    let recordsLoadId = 0;
     let trackNames = {};
     let trackSubtracks = {};
     let viewMode = "class";
@@ -259,7 +261,10 @@
 
     function fillTrackSelect() {
       let current = trackKey() || (new URLSearchParams(location.search).get("track") || "").trim().toUpperCase();
-      let keys = [...new Set(records.map(record => String(record.track).toUpperCase()))];
+      let keys = [...new Set([
+        ...Object.keys(trackNames),
+        ...records.map(record => String(record.track).toUpperCase()),
+      ])];
       if (current && !keys.includes(current)) keys.push(current);
       keys.sort((a, b) => trackLabel(a).localeCompare(trackLabel(b)) || a.localeCompare(b));
       let options = keys.map(key => `<option value="${escapeHtml(key)}">${escapeHtml(trackLabel(key))}</option>`).join("");
@@ -554,7 +559,47 @@
       renderRows();
     }
 
-    trackSelect.addEventListener("change", () => onFilterChange({ refillDependents: true }));
+    async function fetchLapRecords(track) {
+      let url = track
+        ? RECORDS_URL + "?track=" + encodeURIComponent(track)
+        : RECORDS_URL;
+      let res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      let data = await res.json();
+      if (!Array.isArray(data)) throw new Error("Unable to load lap records.");
+      return data;
+    }
+
+    async function loadRecordsForSelection(track) {
+      let loadId = ++recordsLoadId;
+      if (allRecordsCache) {
+        records = track
+          ? allRecordsCache.filter(record => String(record.track).toUpperCase() === track)
+          : allRecordsCache;
+        return false;
+      }
+      showLoading();
+      let data = await fetchLapRecords(track || "");
+      if (loadId !== recordsLoadId) return false;
+      if (!track) allRecordsCache = data;
+      records = data;
+      return true;
+    }
+
+    async function onTrackFilterChange() {
+      try {
+        let fetched = await loadRecordsForSelection(trackKey());
+        onFilterChange({ refillDependents: true });
+        if (fetched) showResults();
+      } catch (err) {
+        records = [];
+        showError(err && err.message && err.message.startsWith("HTTP ")
+          ? err.message
+          : "Unable to load lap records.");
+      }
+    }
+
+    trackSelect.addEventListener("change", () => { onTrackFilterChange(); });
     vehicleSelect.addEventListener("change", () => onFilterChange({ refillDependents: true }));
     classSelect.addEventListener("change", () => onFilterChange());
     subtrackSelect.addEventListener("change", () => onFilterChange());
@@ -844,6 +889,13 @@
       close: closeRecordForm,
     });
 
+    function showLoading() {
+      loadingEl.classList.remove("err");
+      loadingEl.querySelector("p").textContent = "Loading lap records...";
+      loadingEl.hidden = false;
+      contentEl.hidden = true;
+    }
+
     function showResults() {
       loadingEl.hidden = true;
       contentEl.hidden = false;
@@ -855,23 +907,13 @@
       rowsEl.innerHTML = "";
       loadingEl.classList.add("err");
       loadingEl.querySelector("p").textContent = message;
+      loadingEl.hidden = false;
+      contentEl.hidden = true;
     }
 
     async function loadPage() {
-      let recordsResult;
-      let tracksResult;
       try {
-        recordsResult = await fetch(RECORDS_URL);
-        if (!recordsResult.ok) throw new Error("HTTP " + recordsResult.status);
-        records = await recordsResult.json();
-        if (!Array.isArray(records)) throw new Error("Unable to load lap records.");
-      } catch (err) {
-        records = [];
-        showError(err && err.message && err.message.startsWith("HTTP ") ? err.message : "Unable to load lap records.");
-        return;
-      }
-      try {
-        tracksResult = await fetch(TRACKS_URL);
+        let tracksResult = await fetch(TRACKS_URL);
         if (tracksResult.ok) {
           let data = await tracksResult.json();
           (data.tracks || []).forEach(track => {
@@ -886,6 +928,15 @@
       } catch (err) {
         trackNames = {};
         trackSubtracks = {};
+      }
+
+      let initialTrack = (new URLSearchParams(location.search).get("track") || "").trim().toUpperCase();
+      try {
+        await loadRecordsForSelection(initialTrack);
+      } catch (err) {
+        records = [];
+        showError(err && err.message && err.message.startsWith("HTTP ") ? err.message : "Unable to load lap records.");
+        return;
       }
       render();
       showResults();
