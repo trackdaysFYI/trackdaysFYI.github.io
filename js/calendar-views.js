@@ -101,16 +101,21 @@ function selectionLabel(selection) {
 function eventRowHtml(td) {
   let track = tracks[td.track];
   let saved = savedEventsSet.has(getEventKey(td));
+  let org = orgs[td.org];
   let showOrg = track.nickname !== td.org;
   let price = td.price >= 0 ? "$" + td.price : "";
-  let meta = [td.subtrack, td.note].filter(Boolean).join(" · ");
+  let vehicle = selectedVehicleTypes.size > 1 ? [...td.vehicleType].map(t => vehicleTypeMap[t]).filter(Boolean).join("/") : "";
+  let event = selectedEventTypes.size > 1 ? [...td.eventType].map(t => ({T: "Trackday", S: "School", R: "Race"}[t] || t)).filter(Boolean).join("/") : "";
+  let meta = [vehicle, event, td.subtrack, td.note].filter(Boolean).join(" · ");
   let dist = formatMiles(track.dist);
-  let title = showOrg ? `${track.nickname} · ${td.org}` : track.nickname;
+  let hostName = org ? org.org : td.org;
+  let host = showOrg ? ` <span class="cal-event-org">hosted by ${escapeHtml(hostName)}</span>` : "";
+  let trackNick = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
   let metaHtml = meta ? `<span class="cal-event-meta">${escapeHtml(meta)}</span>` : "";
   let priceHtml = price ? `<span class="cal-event-price">${escapeHtml(price)}</span>` : "";
   let distHtml = dist ? `<span class="cal-event-dist">${escapeHtml(dist)}</span>` : "";
   let side = (priceHtml || distHtml) ? `<span class="cal-event-side">${priceHtml}${distHtml}</span>` : "";
-  let inner = `<span class="cal-event-title allowSelect">${escapeHtml(title)}</span>${side}${metaHtml}`;
+  let inner = `<span class="cal-event-title allowSelect">${escapeHtml(track.name)}${trackNick}${host}</span>${side}${metaHtml}`;
   let url = safeHttpUrl(td.url);
   let main = url
     ? `<a class="cal-event-main" href="${escapeHtml(url)}" target="_blank" rel="noopener">${inner}</a>`

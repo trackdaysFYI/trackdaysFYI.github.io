@@ -276,9 +276,9 @@ button.cal-day {cursor: pointer;}
 #calendar a.cal-event-main:hover {background: rgb(255 255 255 / 0.04);}
 #calendar .cal-event-title {font-weight: 700; color: white;}
 #calendar .cal-event.is-saved .cal-event-title {color: #f5d76e;}
-#calendar .cal-event-org {grid-column: 1 / -1; font-size: 0.88rem; color: var(--soft);}
+#calendar .cal-event-org {font-size: 0.78rem; font-weight: 500; color: var(--muted);}
 #calendar .cal-event-meta {grid-column: 1 / -1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 0.82rem; color: var(--muted); white-space: nowrap;}
-#calendar .cal-event-title, #calendar .cal-event-org {min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+#calendar .cal-event-title {min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
 #calendar .cal-event-side {display: flex; flex-direction: row; align-items: baseline; gap: 0.45rem; white-space: nowrap;}
 #calendar .cal-event-price {font-weight: 700; color: #8fd0a4;}
 #calendar .cal-event-dist {font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums;}
