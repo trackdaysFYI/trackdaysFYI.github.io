@@ -91,9 +91,9 @@ svg, header img {vertical-align: middle;}
 .popup-timeline .tl-dot {width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--panel-bg);}
 .popup-timeline .tl-item.is-saved .tl-dot {background: var(--panel-saved);}
 .popup-timeline .tl-dow {flex: 0 0 2.8em; width: 2.8em; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--accent);}
-.popup-timeline .tl-host {flex: 0 1 auto; max-width: 16em; font-weight: 650; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
-.popup-timeline .tl-price {margin-left: auto; font-weight: 700; color: var(--panel-ok); font-size: 12px; white-space: nowrap;}
-.popup-timeline .tl-meta {flex: 1 1 auto; min-width: 0; font-size: 12px; color: var(--panel-muted); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+.popup-timeline .tl-host {flex: 1 0 auto; max-width: 100%; font-weight: 650; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+.popup-timeline .tl-price {flex: 0 0 auto; margin-left: auto; font-weight: 700; color: var(--panel-ok); font-size: 12px; white-space: nowrap;}
+.popup-timeline .tl-meta {flex: 0 1 auto; min-width: 0; font-size: 12px; color: var(--panel-muted); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 .popup-timeline .event-save-star {appearance: none; box-sizing: border-box; width: 22px; height: 22px; margin: 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--panel-scroll); cursor: pointer; display: grid; place-items: center; line-height: 0;}
 .popup-timeline .event-save-star:hover {color: var(--panel-saved-hover); background: var(--panel-saved-soft);}
 .popup-timeline .event-save-star[aria-pressed="true"] {color: var(--panel-saved);}

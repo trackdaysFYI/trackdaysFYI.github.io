@@ -389,10 +389,33 @@ function fitPopupToMap(popup) {
   popup.options.minWidth = Math.min(240, popup.options.maxWidth);
 }
 
+// Prefer a full host name: drop meta, then price, then weekday, and put back anything that still fits.
+function fitPopupHosts(popup) {
+  let root = popup.getElement();
+  if (!root) return;
+  root.querySelectorAll(".popup-timeline .tl-copy").forEach((copy) => {
+    let host = copy.querySelector(".tl-host");
+    if (!host) return;
+    let extras = [copy.querySelector(".tl-meta"), copy.querySelector(".tl-price"), copy.querySelector(".tl-dow")].filter(Boolean);
+    let cramped = () => copy.scrollWidth > copy.clientWidth + 1 || host.scrollWidth > host.clientWidth + 1;
+    extras.forEach((el) => { el.hidden = false; });
+    for (let el of extras) {
+      if (!cramped()) break;
+      el.hidden = true;
+    }
+    for (let i = extras.length - 1; i >= 0; i--) {
+      if (!extras[i].hidden) continue;
+      extras[i].hidden = false;
+      if (cramped()) extras[i].hidden = true;
+    }
+  });
+}
+
 function syncOpenPopup(popup) {
   if (!popup || !popup.isOpen()) return;
   fitPopupToMap(popup);
   popup.update();
+  fitPopupHosts(popup);
   bindPopupFade(popup);
   let scroll = popup.getElement()?.querySelector(".popup-timeline .tl-scroll");
   if (scroll) syncPopupFade(scroll);
