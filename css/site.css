@@ -73,11 +73,14 @@ svg, header img {vertical-align: middle;}
 .popup-timeline .popup-links {display: flex; gap: 2px; margin: 0; flex: 0 0 auto;}
 .popup-timeline .popup-links a {display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px;}
 .popup-timeline .popup-links svg {display: block; width: 16px; height: 16px;}
-.popup-timeline .tl-scroll {flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--panel-scroll) transparent;}
+.popup-timeline .tl-scroll-wrap {position: relative;}
+.popup-timeline .tl-scroll {flex: 1 1 auto; min-height: 0; max-height: 180px; overflow-x: hidden; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--panel-scroll) transparent;}
+.popup-timeline .tl-fade {position: absolute; left: 0; right: 4px; bottom: 0; height: 1.25rem; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--panel-bg));}
+.popup-timeline .tl-foot {flex: 0 0 auto;}
 .popup-timeline a {color: inherit;}
 .popup-timeline .tl {position: relative; display: flex; flex-direction: column;}
 .popup-timeline .tl::before {content: ""; position: absolute; left: 60px; top: 8px; bottom: 8px; width: 2px; background: var(--panel-rail); border-radius: 1px;}
-.popup-timeline .tl-item {display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 6px; align-items: center; padding: 1px 2px 1px 0;}
+.popup-timeline .tl-item {box-sizing: border-box; height: 24px; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 6px; align-items: center; padding: 1px 2px 1px 0;}
 .popup-timeline .tl-row-link {display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 6px; align-items: center; min-width: 0; border-radius: 4px; text-decoration: none; color: inherit;}
 .popup-timeline .tl-copy {display: flex; align-items: center; gap: 5px; min-width: 0; padding: 1px 6px; border-radius: 4px; background: var(--panel-surface); line-height: 1.3;}
 .popup-timeline a.tl-row-link:hover {background: var(--panel-hover);}

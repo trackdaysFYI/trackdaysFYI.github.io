@@ -363,6 +363,35 @@ function hiddenEventNote(hidden) {
   return `${n} filtered ${noun} hidden`;
 }
 
+function syncPopupFade(scroll) {
+  let fade = scroll.parentElement && scroll.parentElement.querySelector(".tl-fade");
+  if (!fade) return;
+  let overflow = scroll.scrollHeight - scroll.clientHeight > 1;
+  let atEnd = scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 1;
+  fade.hidden = !overflow || atEnd;
+}
+
+function bindPopupFade(popup) {
+  let root = popup.getElement();
+  if (!root || root._fadeBound) return;
+  root._fadeBound = true;
+  // Scroll events do not bubble, and Leaflet rebuilds the popup body on update.
+  root.addEventListener("scroll", (ev) => {
+    if (ev.target && ev.target.classList && ev.target.classList.contains("tl-scroll")) syncPopupFade(ev.target);
+  }, true);
+}
+
+function syncOpenPopup(popup) {
+  if (!popup || !popup.isOpen()) return;
+  bindPopupFade(popup);
+  let scroll = popup.getElement()?.querySelector(".popup-timeline .tl-scroll");
+  if (scroll) syncPopupFade(scroll);
+}
+
+function popupList(inner, foot) {
+  return `<div class="tl-scroll-wrap"><div class="tl-scroll">${inner}</div><div class="tl-fade" hidden></div></div><div class="tl-foot">${foot}</div>`;
+}
+
 function updateTrackPopup() {
   if (lastOpenedTrack === undefined) {return;}
   let track = tracks[lastOpenedTrack];
@@ -414,11 +443,12 @@ function updateTrackPopup() {
   }).join("");
   let list = trackdaysFiltered.length === 0 ? `<div class="empty">No Events Found</div>` : `<div class="tl">${rows}</div>`;
   let report = `<button type="button" class="missing-event-link" data-popup-action="missing-event">Missing an event?</button>`;
-  let eventsBody = list + hiddenNote + report;
+  let eventsBody = popupList(list, hiddenNote + report);
   let tabs = `<div class="rec-tabs"><button type="button" class="${recordsUi.open ? "" : "on"}" data-popup-action="records-tab" data-open="0">Events</button><button type="button" class="${recordsUi.open ? "on" : ""}" data-popup-action="records-tab" data-open="1">Records</button></div>`;
   let body = recordsUi.open ? recordsListHtml(lastOpenedTrack) : eventsBody;
   let popup = mapMarkers[lastOpenedTrack].getPopup();
-  popup.setContent(`<div class="popup popup-timeline">${head}${tabs}<div class="tl-scroll">${body}</div></div>`);
+  popup.setContent(`<div class="popup popup-timeline">${head}${tabs}${body}</div>`);
+  if (popup.isOpen()) syncOpenPopup(popup);
 }
 
 function updateCalendar() {
@@ -766,7 +796,9 @@ function createTrackMarkers() {
         popupEl.addEventListener("click", (ev) => ev.stopPropagation());
       }
       requestAnimationFrame(() => {
-        if (e.popup.isOpen()) e.popup.update();
+        if (!e.popup.isOpen()) return;
+        e.popup.update();
+        syncOpenPopup(e.popup);
       });
     });
   });
