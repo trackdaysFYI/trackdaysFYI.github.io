@@ -255,7 +255,7 @@ function recordsListHtml(trackKey) {
       let rank = 0;
       let body = rows.map(r => {
         let vehicleClass = recordClassName(r);
-        let vehicleModel = [r.vehicleYear, r.vehicleMake, r.vehicleModel].filter(v => v != null && v !== "").join(" ");
+        let vehicleModel = [r.vehicleMake, r.vehicleModel].filter(v => v != null && v !== "").join(" ");
         if (vehicleClass !== lastClass) {
           lastClass = vehicleClass;
           rank = 1;
@@ -263,11 +263,12 @@ function recordsListHtml(trackKey) {
           rank += 1;
         }
         let evidenceUrl = safeHttpUrl(r.evidence);
-        let evidence = evidenceUrl ? `<a class="rec-evidence" href="${escapeHtml(evidenceUrl)}" target="_blank" title="Evidence">▶</a>` : `<span></span>`;
-        let meta = [r.holder, vehicleModel].filter(Boolean).map(escapeHtml).join(" · ");
+        let evidence = evidenceUrl ? `<a class="rec-evidence" href="${escapeHtml(evidenceUrl)}" target="_blank" title="Evidence">▶</a>` : `<span class="rec-evidence"></span>`;
+        let holder = r.holder ? `<span class="rec-holder">${escapeHtml(r.holder)}</span>` : `<span class="rec-holder"></span>`;
+        let vehicle = vehicleModel ? `<span class="rec-vehicle">${escapeHtml(vehicleModel)}</span>` : `<span class="rec-vehicle"></span>`;
         let classLabel = rank === 1 ? escapeHtml(vehicleClass) : "";
         let follow = rank > 1 ? " rec-follow" : "";
-        return `<div class="rec-row${follow}"><span class="rec-class">${classLabel}</span><span class="rec-rank">${rank}</span><span class="rec-meta">${meta}</span><span class="rec-time">${escapeHtml(formatLapTime(r.time))}</span>${evidence}</div>`;
+        return `<div class="rec-row${follow}"><span class="rec-class">${classLabel}</span><span class="rec-copy"><span class="rec-rank">${rank}</span>${holder}${vehicle}<span class="rec-time">${escapeHtml(formatLapTime(r.time))}</span>${evidence}</span></div>`;
       }).join("");
       return heading + body;
     }).join("");
