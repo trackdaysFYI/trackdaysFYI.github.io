@@ -42,9 +42,12 @@ html {overflow-x: clip;}
 body {
   margin: 0;  /* no remove top/bottom page margin */
   overflow-x: clip;
-  background:
-    radial-gradient(ellipse 70% 40% at 50% -10%, var(--accent-glow), transparent 60%),
-    var(--bg);
+  /* Size the glow to the viewport. A percentage of the body stretches when the page gets taller. */
+  background-color: var(--bg);
+  background-image: radial-gradient(ellipse 70% 40% at 50% -10%, var(--accent-glow), transparent 60%);
+  background-repeat: no-repeat;
+  background-size: 100% 100vh;
+  background-position: top center;
 }
 hr {margin: 1rem 0; border: 0; border-top: 1px solid; opacity:0.25;}  /* divider */
 h1, h5 {margin-top: 0; margin-bottom: 0; font-weight: 500;}
