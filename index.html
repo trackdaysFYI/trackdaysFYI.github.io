@@ -274,6 +274,7 @@
 
     let locationDefault = [39.50, -98.35];  // Central US or GPS location
     let isGPSLocation = false;
+    let homeLocked = false;  // user moved the home pin or the travel radius
     let searchRadius, minDate, maxDate;
     let lastOpenedTrack, selectedMonth;
     let tracks;
@@ -292,9 +293,11 @@
       function setGPSLocation(position) {
         locationDefault = [position.coords.latitude, position.coords.longitude];
         isGPSLocation = true;
-        if (typeof tracks !== "undefined") {resetHome();}
+        // panning, filters, and the calendar can be reset; a moved pin or radius cannot
+        if (tracks && !homeLocked) resetHome();
       }
-      navigator.geolocation?.getCurrentPosition(setGPSLocation);
+      // timeout starts after the permission prompt, so a hung lookup cannot arrive much later
+      navigator.geolocation?.getCurrentPosition(setGPSLocation, () => {}, {timeout: 10000});
     }
 
     function resetHome() {
@@ -890,6 +893,7 @@
       let homeDragFrame = 0;
       let homeDragTick = 0;
       homeMarker.on("dragstart", () => {
+        homeLocked = true;
         map.closePopup();  // close "Drag Me" popup
         homeDragTick = 0;
         if (homeDragFrame) cancelAnimationFrame(homeDragFrame);
@@ -918,6 +922,7 @@
         let miles = milesBetween(center.lat, center.lng, e.latlng.lat, e.latlng.lng);
         let snapped = nearestTravelRadius(miles);
         if (snapped === searchRadius) return;
+        homeLocked = true;
         radiusSliderElement.value = String(radiusValues.indexOf(snapped));
         updateSearchRadius(snapped);
       }
@@ -940,6 +945,7 @@
       });
 
       radiusSliderElement.addEventListener("input", () => {
+        homeLocked = true;
         updateSearchRadius(radiusValues[radiusSliderElement.value]);
       });
 
