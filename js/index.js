@@ -872,4 +872,5 @@ async function visualizeData() {
     alert("Error: unable to retrieve data");
   }
 }
+getGPSLocation();
 visualizeData();

@@ -35,7 +35,7 @@
   </script>
 </head>
 
-<body onLoad="getGPSLocation();">
+<body>
   <div id="fotosort-ad" class="site-ad" hidden>
     <span>Are you a trackday or race photographer? Try out <a href="https://fotosort.com/" target="_blank" rel="noopener">FotoSort.com</a></span>
     <button id="close-ad" class="site-ad-close" type="button" title="Don't show again">&times;</button>
@@ -56,12 +56,12 @@
       <div id="eventInfoText" hidden>
         <span>Tracking <span id="numTrackdays"></span> events from <span id="numOrgs"></span> organizers.</span>
         <br>
-        <span>Last sync was <b><a id="lastSyncMessage" href="javascript:void(0);"></a></b>.</span>
+        <span>Last sync was <b><button id="lastSyncMessage" type="button"></button></b>.</span>
       </div>
       <div id="eventInfoSpinner">
         <span>Loading events...</span>
         <br>
-        <img src="loading.gif">
+        <img src="loading.gif" alt="">
       </div>
     </div>
 
@@ -147,7 +147,7 @@
 
   <footer class="gray">
     <p>No guarantee of event availability, pricing accuracy, or completeness. Contact hosts for up-to-date information.</p>
-    <p>To report inaccuracies or bugs: <b class="allowSelect">trackdaysFYI@gmail.com</b> · <a class="suggest-link" href="javascript:void(0);" data-suggest-open="track">Report a missing track or event</a></p>
+    <p>To report inaccuracies or bugs: <b class="allowSelect">trackdaysFYI@gmail.com</b> · <button class="suggest-link" type="button" data-suggest-open="track">Report a missing track or event</button></p>
     <p>© 2023-2026 Trackdays.fyi</p>
   </footer>
 
