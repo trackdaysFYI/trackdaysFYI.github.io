@@ -192,8 +192,8 @@ button.colored.on {
   background-color: var(--accent-soft);
 }
 
-.filter-label {font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);}
-.segmented {display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%;}
+.filter-label {font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); text-align: center;}
+.segmented {display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 100%;}
 .segmented button.colored {width: auto; flex: 0 0 auto; white-space: nowrap; padding: 0.35rem 0.8rem; line-height: 1.35; margin: 0; border-radius: 999px;}
 button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .btn-action {background: transparent; color: var(--soft); border: 1px solid var(--line); padding: 0.4rem 0.75rem; font: inherit; cursor: pointer;}
@@ -208,9 +208,9 @@ button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(
 .filter-bar input[type=date]::-webkit-datetime-edit {padding: 0;}
 .filter-bar input[type=date]::-webkit-calendar-picker-indicator {cursor: pointer; opacity: 0.8; margin: 0; padding: 0;}
 .filter-bar .btn-action {border-radius: 999px; padding: 0.35rem 0.8rem; line-height: 1.35;}
-.toggle-row, .secondary-row {display: flex; flex-wrap: wrap; align-items: flex-end; max-width: 100%;}
+.toggle-row, .secondary-row {display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; max-width: 100%;}
 .toggle-row {gap: 14px 2.75rem;}
-.secondary-row {gap: 14px 0.85rem; align-items: flex-start;}
+.secondary-row {gap: 14px 0.85rem;}
 .filter-group {display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 0 1 auto; max-width: 100%;}
 .host-group {width: 14.5rem; max-width: 100%;}
 .host-group .multiselect-dropdown,
@@ -223,8 +223,10 @@ button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(
 .slider-row {display: grid; grid-template-columns: auto minmax(0, 5.25rem) auto; align-items: center; gap: 0.5rem; box-sizing: border-box; max-width: 100%; min-height: 34px; border: 1px solid var(--line); border-radius: 999px; padding: 0 0.75rem; color: var(--soft);}
 .slider-row input[type=range] {width: 100%; margin: 0; opacity: 1;}
 .slider-value {display: inline-block; min-width: 8ch; white-space: nowrap; font-variant-numeric: tabular-nums;}
-.date-row {display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.35rem; max-width: 100%;}
+.date-row {display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.35rem; max-width: 100%;}
 .date-row > span {line-height: 1; color: var(--muted);}
+
+.filter-group:has(#resetFilters) .filter-label {display: none;}
 
 @media (max-width: 720px) {
   .toggle-row {flex-direction: column; align-items: stretch; gap: 14px;}
@@ -239,7 +241,6 @@ button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(
   .date-row > .multiselect-dropdown .multiselect-dropdown-list-wrapper {width: 100%; right: 0;}
   .slider-stack, .slider-row {width: auto; max-width: 100%;}
   .slider-row {grid-template-columns: auto minmax(4rem, 7rem) auto;}
-  .filter-group:has(#resetFilters) .filter-label {display: none;}
 }
 #calendar {display: flow-root;}
 .calendar-export {display: flex; justify-content: center; width: 100%; clear: both; margin: 0.85rem 0 0.2rem;}
