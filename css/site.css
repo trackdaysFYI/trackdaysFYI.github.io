@@ -64,9 +64,9 @@ svg, header img {vertical-align: middle;}
 #map {position: relative; width: 100%; height: 60vh; border: 3px solid var(--line);}
 .leaflet-popup:has(.popup-timeline) .leaflet-popup-content-wrapper,
 .leaflet-popup:has(.popup-timeline) .leaflet-popup-tip {background: var(--panel-bg); border-radius: 14px;}
-.leaflet-popup:has(.popup-timeline) .leaflet-popup-content {text-align: left; margin: 8px 10px; width: max-content; max-width: calc(100vw - 48px);}
+.leaflet-popup:has(.popup-timeline) .leaflet-popup-content {text-align: left; margin: 8px 10px; width: max-content; max-width: 100%;}
 .leaflet-popup:has(.popup-timeline) .leaflet-popup-content.leaflet-popup-scrolled {display: flex; flex-direction: column; overflow: hidden;}
-.popup-timeline {display: flex; flex-direction: column; width: max-content; min-width: 240px; max-width: 100%; max-height: 100%; color: var(--panel-ink); text-align: left;}
+.popup-timeline {display: flex; flex-direction: column; width: max-content; min-width: min(240px, 100%); max-width: 100%; max-height: 100%; color: var(--panel-ink); text-align: left;}
 .leaflet-popup-scrolled > .popup-timeline {height: 100%; min-height: 0;}
 .popup-timeline .popup-head {display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin: 0 0 6px;}
 .popup-timeline .popup-head b {flex: 1 1 auto; min-width: 0; font-size: 15px; line-height: 1.2; text-align: left;}

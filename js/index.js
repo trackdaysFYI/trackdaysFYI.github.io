@@ -382,8 +382,17 @@ function bindPopupFade(popup) {
   }, true);
 }
 
+function fitPopupToMap(popup) {
+  // Keep the panel inside the map, with room for the tip and margins.
+  let width = Math.max(160, map.getSize().x - 32);
+  popup.options.maxWidth = Math.min(420, width);
+  popup.options.minWidth = Math.min(240, popup.options.maxWidth);
+}
+
 function syncOpenPopup(popup) {
   if (!popup || !popup.isOpen()) return;
+  fitPopupToMap(popup);
+  popup.update();
   bindPopupFade(popup);
   let scroll = popup.getElement()?.querySelector(".popup-timeline .tl-scroll");
   if (scroll) syncPopupFade(scroll);
@@ -802,9 +811,7 @@ function createTrackMarkers() {
         popupEl.addEventListener("click", (ev) => ev.stopPropagation());
       }
       requestAnimationFrame(() => {
-        if (!e.popup.isOpen()) return;
-        e.popup.update();
-        syncOpenPopup(e.popup);
+        if (e.popup.isOpen()) syncOpenPopup(e.popup);
       });
     });
   });
