@@ -238,8 +238,15 @@ function createCalendar(calendar, element, adjuster){
               }
             }
             title.appendChild(a);
+          }else if(calendar.Model[n].Link){
+            var link = document.createElement('a');
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.href = calendar.Model[n].Link;
+            link.innerHTML = calendar.Model[n].Title;
+            title.appendChild(link);
           }else{
-            title.innerHTML += '<a target="_blank" href="' + calendar.Model[n].Link + '">' + calendar.Model[n].Title + '</a>';
+            title.innerHTML += calendar.Model[n].Title;
           }
           number.appendChild(title);
         }

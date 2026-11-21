@@ -37,7 +37,7 @@
 
 <body onLoad="getGPSLocation();">
   <div id="fotosort-ad" class="site-ad" hidden>
-    <span>Are you a trackday or race photographer? Try out <a href="https://fotosort.com/" target="_blank">FotoSort.com</a></span>
+    <span>Are you a trackday or race photographer? Try out <a href="https://fotosort.com/" target="_blank" rel="noopener">FotoSort.com</a></span>
     <button id="close-ad" class="site-ad-close" type="button" title="Don't show again">&times;</button>
   </div>
 <div class="center container">
@@ -578,7 +578,7 @@
       function rowMain(td, meta, price, mark) {
         let copy = `<span class="tl-copy"><span class="tl-dow">${td.date.format("ddd")}</span><span class="tl-host allowSelect">${escapeHtml(td.org)}</span>${meta ? `<span class="tl-meta">${meta}</span>` : ""}${price ? `<span class="tl-price">${price}</span>` : ""}</span>`;
         let eventUrl = safeHttpUrl(td.url);
-        if (eventUrl) return `<a class="tl-row-link" href="${escapeHtml(eventUrl)}" target="_blank">${mark}${copy}</a>`;
+        if (eventUrl) return `<a class="tl-row-link" href="${escapeHtml(eventUrl)}" target="_blank" rel="noopener">${mark}${copy}</a>`;
         return `<div class="tl-row-link">${mark}${copy}</div>`;
       }
       function saveBox(eventKey) {
@@ -601,7 +601,7 @@
       let videoUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(track.name + " track") + "&sp=CAISAhAB";
       let nickname = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
       let hiddenNote = numTrackdaysHidden ? `<span class="hidden-note">${numTrackdaysHidden} Filtered Events Hidden</span>` : "";
-      let head = `<div class="popup-head"><b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><div class="popup-links"><a href="${escapeHtml(directionsUrl)}" target="_blank" title="Directions">${directionImg}</a><a href="${escapeHtml(weatherUrl)}" target="_blank" title="Weather">${weatherImg}</a><a href="${escapeHtml(videoUrl)}" target="_blank" title="Videos">${videoImg}</a></div></div>`;
+      let head = `<div class="popup-head"><b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><div class="popup-links"><a href="${escapeHtml(directionsUrl)}" target="_blank" rel="noopener" title="Directions">${directionImg}</a><a href="${escapeHtml(weatherUrl)}" target="_blank" rel="noopener" title="Weather">${weatherImg}</a><a href="${escapeHtml(videoUrl)}" target="_blank" rel="noopener" title="Videos">${videoImg}</a></div></div>`;
       let lastDate = "";
       let rows = trackdaysFiltered.map((td) => {
         let eventKey = getEventKey(td);
@@ -635,9 +635,9 @@
           let savedClass = savedEventsSet.has(getEventKey(td)) ? "saved-calendar-event" : "";
           let label = `• ${tracks[td.track].nickname}${orgStr}`;
           let tooltip = `${price}${subtrackStr}${noteStr}`;
-          // caleandar wraps Title in <a href="Link">, so Title must not contain its own link
+          // caleandar wraps an http(s) Link in <a>, so Title must not contain its own link
           let calendarStr = `<span class="${savedClass}" title="${escapeHtml(tooltip)}">${escapeHtml(label)}</span>`;
-          calendarEvents.push({Date: td.date.toDate(), Title: calendarStr, Link: escapeHtml(td.url)});
+          calendarEvents.push({Date: td.date.toDate(), Title: calendarStr, Link: safeHttpUrl(td.url)});
         }
       });
       let calendar = document.getElementById("calendar");
@@ -715,7 +715,7 @@
         let tbody = Object.values(orgs).map(org => {
           let orgUrl = safeHttpUrl(org.url);
           let name = escapeHtml(org.org);
-          let nameCell = orgUrl ? `<a href="${escapeHtml(orgUrl)}" target="_blank">${name}</a>` : name;
+          let nameCell = orgUrl ? `<a href="${escapeHtml(orgUrl)}" target="_blank" rel="noopener">${name}</a>` : name;
           return `
           <tr>
             <td>${nameCell}</td>
