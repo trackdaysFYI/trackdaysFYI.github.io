@@ -20,7 +20,7 @@ function renderCalendarView() {
       return key >= range.start && key <= range.end;
     });
     let keys = [...byDay.keys()].sort();
-    let empty = range.start === range.end ? "No events this day" : "No events these days";
+    let empty = range.start === range.end ? "No events this day" : "No events in this date range";
     let list = keys.length ? `<div class="cal-list">${agendaHtml(byDay, keys)}</div>` : `<div class="cal-empty">${empty}</div>`;
     let clear = `<button type="button" class="cal-nav-btn" data-cal-show-month aria-label="Clear range" title="Clear range"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>`;
     root.innerHTML = `<div class="cal"><div class="cal-nav is-range"><span class="cal-nav-spacer" aria-hidden="true"></span><span class="cal-nav-title">${escapeHtml(selectionLabel(range))}</span>${clear}</div>${list}</div>`;
