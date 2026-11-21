@@ -25,11 +25,7 @@
       <h1>Lap Records</h1>
     </div>
   </header>
-  <div id="loading" class="loading" role="status" aria-live="polite">
-    <span class="loading-bar"></span>
-    <p>Loading lap records...</p>
-  </div>
-  <div id="content" hidden>
+  <div id="content">
   <p id="print-filters" class="print-filters"></p>
   <div class="filters">
     <label class="search">Search
@@ -52,8 +48,16 @@
       <select id="subtrack"></select>
     </label>
   </div>
+  <div id="loading" class="loading" role="status" aria-live="polite">
+    <span class="loading-bar"></span>
+    <p>Loading lap records...</p>
+  </div>
+  <div id="records-view" hidden>
   <div class="results-bar">
-    <p id="status" class="status"></p>
+    <div class="status-row">
+      <p id="status" class="status"></p>
+      <button type="button" id="retry-load" hidden>Retry</button>
+    </div>
     <div class="view-switch" role="group" aria-label="Arrange records">
       <button type="button" id="view-class" class="on">Class</button>
       <button type="button" id="view-time">Time</button>
@@ -82,6 +86,7 @@
     <div class="export-buttons">
       <button type="button" id="print-records" disabled>Print</button>
       <button type="button" id="export-csv" disabled>Export CSV</button>
+    </div>
     </div>
   </div>
   </div>
@@ -166,10 +171,13 @@
     let records = [];
     let allRecordsCache = null;
     let recordsLoadId = 0;
+    let loadedTrack = "";
+    let pageLoading = false;
     let trackNames = {};
     let trackSubtracks = {};
     let viewMode = "class";
     let paramsApplied = false;
+    let headerParamsApplied = false;
     let referenceKey = null;
     let changeUi = {submitting: false, submitId: 0, action: "edit", record: null};
     let recordsUi = {submitting: false, submitId: 0};
@@ -188,9 +196,10 @@
     const printButton = document.getElementById("print-records");
     const printFiltersEl = document.getElementById("print-filters");
     const statusEl = document.getElementById("status");
+    const retryButton = document.getElementById("retry-load");
     const rowsEl = document.getElementById("rows");
     const loadingEl = document.getElementById("loading");
-    const contentEl = document.getElementById("content");
+    const recordsViewEl = document.getElementById("records-view");
     const changeDialog = document.getElementById("changeDialog");
     const changeForm = document.getElementById("change-form");
     const changeMeta = document.getElementById("change-meta");
@@ -590,7 +599,11 @@
     }
 
     function render() {
-      if (!paramsApplied) applyParams();
+      // header filters can change while the first list is still loading, so apply them only once
+      if (!headerParamsApplied) {
+        applyParams();
+        headerParamsApplied = true;
+      }
       fillTrackSelect();
       fillDependentSelects();
       if (!paramsApplied) {
@@ -617,32 +630,47 @@
       return data;
     }
 
+    function recordsErrorMessage(err) {
+      return err && err.message && err.message.startsWith("HTTP ")
+        ? err.message
+        : "Unable to load lap records.";
+    }
+
     async function loadRecordsForSelection(track) {
       let loadId = ++recordsLoadId;
       if (allRecordsCache) {
         records = track
           ? allRecordsCache.filter(record => String(record.track).toUpperCase() === track)
           : allRecordsCache;
-        return false;
+        return {stale: false, fetched: false};
       }
-      showLoading();
-      let data = await fetchLapRecords(track || "");
-      if (loadId !== recordsLoadId) return false;
-      if (!track) allRecordsCache = data;
-      records = data;
-      return true;
+      try {
+        let data = await fetchLapRecords(track || "");
+        if (loadId !== recordsLoadId) return {stale: true, fetched: false};
+        if (!track) allRecordsCache = data;
+        records = data;
+        return {stale: false, fetched: true};
+      } catch (err) {
+        if (loadId !== recordsLoadId) return {stale: true, fetched: false};
+        throw err;
+      }
     }
 
     async function onTrackFilterChange() {
+      let requested = trackKey();
+      // replace the previous table while a different track is fetched; a cached list is instant
+      if (!allRecordsCache) showLoading();
       try {
-        let fetched = await loadRecordsForSelection(trackKey());
-        onFilterChange({ refillDependents: true });
-        if (fetched) showResults();
+        let result = await loadRecordsForSelection(requested);
+        if (result.stale) return;
+        if (!paramsApplied) render();
+        else onFilterChange({ refillDependents: true });
+        syncParams();
+        loadedTrack = requested;
+        showResults();
       } catch (err) {
-        records = [];
-        showError(err && err.message && err.message.startsWith("HTTP ")
-          ? err.message
-          : "Unable to load lap records.");
+        if (trackSelect.value === requested) trackSelect.value = loadedTrack;
+        showRefetchError(recordsErrorMessage(err));
       }
     }
 
@@ -661,6 +689,7 @@
     viewTimeButton.addEventListener("click", () => setView("time"));
     exportCsvButton.addEventListener("click", exportCsv);
     printButton.addEventListener("click", printRecords);
+    retryButton.addEventListener("click", () => { loadPage(); });
     window.addEventListener("beforeprint", () => {
       printFiltersEl.textContent = activeFilterSummary();
     });
@@ -943,53 +972,75 @@
       loadingEl.classList.remove("err");
       loadingEl.querySelector("p").textContent = "Loading lap records...";
       loadingEl.hidden = false;
-      contentEl.hidden = true;
+      recordsViewEl.hidden = true;
+      retryButton.hidden = true;
     }
 
     function showResults() {
       loadingEl.hidden = true;
-      contentEl.hidden = false;
+      recordsViewEl.hidden = false;
+      retryButton.hidden = true;
     }
 
-    function showError(message) {
+    function showRefetchError(message) {
+      loadingEl.hidden = true;
+      recordsViewEl.hidden = false;
+      statusEl.className = "status err";
+      statusEl.textContent = message;
+    }
+
+    function showFirstLoadError(message) {
+      loadingEl.hidden = true;
+      recordsViewEl.hidden = false;
       statusEl.className = "status err";
       statusEl.textContent = message;
       rowsEl.innerHTML = "";
-      loadingEl.classList.add("err");
-      loadingEl.querySelector("p").textContent = message;
-      loadingEl.hidden = false;
-      contentEl.hidden = true;
+      retryButton.hidden = false;
     }
 
     async function loadPage() {
+      if (pageLoading) return;
+      pageLoading = true;
+      showLoading();
       try {
-        let tracksResult = await fetch(TRACKS_URL);
-        if (tracksResult.ok) {
-          let data = await tracksResult.json();
-          (data.tracks || []).forEach(track => {
-            if (!track.nickname) return;
-            let key = String(track.nickname).toUpperCase();
-            trackNames[key] = track.name || track.nickname;
-            trackSubtracks[key] = Array.isArray(track.subtracks)
-              ? track.subtracks.map(name => String(name || "").trim()).filter(Boolean)
-              : [];
-          });
+        try {
+          let tracksResult = await fetch(TRACKS_URL);
+          if (tracksResult.ok) {
+            let data = await tracksResult.json();
+            (data.tracks || []).forEach(track => {
+              if (!track.nickname) return;
+              let key = String(track.nickname).toUpperCase();
+              trackNames[key] = track.name || track.nickname;
+              trackSubtracks[key] = Array.isArray(track.subtracks)
+                ? track.subtracks.map(name => String(name || "").trim()).filter(Boolean)
+                : [];
+            });
+          }
+        } catch (err) {
+          trackNames = {};
+          trackSubtracks = {};
         }
-      } catch (err) {
-        trackNames = {};
-        trackSubtracks = {};
-      }
 
-      let initialTrack = (new URLSearchParams(location.search).get("track") || "").trim().toUpperCase();
-      try {
-        await loadRecordsForSelection(initialTrack);
-      } catch (err) {
-        records = [];
-        showError(err && err.message && err.message.startsWith("HTTP ") ? err.message : "Unable to load lap records.");
-        return;
+        if (!headerParamsApplied) {
+          applyParams();
+          headerParamsApplied = true;
+        }
+        fillTrackSelect();
+        let initialTrack = trackKey();
+        try {
+          let result = await loadRecordsForSelection(initialTrack);
+          if (result.stale) return;
+        } catch (err) {
+          records = [];
+          showFirstLoadError(recordsErrorMessage(err));
+          return;
+        }
+        render();
+        loadedTrack = trackKey();
+        showResults();
+      } finally {
+        pageLoading = false;
       }
-      render();
-      showResults();
     }
 
     loadPage();
