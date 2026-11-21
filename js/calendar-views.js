@@ -22,7 +22,7 @@ function renderCalendarView() {
     let keys = [...byDay.keys()].sort();
     let empty = range.start === range.end ? "No events this day" : "No events these days";
     let body = keys.length ? agendaHtml(byDay, keys) : `<div class="cal-empty">${empty}</div>`;
-    root.innerHTML = `<div class="cal"><div class="cal-list"><div class="cal-focushead"><span>${escapeHtml(selectionLabel(range))}</span><button type="button" class="cal-show-month" data-cal-show-month>Show month</button></div>${body}</div></div>`;
+    root.innerHTML = `<div class="cal"><div class="cal-list"><div class="cal-focushead"><span>${escapeHtml(selectionLabel(range))}</span><button type="button" class="cal-show-month" data-cal-show-month>Clear Range</button></div>${body}</div></div>`;
   } else {
     let month = dayjs(selectedMonth).startOf("month");
     let byDay = eventsByDay((td) => td.date.isSame(month, "month"));
