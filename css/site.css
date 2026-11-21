@@ -155,7 +155,7 @@ input[type=range]:focus::-webkit-slider-thumb {box-shadow: 0 0 0 1px rgb(255, 25
 input[type=checkbox] {accent-color: var(--accent);}
 input[type=date] {background-color: var(--soft); font-family: "Noto Sans"; cursor: pointer;}
 
-@media (max-width: 720px) {#map {height: 78dvh;}}
+@media (max-width: 720px) {#map {height: 70dvh;}}
 @media (orientation: landscape) and (max-height: 500px) {#map {height: 80dvh;}}
 
 .control-font {
