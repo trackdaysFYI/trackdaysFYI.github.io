@@ -188,16 +188,13 @@ function updateTrackIcons(updateTrackVisibility) {
   let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityMap).map(td => td.track));
 
   if (updateTrackVisibility) {
-    allTracks.forEach(track => {  // track visibility on map based on event type or saved events
+    // visibilityMap already includes saved events. Empty Tracks also shows a matching vehicle with nothing listed.
+    let showEmpty = showTracksWithoutEventsToggleElement.classList.contains("on");
+    allTracks.forEach(track => {
       let matchingVehicleType = [...tracks[track].vehicleType].some(t => selectedVehicleTypes.has(t));
-      let containsSavedEvent = trackdays.some((td) => td.track === track && savedEventsSet.has(getEventKey(td)));
-      (matchingVehicleType || containsSavedEvent) ? mapMarkers[track].addTo(map) : mapMarkers[track].remove();
+      let show = tracksWithEvents.has(track) || (showEmpty && matchingVehicleType);
+      show ? mapMarkers[track].addTo(map) : mapMarkers[track].remove();
     });
-    if (!showTracksWithoutEventsToggleElement.classList.contains("on")) {  // trackday visibility based on event type
-      let tracksWithoutEvents = allTracks.filter((track) => !tracksWithEvents.has(track));
-      tracksWithEvents.forEach((track) => {mapMarkers[track].addTo(map);});
-      tracksWithoutEvents.forEach((track) => {mapMarkers[track].remove();});
-    }
   }
 
   let tracksWithSavedEvents = new Set();
