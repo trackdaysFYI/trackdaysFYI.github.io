@@ -1289,6 +1289,7 @@ function wireFilterControls() {
       opt.selected = true;
     });
     daySelectElement.loadOptions();
+    homeLocked = false;
     resetHome();
   });
 }
