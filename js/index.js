@@ -5,6 +5,11 @@ dayjs.extend(window.dayjs_plugin_customParseFormat);
 const STORAGE_KEY_USER_SAVED_EVENTS = "trackdaysFYI:userSavedEvents";
 const STORAGE_KEY_USER_VEHICLE_TYPES = "trackdaysFYI:userVehicleTypes";
 const STORAGE_KEY_USER_EVENT_TYPES = "trackdaysFYI:userEventTypes";
+const STORAGE_KEY_EMPTY_TRACKS = "trackdaysFYI:showEmptyTracks";
+const STORAGE_KEY_WEEKDAYS = "trackdaysFYI:userWeekdays";
+const STORAGE_KEY_HOSTS = "trackdaysFYI:userHosts";
+const STORAGE_KEY_TRAVEL_RADIUS = "trackdaysFYI:travelRadius";
+const STORAGE_KEY_HOME_LOCATION = "trackdaysFYI:homeLocation";
 let savedEventsSet = (function () {
   try {
     let raw = localStorage.getItem(STORAGE_KEY_USER_SAVED_EVENTS);
@@ -18,6 +23,78 @@ let savedEventsSet = (function () {
 
 function persistSavedEvents() {
   localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
+}
+
+function readStoredList(key) {
+  try {
+    let raw = localStorage.getItem(key);
+    if (raw === null) return null;
+    let arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function persistWeekdays() {
+  localStorage.setItem(STORAGE_KEY_WEEKDAYS, JSON.stringify([...selectedWeekdays()]));
+}
+
+function persistHosts() {
+  let selected = Object.values(orgs).filter((org) => org.dropdownSelected).map((org) => org.orgNickname);
+  localStorage.setItem(STORAGE_KEY_HOSTS, JSON.stringify(selected));
+}
+
+function persistRadius() {
+  localStorage.setItem(STORAGE_KEY_TRAVEL_RADIUS, String(searchRadius));
+}
+
+function storedRadiusIndex() {
+  let raw = localStorage.getItem(STORAGE_KEY_TRAVEL_RADIUS);
+  if (raw === null) return null;
+  let index = radiusValues.indexOf(Number(raw));
+  return index === -1 ? null : index;
+}
+
+function storedHomeLocation() {
+  let stored = readStoredList(STORAGE_KEY_HOME_LOCATION);
+  if (!stored || stored.length !== 2) return null;
+  let lat = Number(stored[0]);
+  let lng = Number(stored[1]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return [lat, lng];
+}
+
+function persistHomeLocation(latlng) {
+  localStorage.setItem(STORAGE_KEY_HOME_LOCATION, JSON.stringify([latlng.lat, latlng.lng]));
+}
+
+function clearStoredFilters() {
+  localStorage.removeItem(STORAGE_KEY_EMPTY_TRACKS);
+  localStorage.removeItem(STORAGE_KEY_WEEKDAYS);
+  localStorage.removeItem(STORAGE_KEY_HOSTS);
+  localStorage.removeItem(STORAGE_KEY_TRAVEL_RADIUS);
+  localStorage.removeItem(STORAGE_KEY_HOME_LOCATION);
+}
+
+function applyStoredWeekdays() {
+  let stored = readStoredList(STORAGE_KEY_WEEKDAYS);
+  if (!stored) return;
+  let selected = new Set(stored);
+  Array.from(daySelectElement.options).forEach((opt) => {
+    opt.selected = selected.has(opt.value);
+  });
+  daySelectElement.loadOptions();
+}
+
+function applyStoredHosts() {
+  let stored = readStoredList(STORAGE_KEY_HOSTS);
+  if (!stored) return;
+  let selected = new Set(stored);
+  Object.values(orgs).forEach((org) => {
+    org.dropdownSelected = selected.has(org.orgNickname);
+  });
 }
 
 function removePastSavedEvents() {
@@ -39,13 +116,13 @@ let locationDefault = [39.50, -98.35];  // Central US or GPS location
 let isGPSLocation = false;
 let homeLocked = false;  // user moved the home pin or the travel radius
 let searchRadius, minDate, maxDate;
-let lastOpenedTrack, selectedMonth;
+let lastOpenedTrack, selectedMonth, selectedCalendarStart = null, selectedCalendarEnd = null;
 let tracks;
 const infiniteRadius = 0;
 const radiusValues = [];
 for (let miles = 50; miles <= 950; miles += 50) radiusValues.push(miles);
 radiusValues.push(infiniteRadius);
-const vehicleTypeMap = {"M": "Moto", "S": "Sumo", "C": "Car"};
+const vehicleTypeMap = {"M": "Bike", "S": "Sumo", "C": "Car"};
 const eventTypeMap = {"T": "TD", "S": "School", "R": "Race"};
 const homeImgMoto = `<svg xmlns="http://www.w3.org/2000/svg" fill="#ff0000" viewBox="0 0 64 64"><path d="M53 44a9 9 0 0 0-7 3l-1-1h1v-1l13-6a4 4 0 0 0-1-2c2-2 2-5 2-5v-2h-2l-6 1-3 1-1-3s-6-6-12-8c2-1 2-3 2-7 0-6-5-12-12-12a12 12 0 0 0-13 14c-1 0 1 6 3 6 2 5 4 6 6 6l4-1v4l-2 1-1-2h-1c-5 0-9 2-12 6l-2 4 1 2 2 1a10 10 0 0 0-6 2h1a9 9 0 0 0 5 17c4 0 8-3 9-6a3 3 0 0 0 3 3l19-3h1v-2a9 9 0 0 0 0-1 15 15 0 0 1 0-1 9 9 0 0 0 0 1c0 5 4 9 10 9s9-4 9-9-4-9-9-9m-8-5c4-3 1-5 8-7h5s0 4-3 5c-7 4-12 4-12 4l2-2m-7 5a4 4 0 0 1 1 2l-2 2 1-4M25 25l-3 1c-2 0-3-2-4-4l10-6 2-2-2-2-2 1-11 2a8 8 0 0 1 0-1c0-5 5-10 11-10s10 5 10 10 0 5-7 9a255 255 0 0 0-4 2m-1 12 1-1 6-2a2 2 0 0 0 0-2v-2l4 4h-1l-4 1-2 1-2 2v1a70 70 0 0 0-2-1v-1m10-1-1 4h-2a45 45 0 0 0-3-1v-1l1-1 5-1m-14-3a1 1 0 0 1 2 0v2c1 2 1 2-2 3h-1l-1-1c-1-2 0-3 1-3l1-1m-4 20h2a6 6 0 0 1-1 3l-1-1a5 5 0 0 1-1 1h2a7 7 0 0 1-2 2l-1-2a5 5 0 0 1-1 1l1 2a7 7 0 0 1-2 0v-2h-1v2a7 7 0 0 1-2 0l1-2a5 5 0 0 1-1-1l-1 2a7 7 0 0 1-2-2h2a5 5 0 0 1-1-1l-2 1a6 6 0 0 1 0-3h2v-1H5a6 6 0 0 1 0-2l2 1 1-1-2-1a7 7 0 0 1 2-2l1 2a5 5 0 0 1 1 0l-1-2a7 7 0 0 1 2-1v2h1v-2a7 7 0 0 1 2 1l-2 3a3 3 0 0 0-1 0c-1 0-2 1-2 3s1 3 2 3c2 0 3-2 3-3l-1-2 2-3 2 1-2 1 1 1 1-1 1 2h-2v1m25 1v1l-18 2-1-1-1-8-3-2-8-6 1-3a12 12 0 0 1 7-5v1l-2 2-1 1c0 1-2 2 0 2l2 1a3 3 0 0 0 2 1l2-1a56 56 0 0 1 11 3l-1 6h-1a4 4 0 0 0-1 0l-1-1-6-4h-1l1 1 4 3 2 1-2 2 8 2c1 1 2 0 2-1v-1c3 0 2-2 4-2h2l-1 6m0-9-1-1 4-1a25 25 0 0 0 3-1l-2 1-4 2m8 2v1h-1l1-1m8 6h2a6 6 0 0 1 0 3l-2-1a5 5 0 0 1-1 1h2a7 7 0 0 1-2 2l-1-2-1 1 2 2a7 7 0 0 1-3 0v-2h-1v2a7 7 0 0 1-2 0l1-2a5 5 0 0 1-1-1l-1 2a7 7 0 0 1-2-2h2a5 5 0 0 1-1-1l-1 1a6 6 0 0 1-1-3h1l4 2a3 3 0 0 0 2 1l2-3c0-2-1-3-2-3l-3-1h1l-1-2a7 7 0 0 1 2-1v2h1c1 0 0 0 0 0v-2a7 7 0 0 1 2 1l-1 2h1l1-2a7 7 0 0 1 2 2l-2 1 1 1 2-1v2h-2v1"/></svg>`
 const homeImgCar = `<svg xmlns="http://www.w3.org/2000/svg" fill="#ff0000" viewBox="0 0 64 64"><path d="M62 45.3 60 41l-5 3-.2-.2 4.8-2.9c1.6-1.2 1.6-4.3-.2-7-1.7-2.7-4.5-3.9-6.1-2.7L48.9 34l-.4.2c-.7.6-.9 1.9-.7 3.2l-.1-.1v-3.8l-4.4-7-2.6-1.6.5-.3c2-1.4 1.8-5-.2-8-2-3.2-5.2-4.6-7-3.2l-9 5.3.2 1.1-.7.4L19 18v-1.2l7.7-4-4-3.7L2 16.8l6.1 5.6 6.9-3.6v1.8l3.6 2.7-1.7 1-2.4-.6-3.6 2.1v.6l-5.4 3.2-.5.3c-2 1.4-1 6.5.7 9 1.7 2.6 3.9 4.2 5.8 4.2a3 3 0 0 0 1.8-.6l5.7-3.3a3 3 0 0 0 .4-.3 3.3 3.3 0 0 0 .9-1l5 3.8 6.5 1.5-.3.1c-1.8 1.3-.8 5.8.6 8 1.5 2.3 3.4 3.7 5.1 3.7a3 3 0 0 0 1.6-.5l4.7-2.8L49 54l13-8.7m-3.4-3 1.7 3.6-1 .8-2-3.7 1.3-.7M21.1 10l3.5 3.4-1.4.6-3.8-3.4 1.7-.6M10.9 20.5 5.2 16l2.4-.9 5 4.5-1.7.9M49.1 35a1.5 1.5 0 0 1 1-.3c1 0 2.5.8 3.8 2.7 1.5 2.3 1.4 4.8.4 5.6l-.3.2-1.5-1.4a1.2 1.2 0 0 0 .9-.2c.9-.7.8-2.3-.1-3.8-1-1.4-2.4-2-3.3-1.4-.6.5-.6 1.4-.2 2.4l1.4-.8c1-.5 2.1.8 1.5 1.7l-1.5.9-2.1-2c-.5-1.6-.5-3.2 0-3.6M49 47.7l-4 2.4c.6-1.2.6-2.8 0-4.5l3.9 2.1m-4-3.5-.3.2a10.4 10.4 0 0 0-.7-1.2 10.7 10.7 0 0 0-.5-.7c1-.5 2.1.7 1.5 1.7m-16.6-27 14.3 9.5 4.4 7-1.2.7-4.4-7-14.3-9.5 1.2-.7m9 13.6.4-.2c-.5 1.7-1.6 2.6-3.8 2.6-2.8 0-6.4-1.5-6.4-4.5s2.3-5.4 5.2-5.4a5 5 0 0 1 5 4.3c0-.2-.2-.2-.3-.2-2.9.2-6.7.1-6.8 1.2-.1 1.1 2.2 2.5 6.8 2.2M16 19.8v-1.6l2-1v1.4l11.5 4.5-3.4 1.6-10-4.8m-1.7 6c-.7-.3-1.5-.3-2.2-.2l1.1-.6 1.1.8m-3 16.2c-1.5 0-3.4-1.4-5-3.7-1.4-2.3-2.2-6.7-1-7.7.5-.2 1-.4 1.4-.4 1.8 0 3.9 1.5 5.3 3.7 2 3 2.2 6.5.5 7.7a2 2 0 0 1-1.2.4m13.7-6.3-4.7-3.3a11.5 11.5 0 0 0-2.6-4.3l9.6 6.4 11 4.4-1.7 1-11.6-4.2m12 18.2c-1.3 0-3-1.3-4.2-3.3-1.5-2.1-2-5.8-1-6.6l1.2-.3c1.5 0 3.3 1.3 4.5 3.2 1.7 2.6 2 5.6.5 6.7-.3.2-.6.3-1 .3m10-4.8 4.1 2.8-1 .8-4.4-2.8 1.4-.8"/><path d="M7 32.9c-1.2.8-.7 3 .5 4.8 1.2 1.9 2.7 2.7 3.8 1.9 1.2-.8 1.1-3 0-4.9C10 33 8 32 6.8 33m26.4 13c-1 .7-.6 2.6.5 4.2 1 1.7 2.4 2.4 3.4 1.7s1-2.7-.1-4.3c-1.1-1.6-2.8-2.4-3.8-1.7"/></svg>`
@@ -64,12 +141,16 @@ function getGPSLocation() {
 }
 
 function resetHome() {
-  homeMarker.setLatLng(locationDefault);
-  searchCircle.setLatLng(locationDefault);
-  map.setView(locationDefault, isGPSLocation ? 6 : 3);
+  let savedHome = storedHomeLocation();
+  let home = savedHome || locationDefault;
+  homeMarker.setLatLng(home);
+  searchCircle.setLatLng(home);
+  map.setView(home, savedHome || isGPSLocation ? 6 : 3);
   radiusSliderElement.max = String(radiusValues.length - 1);
-  radiusSliderElement.value = String(isGPSLocation ? radiusValues.indexOf(200) : radiusValues.length - 1);
-  new L.Popup(locationDefault, {"content": "<b>Drag Me</b>", "className": "dragMe", "autoPan": false, "closeButton": false, "offset": [0, 50]}).openOn(map);
+  let radiusIndex = storedRadiusIndex();
+  if (radiusIndex === null) radiusIndex = isGPSLocation ? radiusValues.indexOf(200) : radiusValues.length - 1;
+  radiusSliderElement.value = String(radiusIndex);
+  new L.Popup(home, {"content": "<b>Drag Me</b>", "className": "dragMe", "autoPan": false, "closeButton": false, "offset": [0, 50]}).openOn(map);
 
   updateTrackDistances();
   updateSearchRadius(radiusValues[radiusSliderElement.value]);
@@ -89,11 +170,6 @@ function milesBetween(lat1, lon1, lat2, lon2) {
   return d * 0.621371;
 }
 
-function nearestTravelRadius(miles) {
-  let finite = radiusValues.filter((r) => r !== infiniteRadius);
-  return finite.reduce((best, r) => Math.abs(r - miles) < Math.abs(best - miles) ? r : best);
-}
-
 function updateTrackDistances() {
   let {lat, lng} = homeMarker.getLatLng();
   Object.keys(tracks).forEach((track) => {
@@ -107,16 +183,13 @@ function updateTrackIcons(updateTrackVisibility) {
   let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityMap).map(td => td.track));
 
   if (updateTrackVisibility) {
-    allTracks.forEach(track => {  // track visibility on map based on event type or saved events
+    // visibilityMap already includes saved events. Empty Tracks also shows a matching vehicle with nothing listed.
+    let showEmpty = showTracksWithoutEventsToggleElement.classList.contains("on");
+    allTracks.forEach(track => {
       let matchingVehicleType = [...tracks[track].vehicleType].some(t => selectedVehicleTypes.has(t));
-      let containsSavedEvent = trackdays.some((td) => td.track === track && savedEventsSet.has(getEventKey(td)));
-      (matchingVehicleType || containsSavedEvent) ? mapMarkers[track].addTo(map) : mapMarkers[track].remove();
+      let show = tracksWithEvents.has(track) || (showEmpty && matchingVehicleType);
+      show ? mapMarkers[track].addTo(map) : mapMarkers[track].remove();
     });
-    if (!showTracksWithoutEventsToggleElement.classList.contains("on")) {  // trackday visibility based on event type
-      let tracksWithoutEvents = allTracks.filter((track) => !tracksWithEvents.has(track));
-      tracksWithEvents.forEach((track) => {mapMarkers[track].addTo(map);});
-      tracksWithoutEvents.forEach((track) => {mapMarkers[track].remove();});
-    }
   }
 
   let tracksWithSavedEvents = new Set();
@@ -140,15 +213,7 @@ function updateTrackIcons(updateTrackVisibility) {
 
 function updateSearchRadius(radiusMiles) {
   searchRadius = radiusMiles;
-  let meters = searchRadius * 1609.34;
-  searchCircle.setRadius(meters);
-  searchCircleHandle.setLatLng(homeMarker.getLatLng());
-  searchCircleHandle.setRadius(meters);
-  if (searchRadius === infiniteRadius) {
-    if (map.hasLayer(searchCircleHandle)) searchCircleHandle.remove();
-  } else if (!map.hasLayer(searchCircleHandle)) {
-    searchCircleHandle.addTo(map);
-  }
+  searchCircle.setRadius(searchRadius * 1609.34);
   document.getElementById("displayedRadius").innerText = (searchRadius === infiniteRadius ? `∞` : `${searchRadius}`);
 }
 
@@ -268,7 +333,7 @@ function downloadSavedEventsICS() {
     .filter(td => savedEventsSet.has(getEventKey(td)))
     .sort((a, b) => (a.date > b.date ? 1 : -1));
   if (savedEvents.length === 0) {
-    alert("No saved events to export.\nOpen a track on the map and star events to save them.");
+    alert("No saved events to export.\nStar events to save them.");
     return;
   }
 
@@ -328,13 +393,108 @@ function downloadSavedEventsICS() {
 
 const TRACKDAYS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays";
 
+function hiddenEventNote(hidden) {
+  // Only name a filter when it is off and one of these events is actually that kind.
+  // Two reasons still read clearly. More than that collapses back to a generic line.
+  let days = selectedWeekdays();
+  let reasons = new Set();
+  let addVehicle = (td, code, label) => {
+    let types = [...td.vehicleType];
+    if (types.some(t => selectedVehicleTypes.has(t))) return;
+    if (types.includes(code) && !selectedVehicleTypes.has(code)) reasons.add(label);
+  };
+  let addEvent = (td, code, label) => {
+    let types = [...td.eventType];
+    if (types.some(t => selectedEventTypes.has(t))) return;
+    if (types.includes(code) && !selectedEventTypes.has(code)) reasons.add(label);
+  };
+  hidden.forEach((td) => {
+    addVehicle(td, "C", "car");
+    addVehicle(td, "M", "motorcycle");
+    addVehicle(td, "S", "supermoto");
+    addEvent(td, "T", "trackday");
+    addEvent(td, "S", "school");
+    addEvent(td, "R", "race");
+    if (!dateInRange(td.date)) reasons.add("date");
+    if (!days.has(td.date.format("ddd"))) reasons.add("weekday");
+    if (orgs[td.org] && !orgs[td.org].dropdownSelected) reasons.add("host");
+  });
+  let n = hidden.length;
+  let noun = n === 1 ? "event" : "events";
+  let ordered = ["car", "motorcycle", "supermoto", "trackday", "school", "race", "date", "weekday", "host"].filter(label => reasons.has(label));
+  if (ordered.length === 1) return `${n} ${ordered[0]} ${noun} filtered`;
+  if (ordered.length === 2) return `${n} ${ordered[0]} and ${ordered[1]} ${noun} filtered`;
+  return `${n} ${noun} filtered`;
+}
+
+function syncPopupFade(scroll) {
+  let fade = scroll.parentElement && scroll.parentElement.querySelector(".tl-fade");
+  if (!fade) return;
+  let overflow = scroll.scrollHeight - scroll.clientHeight > 1;
+  let atEnd = scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 1;
+  fade.hidden = !overflow || atEnd;
+}
+
+function bindPopupFade(popup) {
+  let root = popup.getElement();
+  if (!root || root._fadeBound) return;
+  root._fadeBound = true;
+  // Scroll events do not bubble, and Leaflet rebuilds the popup body on update.
+  root.addEventListener("scroll", (ev) => {
+    if (ev.target && ev.target.classList && ev.target.classList.contains("tl-scroll")) syncPopupFade(ev.target);
+  }, true);
+}
+
+function fitPopupToMap(popup) {
+  // Keep the panel inside the map, with room for the tip and margins.
+  let width = Math.max(160, map.getSize().x - 32);
+  popup.options.maxWidth = Math.min(420, width);
+  popup.options.minWidth = Math.min(240, popup.options.maxWidth);
+}
+
+// Prefer a full host name: drop meta, then price, then weekday, and put back anything that still fits.
+function fitPopupHosts(popup) {
+  let root = popup.getElement();
+  if (!root) return;
+  root.querySelectorAll(".popup-timeline .tl-copy").forEach((copy) => {
+    let host = copy.querySelector(".tl-host");
+    if (!host) return;
+    let extras = [copy.querySelector(".tl-meta"), copy.querySelector(".tl-price"), copy.querySelector(".tl-dow")].filter(Boolean);
+    let cramped = () => copy.scrollWidth > copy.clientWidth + 1 || host.scrollWidth > host.clientWidth + 1;
+    extras.forEach((el) => { el.hidden = false; });
+    for (let el of extras) {
+      if (!cramped()) break;
+      el.hidden = true;
+    }
+    for (let i = extras.length - 1; i >= 0; i--) {
+      if (!extras[i].hidden) continue;
+      extras[i].hidden = false;
+      if (cramped()) extras[i].hidden = true;
+    }
+  });
+}
+
+function syncOpenPopup(popup) {
+  if (!popup || !popup.isOpen()) return;
+  fitPopupToMap(popup);
+  popup.update();
+  fitPopupHosts(popup);
+  bindPopupFade(popup);
+  let scroll = popup.getElement()?.querySelector(".popup-timeline .tl-scroll");
+  if (scroll) syncPopupFade(scroll);
+}
+
+function popupList(inner, foot) {
+  return `<div class="tl-scroll-wrap"><div class="tl-scroll">${inner}</div><div class="tl-fade" hidden></div></div><div class="tl-foot">${foot}</div>`;
+}
+
 function updateTrackPopup() {
   if (lastOpenedTrack === undefined) {return;}
   let track = tracks[lastOpenedTrack];
-  let trackdaysFiltered = trackdays.filter(td => td.track === lastOpenedTrack);
-  let numTrackdaysBeforeFilter = trackdaysFiltered.length;
-  trackdaysFiltered = trackdaysFiltered.filter(td => td.visibilityMap);
-  let numTrackdaysHidden = numTrackdaysBeforeFilter - trackdaysFiltered.length;
+  let trackdaysAtTrack = trackdays.filter(td => td.track === lastOpenedTrack);
+  let trackdaysFiltered = trackdaysAtTrack.filter(td => td.visibilityMap);
+  let hiddenTrackdays = trackdaysAtTrack.filter(td => !td.visibilityMap);
+  let numTrackdaysHidden = hiddenTrackdays.length;
   let multipleVehicleTypes = (selectedVehicleTypes.size > 1);
   let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") && (selectedEventTypes.size > 1);
   const eventLabel = {"T": "Trackday", "S": "School", "R": "Race"};
@@ -361,10 +521,9 @@ function updateTrackPopup() {
   }
   let directionsUrl = "https://www.google.com/maps?q=" + encodeURIComponent("directions " + track.name);
   let weatherUrl = "https://www.google.com/search?q=" + encodeURIComponent("weather " + track.name);
-  let videoUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(track.name + " track") + "&sp=CAISAhAB";
   let nickname = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
-  let hiddenNote = numTrackdaysHidden ? `<span class="hidden-note">${numTrackdaysHidden} Filtered Events Hidden</span>` : "";
-  let head = `<div class="popup-head"><b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><div class="popup-links"><a href="${escapeHtml(directionsUrl)}" target="_blank" rel="noopener" title="Directions">${directionImg}</a><a href="${escapeHtml(weatherUrl)}" target="_blank" rel="noopener" title="Weather">${weatherImg}</a><a href="${escapeHtml(videoUrl)}" target="_blank" rel="noopener" title="Videos">${videoImg}</a></div></div>`;
+  let hiddenNote = numTrackdaysHidden ? `<span class="hidden-note">${hiddenEventNote(hiddenTrackdays)}</span>` : "";
+  let head = `<div class="popup-head"><b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><div class="popup-links"><a href="${escapeHtml(directionsUrl)}" target="_blank" rel="noopener" title="Directions">${directionImg}</a><a href="${escapeHtml(weatherUrl)}" target="_blank" rel="noopener" title="Weather">${weatherImg}</a></div></div>`;
   let lastDate = "";
   let rows = trackdaysFiltered.map((td) => {
     let eventKey = getEventKey(td);
@@ -379,40 +538,24 @@ function updateTrackPopup() {
   }).join("");
   let list = trackdaysFiltered.length === 0 ? `<div class="empty">No Events Found</div>` : `<div class="tl">${rows}</div>`;
   let report = `<button type="button" class="missing-event-link" data-popup-action="missing-event">Missing an event?</button>`;
-  let eventsBody = list + hiddenNote + report;
+  let eventsBody = popupList(list, hiddenNote + report);
   let tabs = `<div class="rec-tabs"><button type="button" class="${recordsUi.open ? "" : "on"}" data-popup-action="records-tab" data-open="0">Events</button><button type="button" class="${recordsUi.open ? "on" : ""}" data-popup-action="records-tab" data-open="1">Records</button></div>`;
   let body = recordsUi.open ? recordsListHtml(lastOpenedTrack) : eventsBody;
   let popup = mapMarkers[lastOpenedTrack].getPopup();
-  popup.setContent(`<div class="popup popup-timeline">${head}${tabs}<div class="tl-scroll">${body}</div></div>`);
+  popup.setContent(`<div class="popup popup-timeline">${head}${tabs}${body}</div>`);
+  if (popup.isOpen()) syncOpenPopup(popup);
 }
 
 function updateCalendar() {
-  // trackdays should be sorted by distance before this
-  let calendarEvents = [];
-  trackdays.forEach((td) => {
-    if (td.visibilityCalendar) {
-      let price = (td.price === -1 ? "" : "$" + td.price);
-      let orgStr = (tracks[td.track].nickname === td.org ? "" : " - " + td.org);
-      let subtrackStr = (td.subtrack ? " - " + td.subtrack : "");
-      let noteStr = (td.note ? " (" + td.note + ")" : "");
-      let savedClass = savedEventsSet.has(getEventKey(td)) ? "saved-calendar-event" : "";
-      let label = `• ${tracks[td.track].nickname}${orgStr}`;
-      let tooltip = `${price}${subtrackStr}${noteStr}`;
-      // caleandar wraps an http(s) Link in <a>, so Title must not contain its own link
-      let calendarStr = `<span class="${savedClass}" title="${escapeHtml(tooltip)}">${escapeHtml(label)}</span>`;
-      calendarEvents.push({Date: td.date.toDate(), Title: calendarStr, Link: safeHttpUrl(td.url)});
-    }
-  });
-  let calendar = document.getElementById("calendar");
   if (selectedMonth === undefined) {
     selectedMonth = dayjs().startOf("month").toDate();
   }
-  calendar.innerHTML = "";  // delete old calendar
-  let calendarObj = caleandar(calendar, calendarEvents, {Color: "#999999", LinkColor: "#ffffff", NavShow: true, DateTimeShow: true}, selectedMonth);
+  // trackdays should be sorted by distance before this
+  renderCalendarView();
   updatePillCounts();
+  if (dateRangePopover && !dateRangePopover.hidden) renderDateRangePopover();
 }
 
-// caleandar moves between months on its own and replaces its markup, so track the month here
 function shiftSelectedMonth(delta) {
   if (selectedMonth === undefined) return;
   selectedMonth = dayjs(selectedMonth).startOf("month").add(delta, "month").toDate();
@@ -459,14 +602,22 @@ function refresh({trackVisibility = false, popup = false, calendar = false, drop
   if (dropdown) updateDropdown();
 }
 
-function updateMinDateVar() {
-  // explicit format parses as local midnight in every browser. isAfter is exclusive, so pad 1s to include this day
-  minDate = dayjs(minDateElement.value, "YYYY-MM-DD", true).subtract(1, "s");
-}
-
-function updateMaxDateVar() {
-  // isBefore is exclusive, so pad 1 minute to include this day. an empty value stays invalid and means no end date
-  maxDate = dayjs(maxDateElement.value, "YYYY-MM-DD", true).add(1, "minute");
+function applyCalendarBounds() {
+  // exclusive comparisons: pad the start back 1s and the end forward 1 minute so those midnights are included
+  if (selectedCalendarStart && selectedCalendarEnd) {
+    minDate = dayjs(selectedCalendarStart, "YYYY-MM-DD", true).subtract(1, "s");
+    maxDate = dayjs(selectedCalendarEnd, "YYYY-MM-DD", true).add(1, "minute");
+  } else {
+    minDate = dayjs().startOf("day").subtract(1, "s");
+    maxDate = dayjs("", "YYYY-MM-DD", true);
+  }
+  let button = document.getElementById("dateRangeButton");
+  if (!button) return;
+  let label = dateRangeButtonLabel();
+  button.textContent = label;
+  let custom = !!(selectedCalendarStart && selectedCalendarEnd);
+  button.classList.toggle("is-set", custom);
+  button.setAttribute("aria-label", custom ? `Date range, ${label}` : `Date range, ${label}`);
 }
 
 let showSyncInfo = false;
@@ -521,10 +672,297 @@ document.getElementById("lastSyncMessage").addEventListener("click", (event) => 
 });
 
 document.getElementById("calendar").addEventListener("click", (event) => {
-  let nav = event.target.closest(".cld-rwd, .cld-fwd");
+  let star = event.target.closest(".event-save-star");
+  if (star) {
+    event.preventDefault();
+    onEventSaveToggle(star);
+    return;
+  }
+  if (event.target.closest("[data-cal-show-month]")) {
+    setCalendarRange(null, null);
+    refresh({trackVisibility: true, popup: true, calendar: true});
+    return;
+  }
+  let nav = event.target.closest("[data-month-delta]");
   if (!nav) return;
-  shiftSelectedMonth(nav.classList.contains("cld-fwd") ? 1 : -1);
+  shiftSelectedMonth(Number(nav.dataset.monthDelta));
+  updateCalendar();
 }, true);
+
+function setCalendarRange(start, end) {
+  if (!start || !end) {
+    selectedCalendarStart = null;
+    selectedCalendarEnd = null;
+  } else if (start <= end) {
+    selectedCalendarStart = start;
+    selectedCalendarEnd = end;
+  } else {
+    selectedCalendarStart = end;
+    selectedCalendarEnd = start;
+  }
+  applyCalendarBounds();
+}
+
+function paintCalendarRange(start, end) {
+  let lo = null;
+  let hi = null;
+  if (start && end) {
+    lo = start < end ? start : end;
+    hi = start < end ? end : start;
+  }
+  document.querySelectorAll("#dateRangeScroll [data-cal-day]").forEach((day) => {
+    let on = lo !== null && day.dataset.calDay >= lo && day.dataset.calDay <= hi;
+    day.classList.toggle("is-selected", on);
+    day.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+}
+
+let dateRangeButton = document.getElementById("dateRangeButton");
+let dateRangePopover = document.getElementById("dateRangePopover");
+let dateRangeScroll = document.getElementById("dateRangeScroll");
+let dateDrag = null;
+let dateDragPoint = null;
+let dateDragScrollRaf = 0;
+
+function updateDateRangeHint() {
+  let hint = document.getElementById("dateRangeHint");
+  if (hint) hint.textContent = pendingCalendarDay ? "Select an end date" : "Select a start and end";
+}
+
+function paintCurrentSelection() {
+  if (pendingCalendarDay) paintCalendarRange(pendingCalendarDay, pendingCalendarDay);
+  else paintCalendarRange(selectedCalendarStart, selectedCalendarEnd);
+}
+
+function dateDayAt(x, y) {
+  for (let el of document.elementsFromPoint(x, y)) {
+    if (!el.closest) continue;
+    let day = el.closest("[data-cal-day]");
+    if (day && dateRangeScroll.contains(day)) return day.dataset.calDay;
+  }
+  return null;
+}
+
+function stopDateDragScroll() {
+  if (!dateDragScrollRaf) return;
+  cancelAnimationFrame(dateDragScrollRaf);
+  dateDragScrollRaf = 0;
+}
+
+function tickDateDragScroll() {
+  dateDragScrollRaf = 0;
+  if (!dateDrag || dateDrag.pointerType === "touch" || !dateDragPoint) return;
+  let box = dateRangeScroll.getBoundingClientRect();
+  let zone = 36;
+  let y = dateDragPoint.y;
+  let delta = 0;
+  if (y < box.top + zone) delta = -Math.ceil((box.top + zone - y) / 2);
+  else if (y > box.bottom - zone) delta = Math.ceil((y - (box.bottom - zone)) / 2);
+  if (!delta) return;
+  delta = Math.max(-18, Math.min(18, delta));
+  let before = dateRangeScroll.scrollTop;
+  dateRangeScroll.scrollTop += delta;
+  if (dateRangeScroll.scrollTop === before) return;
+  let key = dateDayAt(dateDragPoint.x, dateDragPoint.y);
+  if (key && key !== dateDrag.current) {
+    if (key !== dateDrag.anchor) dateDrag.moved = true;
+    dateDrag.current = key;
+    paintCalendarRange(dateDrag.anchor, dateDrag.current);
+  }
+  dateDragScrollRaf = requestAnimationFrame(tickDateDragScroll);
+}
+
+function scheduleDateDragScroll() {
+  if (dateDragScrollRaf) return;
+  dateDragScrollRaf = requestAnimationFrame(tickDateDragScroll);
+}
+
+function revealDateDay(el, center) {
+  let scrollerBox = dateRangeScroll.getBoundingClientRect();
+  let elBox = el.getBoundingClientRect();
+  let above = elBox.top < scrollerBox.top;
+  let below = elBox.bottom > scrollerBox.bottom;
+  if (!center && !above && !below) return;
+  let delta = elBox.top - scrollerBox.top - (dateRangeScroll.clientHeight - elBox.height) / 2;
+  dateRangeScroll.scrollTop += delta;
+}
+
+function closeDateRange(opts = {}) {
+  pendingCalendarDay = null;
+  stopDateDragScroll();
+  dateDrag = null;
+  dateDragPoint = null;
+  dateRangePopover.classList.remove("is-dragging");
+  dateRangePopover.hidden = true;
+  dateRangeButton.setAttribute("aria-expanded", "false");
+  updateDateRangeHint();
+  if (opts.focusButton) dateRangeButton.focus();
+}
+
+function openDateRange() {
+  pendingCalendarDay = null;
+  renderDateRangePopover();
+  dateRangePopover.hidden = false;
+  dateRangeButton.setAttribute("aria-expanded", "true");
+  updateDateRangeHint();
+  let key = selectedCalendarStart || dayjs().format("YYYY-MM-DD");
+  let el = dateRangeScroll.querySelector(`[data-cal-day="${key}"]`) || dateRangeScroll.querySelector("[data-cal-day]");
+  if (!el) return;
+  dateRangeScroll.querySelectorAll("[data-cal-day]").forEach((day) => {day.tabIndex = day === el ? 0 : -1;});
+  revealDateDay(el, true);
+  el.focus({preventScroll: true});
+}
+
+function commitCalendarRange(start, end) {
+  pendingCalendarDay = null;
+  setCalendarRange(start, end);
+  closeDateRange({focusButton: true});
+  if (typeof trackdays === "undefined") return;
+  refresh({trackVisibility: true, popup: true, calendar: true});
+}
+
+function swallowNextClick() {
+  let stop = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    cleanup();
+  };
+  let cleanup = () => {
+    document.removeEventListener("click", stop, true);
+    clearTimeout(timer);
+  };
+  document.addEventListener("click", stop, true);
+  let timer = setTimeout(cleanup, 500);
+}
+
+function onDateClick(key) {
+  if (!pendingCalendarDay) {
+    pendingCalendarDay = key;
+    paintCalendarRange(key, key);
+    updateDateRangeHint();
+    let el = dateRangeScroll.querySelector(`[data-cal-day="${key}"]`);
+    if (el) {
+      dateRangeScroll.querySelectorAll("[data-cal-day]").forEach((day) => {day.tabIndex = day === el ? 0 : -1;});
+      el.focus({preventScroll: true});
+    }
+    return;
+  }
+  commitCalendarRange(pendingCalendarDay, key);
+}
+
+function moveDateFocus(day, deltaDays) {
+  let bounds = selectableDateBounds();
+  let next = dayjs(day.dataset.calDay, "YYYY-MM-DD", true).add(deltaDays, "day");
+  if (next.isBefore(bounds.min, "day") || next.isAfter(bounds.max, "day")) return;
+  let el = dateRangeScroll.querySelector(`[data-cal-day="${next.format("YYYY-MM-DD")}"]`);
+  if (!el) return;
+  day.tabIndex = -1;
+  el.tabIndex = 0;
+  el.focus({preventScroll: true});
+  revealDateDay(el, false);
+}
+
+dateRangeButton.addEventListener("click", () => {
+  if (dateRangePopover.hidden) openDateRange();
+  else closeDateRange();
+});
+
+document.getElementById("dateRangeClear").addEventListener("click", () => {
+  pendingCalendarDay = null;
+  setCalendarRange(null, null);
+  updateDateRangeHint();
+  if (!dateRangePopover.hidden) renderDateRangePopover();
+  if (typeof trackdays === "undefined") return;
+  refresh({trackVisibility: true, popup: true, calendar: true});
+});
+
+document.addEventListener("pointerdown", (event) => {
+  if (dateRangePopover.hidden) return;
+  if (dateRangePopover.contains(event.target) || dateRangeButton.contains(event.target)) return;
+  closeDateRange();
+}, true);
+
+document.addEventListener("keydown", (event) => {
+  if (dateRangePopover.hidden || event.key !== "Escape") return;
+  event.preventDefault();
+  closeDateRange({focusButton: true});
+});
+
+dateRangePopover.addEventListener("keydown", (event) => {
+  let day = event.target.closest("[data-cal-day]");
+  if (!day) return;
+  let delta = {ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7}[event.key];
+  if (delta) {
+    event.preventDefault();
+    moveDateFocus(day, delta);
+    return;
+  }
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    onDateClick(day.dataset.calDay);
+  }
+});
+
+dateRangePopover.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0) return;
+  let day = event.target.closest("[data-cal-day]");
+  if (!day || !dateRangeScroll.contains(day)) return;
+  dateDrag = {
+    pointerId: event.pointerId,
+    pointerType: event.pointerType,
+    anchor: day.dataset.calDay,
+    current: day.dataset.calDay,
+    moved: false,
+    originX: event.clientX,
+    originY: event.clientY,
+  };
+  dateDragPoint = {x: event.clientX, y: event.clientY};
+  if (event.pointerType === "touch") return;
+  dateRangePopover.classList.add("is-dragging");
+  try {dateRangePopover.setPointerCapture(event.pointerId);} catch (e) {}
+  event.preventDefault();
+  paintCalendarRange(dateDrag.anchor, dateDrag.anchor);
+});
+
+dateRangePopover.addEventListener("pointermove", (event) => {
+  if (!dateDrag || event.pointerId !== dateDrag.pointerId || dateDrag.pointerType === "touch") return;
+  dateDragPoint = {x: event.clientX, y: event.clientY};
+  let key = dateDayAt(event.clientX, event.clientY);
+  if (key && key !== dateDrag.current) {
+    if (key !== dateDrag.anchor) dateDrag.moved = true;
+    dateDrag.current = key;
+    if (dateDrag.moved) paintCalendarRange(dateDrag.anchor, key);
+  }
+  if (Math.hypot(event.clientX - dateDrag.originX, event.clientY - dateDrag.originY) > 4) scheduleDateDragScroll();
+});
+
+dateRangePopover.addEventListener("pointerup", (event) => {
+  if (!dateDrag || event.pointerId !== dateDrag.pointerId) return;
+  stopDateDragScroll();
+  let drag = dateDrag;
+  dateDrag = null;
+  dateDragPoint = null;
+  dateRangePopover.classList.remove("is-dragging");
+  if (drag.pointerType === "touch") {
+    let travel = Math.hypot(event.clientX - drag.originX, event.clientY - drag.originY);
+    if (travel > 10) {
+      paintCurrentSelection();
+      return;
+    }
+    swallowNextClick();
+    onDateClick(drag.anchor);
+  } else if (drag.moved) commitCalendarRange(drag.anchor, drag.current);
+  else onDateClick(drag.anchor);
+});
+
+dateRangePopover.addEventListener("pointercancel", (event) => {
+  if (!dateDrag || event.pointerId !== dateDrag.pointerId) return;
+  stopDateDragScroll();
+  dateDrag = null;
+  dateDragPoint = null;
+  dateRangePopover.classList.remove("is-dragging");
+  paintCurrentSelection();
+});
 
 const headerAd = document.getElementById("fotosort-ad");
 if (localStorage.getItem("headerAdClosed")) {
@@ -541,17 +979,14 @@ let tiles = new L.TileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
 ).addTo(map);
 map.attributionControl.setPrefix("");
 
-let homeMarker = new L.Marker(locationDefault, {icon: homeIconMoto, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
+let homeMarker = new L.Marker(locationDefault, {title: "Home", icon: homeIconMoto, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
 let searchCircle = new L.Circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
-let searchCircleHandle = new L.Circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0, weight: 22, fill: false, interactive: true, bubblingPointerEvents: false, radius: infiniteRadius, className: "search-radius-handle"});
 
 let showCarEventsButton = document.getElementById("showCarEvents");
 let showMotoEventsButton = document.getElementById("showMotoEvents");
 let showSumoEventsButton = document.getElementById("showSumoEvents");
 let orgSelectElement = document.getElementById("orgSelect");
 let radiusSliderElement = document.getElementById("radiusSlider");
-let minDateElement = document.getElementById("minDateSearch");
-let maxDateElement = document.getElementById("maxDateSearch");
 let daySelectElement = document.getElementById("daySelect");
 let showTracksWithoutEventsToggleElement = document.getElementById("showTracksWithoutEvents");
 let showTrackdaysToggleElement = document.getElementById("showTrackdays");
@@ -563,19 +998,11 @@ let resetElement = document.getElementById("resetFilters");
 orgSelectElement.style.display = "block";
 MultiselectDropdown();
 
-minDateElement.min = dayjs().subtract(1, "d").format("YYYY-MM-DD");
-minDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
-maxDateElement.min = dayjs().subtract(1, "d").format("YYYY-MM-DD");
-maxDateElement.max = dayjs().add(1, "y").format("YYYY-MM-DD");
-minDateElement.value = dayjs().format("YYYY-MM-DD");
-maxDateElement.value = "";
-updateMinDateVar();
-updateMaxDateVar();
+applyCalendarBounds();
 
 const checkeredFlagImg = `<svg xmlns="http://www.w3.org/2000/svg" fill="#000000" viewBox="0 0 24 24"><path d="M4 2v18H3v2h4v-2H6v-5h13a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H6V2H4zm4 3v2h2V5h2v2h2V5h2v2h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H8v-2H6V9h2V7H6V5h2z"/><path d="M8 9h2v2H8zm4 0h2v2h-2zm-2-2h2v2h-2zm4 0h2v2h-2z"/></svg>`;
 const directionImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m2.3 12.7 9 9c.4.4 1 .4 1.4 0l9-9a1 1 0 0 0 0-1.4l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4zM9 10h5V8l3 3-3 3v-2h-3v4H9v-6z"/></svg>`;
 const weatherImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="M7 12a5 5 0 1 0 10 0 5 5 0 0 0-10 0zm4 7h2v3h-2zm0-17h2v3h-2zm-9 9h3v2H2zm17 0h3v2h-3zM5.6 19.8l-1.4-1.4 2.1-2.2 1.5 1.5zM16.2 6.3l2.2-2 1.4 1.3-2.1 2.2zM6.3 7.8l-2-2.2 1.3-1.4 2.2 2.1zm13.5 10.6-1.4 1.4-2.2-2.1 1.5-1.5z"/></svg>`;
-const videoImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m18 7-2-2H4L2 7v10l2 2h12l2-2v-3l4 3V7l-4 3V7z"/></svg>`;
 
 const trackIconCheckered = new L.DivIcon({html: checkeredFlagImg, className: "", iconSize: [32, 32], iconAnchor: [6, 24], popupAnchor: [10, -20]});
 const trackIconRed = new L.DivIcon({html: checkeredFlagImg.replace("#000000", "#ff0000"), className: "", iconSize: [32, 32], iconAnchor: [6, 24], popupAnchor: [10, -20]});
@@ -634,8 +1061,8 @@ function createTrackMarkers() {
       let trackKey = e.target.options.title.toUpperCase();
       if (trackKey !== lastOpenedTrack) resetRecordForm();
       lastOpenedTrack = trackKey;
-      if (recordsUi.open) loadTrackRecords(trackKey);
-      else updateTrackPopup();
+      // records are new, so load them on open and spare the wait. later, load only when that tab is open: if (recordsUi.open) loadTrackRecords(trackKey); else updateTrackPopup();
+      loadTrackRecords(trackKey);
     });
     // leaflet measures popup width before flex/scroll layout settles; remeasure after paint so text isn't truncated on first open
     mapMarkers[trackName].on("popupopen", (e) => {
@@ -646,65 +1073,26 @@ function createTrackMarkers() {
         popupEl.addEventListener("click", (ev) => ev.stopPropagation());
       }
       requestAnimationFrame(() => {
-        if (e.popup.isOpen()) e.popup.update();
+        if (e.popup.isOpen()) syncOpenPopup(e.popup);
       });
     });
   });
 }
 
 function wireHomeAndRadius() {
-  let homeDragFrame = 0;
-  let homeDragTick = 0;
   homeMarker.on("dragstart", () => {
     homeLocked = true;
     map.closePopup();  // close "Drag Me" popup
-    homeDragTick = 0;
-    if (homeDragFrame) cancelAnimationFrame(homeDragFrame);
-    homeDragFrame = requestAnimationFrame(function followHomeCircle() {
-      homeDragTick++;
-      if (homeDragTick % 3 === 0) searchCircle.setLatLng(homeMarker.getLatLng());
-      homeDragFrame = requestAnimationFrame(followHomeCircle);
-    });
+  });
+  homeMarker.on("drag", () => {
+    searchCircle.setLatLng(homeMarker.getLatLng());
   });
   homeMarker.on("dragend", () => {
-    if (homeDragFrame) {
-      cancelAnimationFrame(homeDragFrame);
-      homeDragFrame = 0;
-    }
     let latlng = homeMarker.getLatLng();
     searchCircle.setLatLng(latlng);
-    searchCircleHandle.setLatLng(latlng);
+    persistHomeLocation(latlng);
     updateTrackDistances();
     refresh({calendar: true, dropdown: true});
-  });
-
-  let travelDrag = false;
-  function onTravelDrag(e) {
-    // circle and slider follow live; icons, calendar, and hosts wait until release
-    let center = homeMarker.getLatLng();
-    let miles = milesBetween(center.lat, center.lng, e.latlng.lat, e.latlng.lng);
-    let snapped = nearestTravelRadius(miles);
-    if (snapped === searchRadius) return;
-    homeLocked = true;
-    radiusSliderElement.value = String(radiusValues.indexOf(snapped));
-    updateSearchRadius(snapped);
-  }
-  function endTravelDrag() {
-    if (!travelDrag) return;
-    travelDrag = false;
-    map.dragging.enable();
-    map.getContainer().classList.remove("travel-dragging");
-    map.off("pointermove", onTravelDrag);
-    L.DomEvent.off(document, "pointerup", endTravelDrag);
-    refresh({calendar: true, dropdown: true});
-  }
-  searchCircleHandle.on("pointerdown", (e) => {
-    L.DomEvent.stop(e.originalEvent);
-    travelDrag = true;
-    map.dragging.disable();
-    map.getContainer().classList.add("travel-dragging");
-    map.on("pointermove", onTravelDrag);
-    L.DomEvent.on(document, "pointerup", endTravelDrag);
   });
 
   radiusSliderElement.addEventListener("input", () => {
@@ -713,6 +1101,7 @@ function wireHomeAndRadius() {
   });
 
   radiusSliderElement.addEventListener("change", () => {
+    persistRadius();
     refresh({calendar: true, dropdown: true});
   });
 
@@ -754,18 +1143,12 @@ function wireFilterControls() {
   const vehiclePairs = [[showCarEventsButton, "C"], [showMotoEventsButton, "M"], [showSumoEventsButton, "S"]];
   const eventPairs = [[showTrackdaysToggleElement, "T"], [showSchoolsToggleElement, "S"], [showRacesToggleElement, "R"]];
 
-  minDateElement.addEventListener("input", () => {
-    updateMinDateVar();
-  });
-
-  maxDateElement.addEventListener("input", () => {
-    updateMaxDateVar();
-  });
-
+  applyStoredHosts();
   orgSelectElement.addEventListener("change", () => {
     Array.from(orgSelectElement.options).forEach((opt) => {
       orgs[opt.value].dropdownSelected = opt.selected;
     });
+    persistHosts();
     refresh({trackVisibility: true, popup: true, calendar: true});
   });
 
@@ -798,18 +1181,21 @@ function wireFilterControls() {
     },
   });
 
-  [minDateElement, maxDateElement, daySelectElement].forEach(elem =>
-    elem.addEventListener("change", () => {
-      refresh({trackVisibility: true, popup: true, calendar: true});
-    })
-  );
+  applyStoredWeekdays();
+  daySelectElement.addEventListener("change", () => {
+    persistWeekdays();
+    refresh({trackVisibility: true, popup: true, calendar: true});
+  });
 
   showTracksWithoutEventsToggleElement.addEventListener("click", () => {
     let nowEnabled = !showTracksWithoutEventsToggleElement.classList.contains("on");
     setFilterToggle(showTracksWithoutEventsToggleElement, nowEnabled);
+    localStorage.setItem(STORAGE_KEY_EMPTY_TRACKS, nowEnabled ? "1" : "0");
     refresh({trackVisibility: true});
   });
-  setFilterToggle(showTracksWithoutEventsToggleElement, showTracksWithoutEventsToggleElement.classList.contains("on"));
+  let storedEmptyTracks = localStorage.getItem(STORAGE_KEY_EMPTY_TRACKS);
+  let emptyTracksOn = storedEmptyTracks === null ? showTracksWithoutEventsToggleElement.classList.contains("on") : storedEmptyTracks === "1";
+  setFilterToggle(showTracksWithoutEventsToggleElement, emptyTracksOn);
 
   exportSavedEventsElement.addEventListener("click", () => {
     downloadSavedEventsICS();
@@ -829,6 +1215,8 @@ function wireFilterControls() {
       localStorage.removeItem(STORAGE_KEY_USER_SAVED_EVENTS);
     }
 
+    clearStoredFilters();
+
     enableAllToggles(vehiclePairs, selectedVehicleTypes, STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(vehicleTypeMap));
     enableAllToggles(eventPairs, selectedEventTypes, STORAGE_KEY_USER_EVENT_TYPES, Object.keys(eventTypeMap));
     homeMarker.setIcon(homeIconCar);
@@ -837,14 +1225,13 @@ function wireFilterControls() {
     setFilterToggle(showTracksWithoutEventsToggleElement, true);
     Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
 
-    minDateElement.value = dayjs().format("YYYY-MM-DD");
-    maxDateElement.value = "";
-    updateMinDateVar();
-    updateMaxDateVar();
+    closeDateRange();
+    setCalendarRange(null, null);
     Array.from(daySelectElement.options).forEach((opt) => {
       opt.selected = true;
     });
     daySelectElement.loadOptions();
+    homeLocked = false;
     resetHome();
   });
 }

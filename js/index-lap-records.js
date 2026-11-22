@@ -205,11 +205,12 @@ function recordsListHtml(trackKey) {
   let records = trackRecords(trackKey);
   let allRecords = records.length ? `<a class="rec-all" href="records.html?track=${encodeURIComponent(trackKey)}" target="_blank" rel="noopener">All records</a>` : "";
   let footer = `<div class="rec-footer">${allRecords}${add}</div>`;
-  if (entry && entry.loading && !records.length) return `<div class="empty">Loading lap records...</div>${footer}`;
-  if (entry && entry.error && !records.length) return `<div class="empty">${escapeHtml(entry.error)}</div>${footer}`;
+  let body = (inner) => popupList(inner, footer);
+  if (entry && entry.loading && !records.length) return body(`<div class="empty">Loading lap records...</div>`);
+  if (entry && entry.error && !records.length) return body(`<div class="empty">${escapeHtml(entry.error)}</div>`);
   let shown = records.filter(r => selectedVehicleTypes.has(r.vehicleType));
   let emptyMessage = records.length ? "No lap records for the selected vehicles" : "No Lap Records";
-  if (!shown.length) return `<div class="empty">${emptyMessage}</div>${footer}`;
+  if (!shown.length) return body(`<div class="empty">${emptyMessage}</div>`);
   function groupsHtml(typeRows) {
     let bySub = new Map();
     typeRows.forEach(r => {
@@ -262,7 +263,7 @@ function recordsListHtml(trackKey) {
     let heading = typeSections.length > 1 ? `<div class="rec-typehead${index ? "" : " first"}">${escapeHtml(recordTypeLabel(code))}</div>` : "";
     return heading + groupsHtml(shown.filter(r => r.vehicleType === code));
   }).join("");
-  return `<div class="rec-panel">${groups}${footer}</div>`;
+  return body(groups);
 }
 
 {
