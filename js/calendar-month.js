@@ -129,6 +129,11 @@ function rangeEmptyHtml() {
   return `<div class="cal-list"><p class="cal-month-empty">${copy}</p></div>`;
 }
 
+function rangeHeaderHtml(keys) {
+  if (!keys || !keys.length) return "";
+  return `<div class="cal-range-header"><span class="cal-range-header-text">${escapeHtml(dateRangeButtonLabel())}</span>${calendarClearDatesHtml()}</div>`;
+}
+
 function filteredNoteHtml(start, end) {
   let hidden = trackdays.filter((td) => !td.visibilityMap && !td.date.isBefore(start, "day") && !td.date.isAfter(end, "day"));
   if (!hidden.length) return "";
@@ -139,10 +144,11 @@ function eventsPanelHtml(byDay, month, keys) {
   let noteStart = keys ? dayjs(keys[0], "YYYY-MM-DD", true) : month.startOf("month");
   let noteEnd = keys ? dayjs(keys[keys.length - 1], "YYYY-MM-DD", true) : month.endOf("month");
   let note = filteredNoteHtml(noteStart, noteEnd);
+  let header = rangeHeaderHtml(keys);
   if (keys && keys.length === 1) {
     let items = byDay.get(keys[0]) || [];
-    if (!items.length) return rangeEmptyHtml() + note;
-    return dayPanelHtml(keys[0], byDay) + note;
+    if (!items.length) return header + rangeEmptyHtml() + note;
+    return header + dayPanelHtml(keys[0], byDay) + note;
   }
   let shown;
   if (keys) shown = keys.filter((key) => byDay.has(key));
@@ -155,7 +161,7 @@ function eventsPanelHtml(byDay, month, keys) {
     : keys
       ? rangeEmptyHtml()
       : `<div class="cal-list"><p class="cal-month-empty">${escapeHtml(emptyMonthMessage(month))}</p></div>`;
-  return body + note;
+  return header + body + note;
 }
 
 function dayPanelHtml(key, byDay) {

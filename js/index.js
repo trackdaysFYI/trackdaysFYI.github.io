@@ -682,6 +682,10 @@ document.getElementById("lastSyncMessage").addEventListener("click", (event) => 
 });
 
 document.getElementById("calendar").addEventListener("click", (event) => {
+  if (event.target.closest("[data-cal-clear-range]")) {
+    clearCalendarDateFilter();
+    return;
+  }
   let star = event.target.closest(".event-save-star");
   if (!star) return;
   event.preventDefault();
