@@ -12,7 +12,7 @@ const TIMING_DEVICES = [
   "Data Logger (AiM/RaceBox)",
   "Phone GPS",
   "Video",
-  "My Imagination",
+  "Other/My Imagination",
 ];
 
 function escapeHtml(value) {
