@@ -49,11 +49,7 @@
     </label>
     </div>
   </div>
-  <div id="loading" class="loading" role="status" aria-live="polite">
-    <span class="loading-bar"></span>
-    <p>Loading lap records...</p>
-  </div>
-  <div id="records-view" hidden>
+  <div id="records-view">
   <div class="results-bar">
     <div class="status-row">
       <div class="view-switch">
@@ -82,7 +78,16 @@
           <th class="actions"> </th>
         </tr>
       </thead>
-      <tbody id="rows"></tbody>
+      <tbody id="rows">
+        <tr>
+          <td class="loading-cell" colspan="9">
+            <div class="loading" role="status" aria-live="polite">
+              <span class="loading-bar"></span>
+              <p>Loading lap records...</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
     </table>
   </div>
   <div class="export-actions">
