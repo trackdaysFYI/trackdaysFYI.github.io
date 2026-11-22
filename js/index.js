@@ -596,6 +596,25 @@ function refresh({trackVisibility = false, popup = false, calendar = false, drop
   if (popup) updateTrackPopup();
   if (calendar) updateCalendar();
   if (dropdown) updateDropdown();
+  updateDateFilterBar();
+}
+
+function updateDateFilterBar() {
+  let bar = document.getElementById("dateFilterBar");
+  if (!bar) return;
+  let ranged = !!(selectedCalendarStart && selectedCalendarEnd);
+  if (!ranged) {
+    bar.classList.add("is-idle");
+    bar.classList.remove("is-chip");
+    bar.setAttribute("aria-hidden", "true");
+    bar.innerHTML = "";
+    return;
+  }
+  let label = dateRangeButtonLabel();
+  bar.classList.remove("is-idle");
+  bar.classList.add("is-chip");
+  bar.removeAttribute("aria-hidden");
+  bar.innerHTML = `<span class="date-filter-bar-text">${escapeHtml(label)}</span>${calendarClearDatesHtml()}`;
 }
 
 function applyCalendarBounds() {
@@ -663,16 +682,20 @@ document.getElementById("lastSyncMessage").addEventListener("click", (event) => 
 
 document.getElementById("calendar").addEventListener("click", (event) => {
   let star = event.target.closest(".event-save-star");
-  if (star) {
-    event.preventDefault();
-    onEventSaveToggle(star);
-    return;
-  }
-  if (event.target.closest("[data-cal-clear-range]")) {
-    setCalendarRange(null, null);
-    refresh({trackVisibility: true, popup: true, calendar: true});
-  }
+  if (!star) return;
+  event.preventDefault();
+  onEventSaveToggle(star);
 }, true);
+
+document.getElementById("dateFilterBar").addEventListener("click", (event) => {
+  if (!event.target.closest("[data-cal-clear-range]")) return;
+  clearCalendarDateFilter();
+});
+
+function clearCalendarDateFilter() {
+  setCalendarRange(null, null);
+  refresh({trackVisibility: true, popup: true, calendar: true});
+}
 
 function setCalendarRange(start, end) {
   if (!start || !end) {

@@ -43,19 +43,10 @@ function dateRangeButtonLabel() {
   if (!selectedCalendarStart || !selectedCalendarEnd) return "";
   let start = dayjs(selectedCalendarStart, "YYYY-MM-DD", true);
   let end = dayjs(selectedCalendarEnd, "YYYY-MM-DD", true);
-  if (selectedCalendarStart === selectedCalendarEnd) return start.format("MMM D");
-  if (!start.isSame(end, "year")) return `${start.format("MMM D, YYYY")} – ${end.format("MMM D, YYYY")}`;
-  if (start.isSame(end, "month")) return `${start.format("MMM D")} – ${end.format("D")}`;
-  return `${start.format("MMM D")} – ${end.format("MMM D")}`;
-}
-
-function selectionLabel(selection) {
-  let start = dayjs(selection.start, "YYYY-MM-DD", true);
-  let end = dayjs(selection.end, "YYYY-MM-DD", true);
-  if (selection.start === selection.end) return start.format("MMMM D, YYYY");
-  if (!start.isSame(end, "year")) return `${start.format("MMMM D, YYYY")} – ${end.format("MMMM D, YYYY")}`;
-  if (start.isSame(end, "month")) return `${start.format("MMMM D")}–${end.format("D, YYYY")}`;
-  return `${start.format("MMMM D")} – ${end.format("MMMM D, YYYY")}`;
+  if (selectedCalendarStart === selectedCalendarEnd) return start.format("MMMM D");
+  if (!start.isSame(end, "year")) return `${start.format("MMMM D, YYYY")} - ${end.format("MMMM D, YYYY")}`;
+  if (start.isSame(end, "month")) return `${start.format("MMMM D")} - ${end.format("D")}`;
+  return `${start.format("MMMM D")} - ${end.format("MMMM D")}`;
 }
 
 function eventRowHtml(td) {
