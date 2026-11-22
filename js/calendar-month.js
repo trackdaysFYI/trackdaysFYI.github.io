@@ -6,10 +6,6 @@ const calendarWeekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
   .map((day) => `<span class="cal-weekday">${day}</span>`)
   .join("");
 
-function renderCalendarView() {
-  renderMonthGrid();
-}
-
 function calendarSpan() {
   let range = activeCalendarRange();
   if (range) {
@@ -29,7 +25,7 @@ function calendarSpan() {
   };
 }
 
-function renderMonthGrid() {
+function renderCalendarView() {
   let root = document.getElementById("calendar");
   let span = calendarSpan();
   if (calendarSpanKey !== span.key) {
@@ -122,10 +118,6 @@ function eventsPanelHtml(byDay, span, keys) {
   return `<div class="cal-month-groups">${shown.map((dayKey) => `<section class="cal-month-group">${dayPanelHtml(dayKey, byDay)}</section>`).join("")}</div>`;
 }
 
-function panelHtml(byDay, span) {
-  return eventsPanelHtml(byDay, span, selectedKeys(span));
-}
-
 function monthDayAt(grid, event) {
   let day = event.target instanceof Element ? event.target.closest("[data-cal-day]") : null;
   if (!day || !grid.contains(day)) {
@@ -139,22 +131,23 @@ function monthDayAt(grid, event) {
 function bindMonthGrid(root, byDay, span) {
   let grid = root.querySelector(".cal-month-grid");
   let drag = null;
-  let finishDrag = (commit) => {
+  let finishDrag = () => {
     drag = null;
     grid.classList.remove("is-dragging");
-    if (commit) paintMonthFocus(root, byDay, span);
+    paintMonthFocus(root, byDay, span);
   };
   grid.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
     let key = monthDayAt(grid, event);
     if (!key) return;
-    drag = {pointerId: event.pointerId, anchor: key, current: key, moved: false};
+    drag = {pointerId: event.pointerId, pointerType: event.pointerType, anchor: key, current: key, moved: false, originX: event.clientX, originY: event.clientY};
+    if (event.pointerType === "touch") return;
     grid.classList.add("is-dragging");
     try {grid.setPointerCapture(event.pointerId);} catch (e) {}
     event.preventDefault();
   });
   grid.addEventListener("pointermove", (event) => {
-    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (!drag || event.pointerId !== drag.pointerId || drag.pointerType === "touch") return;
     let key = monthDayAt(grid, event);
     if (!key || key === drag.current) return;
     drag.current = key;
@@ -165,14 +158,16 @@ function bindMonthGrid(root, byDay, span) {
   grid.addEventListener("pointerup", (event) => {
     if (!drag || event.pointerId !== drag.pointerId) return;
     let gesture = drag;
-    if (gesture.moved) calendarSelection = selectionRange(gesture.anchor, gesture.current);
-    else if (calendarSelection && calendarSelection.start === gesture.anchor && calendarSelection.end === gesture.anchor) calendarSelection = null;
-    else calendarSelection = {start: gesture.anchor, end: gesture.anchor};
-    finishDrag(true);
+    let tapped = gesture.pointerType === "touch"
+      ? Math.hypot(event.clientX - gesture.originX, event.clientY - gesture.originY) <= 10
+      : !gesture.moved;
+    if (gesture.pointerType !== "touch" && gesture.moved) calendarSelection = selectionRange(gesture.anchor, gesture.current);
+    else if (tapped) calendarSelection = calendarSelection && calendarSelection.start === gesture.anchor && calendarSelection.end === gesture.anchor ? null : {start: gesture.anchor, end: gesture.anchor};
+    finishDrag();
   });
   grid.addEventListener("pointercancel", (event) => {
     if (!drag || event.pointerId !== drag.pointerId) return;
-    finishDrag(true);
+    finishDrag();
   });
   grid.addEventListener("click", (event) => {
     if (event.detail !== 0) return;
@@ -197,6 +192,6 @@ function paintDaySelection(root, span, range) {
 function paintMonthFocus(root, byDay, span) {
   paintDaySelection(root, span);
   let detail = root.querySelector(".cal-month-detail");
-  detail.innerHTML = panelHtml(byDay, span);
+  detail.innerHTML = eventsPanelHtml(byDay, span, selectedKeys(span));
   fitCalendarTitles();
 }

@@ -383,7 +383,9 @@ function renderRows() {
   let refMs = refRecord ? timeToMs(refRecord.time) : null;
   classCol.hidden = byClass;
   let colspan = visibleColumnCount({ byClass, includeTrack, includeSubtrack });
-  statusEl.hidden = true;
+  statusEl.hidden = false;
+  statusEl.className = "status";
+  statusEl.textContent = `${shown.length} record${shown.length === 1 ? "" : "s"}`;
   exportCsvButton.disabled = !shown.length;
   printButton.disabled = !shown.length;
   if (!shown.length) {
