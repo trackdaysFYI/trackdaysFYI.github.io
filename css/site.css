@@ -61,7 +61,7 @@ svg, header img {vertical-align: middle;}
 .center {margin-left: auto; margin-right: auto; text-align: center;}
 .gray {color: var(--muted)}
 
-#map {position: relative; width: 100%; height: 60vh; border: 3px solid var(--line);}
+#map {position: relative; width: 100%; height: 60vh; border: 3px solid var(--line); overscroll-behavior: contain;}
 .leaflet-popup:has(.popup-timeline) .leaflet-popup-content-wrapper,
 .leaflet-popup:has(.popup-timeline) .leaflet-popup-tip {background: var(--panel-bg); border-radius: 14px;}
 .leaflet-popup:has(.popup-timeline) .leaflet-popup-content {text-align: left; margin: 8px 10px; width: max-content; max-width: 100%;}
@@ -74,7 +74,7 @@ svg, header img {vertical-align: middle;}
 .popup-timeline .popup-links a {display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px;}
 .popup-timeline .popup-links svg {display: block; width: 16px; height: 16px;}
 .popup-timeline .tl-scroll-wrap {position: relative;}
-.popup-timeline .tl-scroll {flex: 1 1 auto; min-height: 0; max-height: 180px; overflow-x: hidden; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--panel-scroll) transparent;}
+.popup-timeline .tl-scroll {flex: 1 1 auto; min-height: 0; max-height: 180px; overflow-x: hidden; overflow-y: auto; padding-right: 4px; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--panel-scroll) transparent;}
 .popup-timeline .tl-fade {position: absolute; left: 0; right: 4px; bottom: 0; height: 1.25rem; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--panel-bg));}
 .popup-timeline .tl-foot {flex: 0 0 auto;}
 .popup-timeline a {color: inherit;}

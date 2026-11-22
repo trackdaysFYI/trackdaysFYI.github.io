@@ -118,16 +118,17 @@ function emptyMonthMessage(month) {
   return `No matching events in ${month.format("MMMM YYYY")}`;
 }
 
-function filteredNoteHtml(month) {
-  let start = month.startOf("month");
-  let end = month.endOf("month");
+function filteredNoteHtml(start, end) {
   let hidden = trackdays.filter((td) => !td.visibilityMap && !td.date.isBefore(start, "day") && !td.date.isAfter(end, "day"));
   if (!hidden.length) return "";
   return `<p class="cal-month-note">${escapeHtml(hiddenEventNote(hidden))}</p>`;
 }
 
 function eventsPanelHtml(byDay, month, keys) {
-  if (keys && keys.length === 1) return dayPanelHtml(keys[0], byDay);
+  let noteStart = keys ? dayjs(keys[0], "YYYY-MM-DD", true) : month.startOf("month");
+  let noteEnd = keys ? dayjs(keys[keys.length - 1], "YYYY-MM-DD", true) : month.endOf("month");
+  let note = filteredNoteHtml(noteStart, noteEnd);
+  if (keys && keys.length === 1) return dayPanelHtml(keys[0], byDay) + note;
   let shown;
   if (keys) shown = keys.filter((key) => byDay.has(key));
   else {
@@ -136,16 +137,15 @@ function eventsPanelHtml(byDay, month, keys) {
   }
   let body = shown.length
     ? `<div class="cal-month-groups">${shown.map((dayKey) => `<section class="cal-month-group">${dayPanelHtml(dayKey, byDay)}</section>`).join("")}</div>`
-    : `<p class="cal-month-empty">${keys ? "No events" : escapeHtml(emptyMonthMessage(month))}</p>`;
-  if (keys) return body;
-  return body + filteredNoteHtml(month);
+    : `<div class="cal-list"><p class="cal-month-empty">${keys ? "No events" : escapeHtml(emptyMonthMessage(month))}</p></div>`;
+  return body + note;
 }
 
 function dayPanelHtml(key, byDay) {
   let day = dayjs(key, "YYYY-MM-DD", true);
   let items = byDay.get(key) || [];
   let heading = `<div class="cal-month-heading">${escapeHtml(day.format("dddd, MMMM D"))}</div>`;
-  if (!items.length) return heading + `<p class="cal-month-empty">No events</p>`;
+  if (!items.length) return heading + `<div class="cal-list"><p class="cal-month-empty">No events</p></div>`;
   return heading + `<div class="cal-list">${items.map((td) => eventRowHtml(td)).join("")}</div>`;
 }
 
