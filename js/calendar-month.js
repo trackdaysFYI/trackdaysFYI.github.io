@@ -231,17 +231,34 @@ function bindActiveMonth(root, byDay, scroll) {
   }
 }
 
+function clearCalendarDragTimer(drag) {
+  if (drag?.timer) {
+    clearTimeout(drag.timer);
+    drag.timer = null;
+  }
+}
+
+function beginCalendarDragSelect(root, grid, drag) {
+  if (!drag || drag.selecting || drag.cancelled) return;
+  drag.selecting = true;
+  grid.classList.add("is-dragging");
+  try {grid.setPointerCapture(drag.pointerId);} catch (e) {}
+  paintDaySelection(root, selectionRange(drag.anchor, drag.current));
+}
+
 function bindMonthGrid(root, byDay, range) {
   let grid = root.querySelector(".cal-month-grid");
   let scroll = root.querySelector(".cal-month-scroll");
   let drag = null;
+  const touchSlop = 10;
+  const longPressMs = 350;
   bindActiveMonth(root, byDay, scroll);
   paintMonthFocus(root, byDay, range);
   root.querySelectorAll("[data-cal-rail-month]").forEach((btn) => {
     btn.addEventListener("click", () => {
       let section = scroll.querySelector(`[data-cal-month="${btn.dataset.calRailMonth}"]`);
       if (!section) return;
-      scroll.scrollTop = section.offsetTop;
+      scroll.scrollTop += section.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
       calendarScrollTop = scroll.scrollTop;
       calendarActiveMonth = dayjs(`${btn.dataset.calRailMonth}-01`, "YYYY-MM-DD", true).startOf("month");
       selectedMonth = calendarActiveMonth.toDate();
@@ -252,14 +269,36 @@ function bindMonthGrid(root, byDay, range) {
     if (event.button !== 0) return;
     let key = monthDayAt(grid, event);
     if (!key) return;
-    drag = {pointerId: event.pointerId, pointerType: event.pointerType, anchor: key, current: key, moved: false, originX: event.clientX, originY: event.clientY};
-    if (event.pointerType === "touch") return;
+    drag = {
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      anchor: key,
+      current: key,
+      moved: false,
+      selecting: event.pointerType !== "touch",
+      cancelled: false,
+      originX: event.clientX,
+      originY: event.clientY,
+      timer: null,
+    };
+    if (event.pointerType === "touch") {
+      drag.timer = setTimeout(() => beginCalendarDragSelect(root, grid, drag), longPressMs);
+      return;
+    }
     grid.classList.add("is-dragging");
     try {grid.setPointerCapture(event.pointerId);} catch (e) {}
     event.preventDefault();
   });
   grid.addEventListener("pointermove", (event) => {
-    if (!drag || event.pointerId !== drag.pointerId || drag.pointerType === "touch") return;
+    if (!drag || event.pointerId !== drag.pointerId || drag.cancelled) return;
+    let dist = Math.hypot(event.clientX - drag.originX, event.clientY - drag.originY);
+    if (drag.pointerType === "touch" && !drag.selecting) {
+      if (dist > touchSlop) {
+        clearCalendarDragTimer(drag);
+        drag.cancelled = true;
+      }
+      return;
+    }
     let key = monthDayAt(grid, event);
     if (!key || key === drag.current) return;
     drag.current = key;
@@ -271,19 +310,25 @@ function bindMonthGrid(root, byDay, range) {
     if (!drag || event.pointerId !== drag.pointerId) return;
     let gesture = drag;
     drag = null;
+    clearCalendarDragTimer(gesture);
     grid.classList.remove("is-dragging");
-    let tapped = gesture.pointerType === "touch"
-      ? Math.hypot(event.clientX - gesture.originX, event.clientY - gesture.originY) <= 10
-      : !gesture.moved;
-    if (gesture.pointerType !== "touch" && gesture.moved) {
+    if (gesture.cancelled) {
+      paintMonthFocus(root, byDay, activeCalendarRange());
+      return;
+    }
+    if (gesture.selecting && gesture.moved) {
       commitCalendarSelection(selectionRange(gesture.anchor, gesture.current));
       return;
     }
-    if (tapped) toggleDaySelection(gesture.anchor);
+    let tapped = gesture.pointerType === "touch"
+      ? Math.hypot(event.clientX - gesture.originX, event.clientY - gesture.originY) <= touchSlop
+      : !gesture.moved;
+    if (tapped || (gesture.selecting && !gesture.moved)) toggleDaySelection(gesture.anchor);
     else paintMonthFocus(root, byDay, activeCalendarRange());
   });
   grid.addEventListener("pointercancel", (event) => {
     if (!drag || event.pointerId !== drag.pointerId) return;
+    clearCalendarDragTimer(drag);
     drag = null;
     grid.classList.remove("is-dragging");
     paintMonthFocus(root, byDay, activeCalendarRange());
