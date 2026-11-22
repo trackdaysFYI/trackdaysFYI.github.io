@@ -3,7 +3,7 @@ style.setAttribute("id", "multiselect_dropdown_styles");
 style.textContent = `
 .multiselect-dropdown{
   border-radius: 0px;
-  border: solid 1px rgb(100,100,100);
+  border: solid 1px var(--line, rgb(100,100,100));
   position: relative;
 }
 .multiselect-dropdown span.optext, .multiselect-dropdown span.placeholder{
@@ -11,51 +11,79 @@ style.textContent = `
   cursor: pointer;
 }
 .multiselect-dropdown span.placeholder{
-  color: rgb(100, 100, 100);
+  color: var(--muted, rgb(176, 176, 176));
 }
 .multiselect-dropdown span.optext{
-  background-color:rgba(57, 115, 172, 0.5);
+  background-color: transparent;
+  color: white;
 }
 .multiselect-dropdown-list-wrapper{
-  box-shadow: gray 0 0 3px;
   z-index: 100;
-  padding:5px;
-  border-radius: 0px;
-  border: solid 1px rgb(100,100,100);
+  padding: 0.45rem;
+  border-radius: 12px;
+  border: 1px solid var(--line, rgb(100,100,100));
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
   display: none;
-  margin: -1px;
+  margin: 0;
   position: absolute;
-  top: 0;
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: rgb(45,51,57);
+  background: rgb(28, 32, 36);
+  color: var(--soft, rgb(220, 220, 220));
 }
 .multiselect-dropdown-list-wrapper .multiselect-dropdown-search{
-  margin-bottom:5px;
+  display: block;
   width: 100%;
   box-sizing: border-box;
+  margin: 0 0 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line, rgb(100,100,100));
+  border-radius: 8px;
+  background: rgb(16, 18, 21);
+  color: white;
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  text-align: left;
   user-select: text;
   -webkit-user-select: text;
 }
+.multiselect-dropdown-search::placeholder{color: var(--muted, rgb(176, 176, 176));}
+.multiselect-dropdown-search:focus{outline: 2px solid var(--accent, rgb(57, 115, 172)); outline-offset: 1px; border-color: transparent;}
 .multiselect-dropdown-list{
   text-align: left;
-  padding:2px;
-  height: 15rem;
-  overflow-y:auto;
+  padding: 0;
+  height: auto;
+  overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(130, 130, 130) transparent;
 }
 .multiselect-dropdown-list::-webkit-scrollbar {width: 6px;}
 .multiselect-dropdown-list::-webkit-scrollbar-thumb {background-color: rgb(130,130,130); border-radius:3px;}
-.multiselect-dropdown-list div{padding: 0px; cursor: pointer;}
+.multiselect-dropdown-list div{
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.multiselect-dropdown-list label{flex: 1 1 auto; min-width: 0; cursor: pointer;}
 .multiselect-dropdown-list input{
-  height: 1.15em;
-  width: 1.15em;
-  margin-right: 0.35em;
+  flex: 0 0 auto;
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
+  accent-color: var(--accent, rgb(57, 115, 172));
   cursor: pointer;
 }
-.multiselect-dropdown-list div:hover{background-color: rgb(64,73,82);}
+.multiselect-dropdown-list div:hover{background-color: rgb(255 255 255 / 0.07);}
 .multiselect-dropdown span.maxselected {width:100%;}
-.multiselect-dropdown-all-selector {border-bottom:solid 1px #999;}
+.multiselect-dropdown-all-selector{margin-bottom: 0.2rem; border-bottom: 1px solid rgb(255 255 255 / 0.12); border-radius: 6px 6px 0 0; font-weight: 650;}
 `;
 document.head.appendChild(style);
 
@@ -91,7 +119,7 @@ function MultiselectDropdown(options) {
     listWrap.className = "multiselect-dropdown-list-wrapper";
     let list = document.createElement("div");
     list.className = "multiselect-dropdown-list";
-    list.style.height = select.getAttribute("data-height") || config.height;
+    list.style.maxHeight = select.getAttribute("data-height") || config.height;
     let search = document.createElement("input");
     search.type = "text";
     search.className = "multiselect-dropdown-search form-control";
@@ -143,7 +171,7 @@ function MultiselectDropdown(options) {
       let query = search.value.toUpperCase();
       rows.forEach((row) => {
         let text = row.querySelector("label").textContent.toUpperCase();
-        row.style.display = text.includes(query) ? "block" : "none";
+        row.style.display = text.includes(query) ? "" : "none";
       });
       syncAll();
     }
@@ -211,14 +239,19 @@ function MultiselectDropdown(options) {
     function close() {
       if (!isOpen()) return;
       listWrap.style.display = "none";
+      root.classList.remove("is-open");
       summary();
     }
 
     function open() {
+      document.querySelectorAll(".multiselect-dropdown.is-open").forEach((menu) => {
+        if (menu !== root) menu.classList.remove("is-open");
+      });
       document.querySelectorAll(".multiselect-dropdown-list-wrapper").forEach((menu) => {
         if (menu !== listWrap) menu.style.display = "none";
       });
       listWrap.style.display = "block";
+      root.classList.add("is-open");
       if (showSearch) {
         search.focus();
         search.select();
