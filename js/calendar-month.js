@@ -98,9 +98,25 @@ function selectedKeys(span) {
 }
 
 function emptySpanMessage(span) {
-  if (!span.ranged) return "No events this month";
+  if (!span.ranged) return `No matching events in ${span.start.format("MMMM YYYY")}`;
   if (span.start.isSame(span.end, "day")) return "No events this day";
   return "No events in this date range";
+}
+
+function filteredNoteHtml(span) {
+  let hidden = trackdays.filter((td) => !td.visibilityMap && !td.date.isBefore(span.start, "day") && !td.date.isAfter(span.end, "day"));
+  if (!hidden.length) return "";
+  return `<p class="cal-month-note">${escapeHtml(hiddenEventNote(hidden))}</p>`;
+}
+
+function eventsPanelHtml(byDay, span, keys) {
+  if (keys && keys.length === 1) return dayPanelHtml(keys[0], byDay);
+  let shown = keys ? keys.filter((key) => byDay.has(key)) : [...byDay.keys()].sort();
+  let body = shown.length
+    ? `<div class="cal-month-groups">${shown.map((dayKey) => `<section class="cal-month-group">${dayPanelHtml(dayKey, byDay)}</section>`).join("")}</div>`
+    : `<p class="cal-month-empty">${keys ? "No events" : escapeHtml(emptySpanMessage(span))}</p>`;
+  if (keys) return body;
+  return body + filteredNoteHtml(span);
 }
 
 function dayPanelHtml(key, byDay) {
@@ -109,13 +125,6 @@ function dayPanelHtml(key, byDay) {
   let heading = `<div class="cal-month-heading">${escapeHtml(day.format("dddd, MMMM D"))}</div>`;
   if (!items.length) return heading + `<p class="cal-month-empty">No events</p>`;
   return heading + `<div class="cal-list">${items.map((td) => eventRowHtml(td)).join("")}</div>`;
-}
-
-function eventsPanelHtml(byDay, span, keys) {
-  if (keys && keys.length === 1) return dayPanelHtml(keys[0], byDay);
-  let shown = keys ? keys.filter((key) => byDay.has(key)) : [...byDay.keys()].sort();
-  if (!shown.length) return `<p class="cal-month-empty">${keys ? "No events" : emptySpanMessage(span)}</p>`;
-  return `<div class="cal-month-groups">${shown.map((dayKey) => `<section class="cal-month-group">${dayPanelHtml(dayKey, byDay)}</section>`).join("")}</div>`;
 }
 
 function monthDayAt(grid, event) {
