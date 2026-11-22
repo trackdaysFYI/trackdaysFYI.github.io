@@ -46,16 +46,6 @@
 }
 .cal-clear-dates:hover {opacity: 1; background: rgb(0 0 0 / 0.2);}
 
-.date-filter-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  margin: 0.55rem 0;
-  position: sticky;
-  top: 0.35rem;
-  z-index: 5;
-}
 .date-filter-bar {
   box-sizing: border-box;
   display: flex;

@@ -608,7 +608,7 @@ function updateDateFilterBar() {
     bar.classList.add("is-idle");
     bar.classList.remove("is-chip");
     bar.setAttribute("aria-hidden", "true");
-    bar.innerHTML = `<span class="date-filter-bar-text">Tap days to filter</span>`;
+    bar.innerHTML = `<span class="date-filter-bar-text">Select on calendar</span>`;
     return;
   }
   let label = dateRangeButtonLabel();

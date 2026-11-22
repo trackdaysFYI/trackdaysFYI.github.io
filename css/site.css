@@ -220,7 +220,7 @@ button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(
   .slider-stack, .slider-row {width: auto; max-width: 100%;}
   .slider-row {grid-template-columns: auto minmax(4rem, 7rem) auto;}
 }
-#calendar {display: flow-root;}
+#calendar {display: flow-root; margin-top: 1.25rem;}
 .calendar-export {display: flex; justify-content: center; width: 100%; clear: both; margin: 0.85rem 0 0.2rem;}
 .calendar-export .btn-action {border-radius: 999px; padding: 0.4rem 1.05rem; line-height: 1.35; font-size: 0.85rem;}
 
