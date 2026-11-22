@@ -753,9 +753,8 @@ async function fetchAndNormalizeTrackdays() {
   trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
   trackdays = trackdays.map(td => ({...td, date: dayjs(td.date, "YYYY-MM-DD")}));  // convert date string to dayjs
   trackdays.sort((a, b) => (a.date > b.date ? 1 : -1));  // sort by date
-
-  const idx = trackdays.findIndex(td => td.date >= dayjs().startOf("day"));  // remove trackdays prior to current day
-  trackdays = idx === -1 ? [] : trackdays.slice(idx);
+  let today = dayjs().startOf("day");
+  trackdays = trackdays.filter((td) => !td.date.isBefore(today, "day"));  // drop events before today
 
   orgs = orgs.map(({events, ...item}) => item);  // drop events key
   orgs = orgs.map(org => ({...org,

@@ -34,7 +34,7 @@ function activeCalendarRange() {
 
 function selectableDateBounds() {
   return {
-    min: dayjs().startOf("day").subtract(1, "day"),
+    min: dayjs().startOf("day"),
     max: dayjs().startOf("day").add(1, "year"),
   };
 }

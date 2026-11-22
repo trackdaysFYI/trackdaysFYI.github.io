@@ -25,7 +25,7 @@ function renderCalendarView() {
     let today = dayjs().format("YYYY-MM-DD");
     let todayEl = scroll.querySelector(`[data-cal-day="${today}"]`);
     let section = scroll.querySelector(`[data-cal-month="${calendarActiveMonth.format("YYYY-MM")}"]`);
-    if (todayEl) todayEl.scrollIntoView({block: "center"});
+    if (todayEl) todayEl.scrollIntoView({block: "start"});
     else if (section) section.scrollIntoView({block: "start"});
     calendarScrollTop = scroll.scrollTop;
   }
