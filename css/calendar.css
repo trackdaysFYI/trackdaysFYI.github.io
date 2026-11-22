@@ -21,7 +21,7 @@
 #calendar .cal-month-grid .cal-day.is-selected {box-shadow: inset 0 0 0 1.5px #f5d76e;}
 #calendar .cal-month-grid .cal-day.is-selected:not(.has-events) {background: rgb(from var(--accent) r g b / 0.34);}
 #calendar .cal-month-grid .cal-day.is-today.is-selected {box-shadow: inset 0 0 0 1.5px var(--accent), inset 0 0 0 3.5px #f5d76e;}
-.cal-month-detail {position: sticky; top: 0.75rem; min-height: min(70vh, 36rem);}
+.cal-month-detail {position: sticky; top: 0.75rem; min-height: 26rem;}
 .cal-month.is-range .cal-month-grid {max-height: min(28rem, 70vh); overflow: auto;}
 .cal-month.is-range .cal-month-weekdays {position: sticky; top: 0; z-index: 1; background: var(--bg);}
 
