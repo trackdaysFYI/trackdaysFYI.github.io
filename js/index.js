@@ -253,10 +253,11 @@ function updateTrackdaysVisibilityProperty() {
     let withinRadius = trackWithinRadius(td.track);
     let core = passesFilters(td, {date: true, day: true, org: true, vehicle: true, event: true, selectedDays});
     let isSaved = savedEventsSet.has(getEventKey(td));
+    // Saved events skip most filters, but still respect the selected date range.
+    let savedVisible = isSaved && dateInRange(td.date);
     td.visibilityDropdown = passesFilters(td, {radius: true, vehicle: true, event: true});
-    // saved events intentionally skip most filters (radius, price, date, weekday, host, vehicle type, event type)
-    td.visibilityMap = isSaved || core;
-    td.visibilityCalendar = isSaved || (core && withinRadius);
+    td.visibilityMap = savedVisible || core;
+    td.visibilityCalendar = savedVisible || (core && withinRadius);
   });
 }
 
