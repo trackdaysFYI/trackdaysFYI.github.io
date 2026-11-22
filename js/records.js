@@ -5,6 +5,7 @@ const VEHICLE_LABELS = {C: "Car", M: "Motorcycle"};
 let records = [];
 let allRecordsCache = null;
 let recordsLoadId = 0;
+let recordsLoading = false;
 let loadedTrack = "";
 let pageLoading = false;
 let trackNames = {};
@@ -32,8 +33,6 @@ const printFiltersEl = document.getElementById("print-filters");
 const statusEl = document.getElementById("status");
 const retryButton = document.getElementById("retry-load");
 const rowsEl = document.getElementById("rows");
-const loadingEl = document.getElementById("loading");
-const recordsViewEl = document.getElementById("records-view");
 const changeDialog = document.getElementById("changeDialog");
 const changeForm = document.getElementById("change-form");
 const changeMeta = document.getElementById("change-meta");
@@ -370,6 +369,7 @@ function visibleColumnCount({ byClass, includeTrack, includeSubtrack }) {
 }
 
 function renderRows() {
+  if (recordsLoading) return;
   let shown = filteredRecords();
   if (referenceKey && !shown.some(record => recordKey(record) === referenceKey)) referenceKey = null;
   let byClass = viewMode === "class";
@@ -383,6 +383,7 @@ function renderRows() {
   let refMs = refRecord ? timeToMs(refRecord.time) : null;
   classCol.hidden = byClass;
   let colspan = visibleColumnCount({ byClass, includeTrack, includeSubtrack });
+  statusEl.hidden = false;
   statusEl.className = "status";
   statusEl.textContent = `${shown.length} record${shown.length === 1 ? "" : "s"}`;
   exportCsvButton.disabled = !shown.length;
@@ -497,11 +498,11 @@ async function onTrackFilterChange() {
   try {
     let result = await loadRecordsForSelection(requested);
     if (result.stale) return;
+    showResults();
     if (!paramsApplied) render();
     else onFilterChange({ refillDependents: true });
     syncParams();
     loadedTrack = requested;
-    showResults();
   } catch (err) {
     if (trackSelect.value === requested) trackSelect.value = loadedTrack;
     showRefetchError(recordsErrorMessage(err));
@@ -808,32 +809,33 @@ wireReviewDialog(recordDialog, {
 });
 
 function showLoading() {
-  loadingEl.classList.remove("err");
-  loadingEl.querySelector("p").textContent = "Loading lap records...";
-  loadingEl.hidden = false;
-  recordsViewEl.hidden = true;
+  recordsLoading = true;
   retryButton.hidden = true;
+  statusEl.hidden = true;
+  exportCsvButton.disabled = true;
+  printButton.disabled = true;
+  rowsEl.innerHTML = `<tr><td class="loading-cell" colspan="9"><div class="loading" role="status" aria-live="polite"><span class="loading-bar"></span><p>Loading lap records...</p></div></td></tr>`;
 }
 
 function showResults() {
-  loadingEl.hidden = true;
-  recordsViewEl.hidden = false;
+  recordsLoading = false;
   retryButton.hidden = true;
 }
 
 function showRefetchError(message) {
-  loadingEl.hidden = true;
-  recordsViewEl.hidden = false;
+  recordsLoading = false;
+  renderRows();
+  statusEl.hidden = false;
   statusEl.className = "status err";
   statusEl.textContent = message;
 }
 
 function showFirstLoadError(message) {
-  loadingEl.hidden = true;
-  recordsViewEl.hidden = false;
+  recordsLoading = false;
+  rowsEl.innerHTML = "";
+  statusEl.hidden = false;
   statusEl.className = "status err";
   statusEl.textContent = message;
-  rowsEl.innerHTML = "";
   retryButton.hidden = false;
 }
 
@@ -874,9 +876,9 @@ async function loadPage() {
       showFirstLoadError(recordsErrorMessage(err));
       return;
     }
+    showResults();
     render();
     loadedTrack = trackKey();
-    showResults();
   } finally {
     pageLoading = false;
   }

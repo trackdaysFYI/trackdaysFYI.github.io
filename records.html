@@ -27,6 +27,7 @@
   <div id="content">
   <p id="print-filters" class="print-filters"></p>
   <div class="filters">
+    <div class="filter-fields">
     <label class="search">Search
       <input id="name" type="search" placeholder="Name(s) or vehicle(s), comma-separated" autocomplete="off">
     </label>
@@ -46,15 +47,15 @@
     <label id="subtrack-filter">Subtrack
       <select id="subtrack"></select>
     </label>
+    </div>
   </div>
-  <div id="loading" class="loading" role="status" aria-live="polite">
-    <span class="loading-bar"></span>
-    <p>Loading lap records...</p>
-  </div>
-  <div id="records-view" hidden>
+  <div id="records-view">
   <div class="results-bar">
     <div class="status-row">
-      <p id="status" class="status"></p>
+      <div class="view-switch">
+        <button type="button" class="on" id="add-record">Add lap record</button>
+      </div>
+      <p id="status" class="status" hidden></p>
       <button type="button" id="retry-load" hidden>Retry</button>
     </div>
     <div class="view-switch" role="group" aria-label="Arrange records">
@@ -77,16 +78,24 @@
           <th class="actions"> </th>
         </tr>
       </thead>
-      <tbody id="rows"></tbody>
+      <tbody id="rows">
+        <tr>
+          <td class="loading-cell" colspan="9">
+            <div class="loading" role="status" aria-live="polite">
+              <span class="loading-bar"></span>
+              <p>Loading lap records...</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
     </table>
   </div>
   <div class="export-actions">
-    <button type="button" class="add-record" id="add-record">Add lap record</button>
     <div class="export-buttons">
       <button type="button" id="print-records" disabled>Print</button>
       <button type="button" id="export-csv" disabled>Export CSV</button>
     </div>
-    </div>
+  </div>
   </div>
   </div>
   </div>

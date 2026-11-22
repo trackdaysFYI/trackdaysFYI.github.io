@@ -838,8 +838,10 @@ function swallowNextClick() {
 function onDateClick(key) {
   if (!pendingCalendarDay) {
     pendingCalendarDay = key;
-    paintCalendarRange(key, key);
+    setCalendarRange(key, key);
     updateDateRangeHint();
+    if (typeof trackdays !== "undefined") refresh({trackVisibility: true, popup: true, calendar: true});
+    else paintCalendarRange(key, key);
     let el = dateRangeScroll.querySelector(`[data-cal-day="${key}"]`);
     if (el) {
       dateRangeScroll.querySelectorAll("[data-cal-day]").forEach((day) => {day.tabIndex = day === el ? 0 : -1;});
