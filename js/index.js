@@ -170,11 +170,6 @@ function milesBetween(lat1, lon1, lat2, lon2) {
   return d * 0.621371;
 }
 
-function nearestTravelRadius(miles) {
-  let finite = radiusValues.filter((r) => r !== infiniteRadius);
-  return finite.reduce((best, r) => Math.abs(r - miles) < Math.abs(best - miles) ? r : best);
-}
-
 function updateTrackDistances() {
   let {lat, lng} = homeMarker.getLatLng();
   Object.keys(tracks).forEach((track) => {
@@ -218,15 +213,7 @@ function updateTrackIcons(updateTrackVisibility) {
 
 function updateSearchRadius(radiusMiles) {
   searchRadius = radiusMiles;
-  let meters = searchRadius * 1609.34;
-  searchCircle.setRadius(meters);
-  searchCircleHandle.setLatLng(homeMarker.getLatLng());
-  searchCircleHandle.setRadius(meters);
-  if (searchRadius === infiniteRadius) {
-    if (map.hasLayer(searchCircleHandle)) searchCircleHandle.remove();
-  } else if (!map.hasLayer(searchCircleHandle)) {
-    searchCircleHandle.addTo(map);
-  }
+  searchCircle.setRadius(searchRadius * 1609.34);
   document.getElementById("displayedRadius").innerText = (searchRadius === infiniteRadius ? `∞` : `${searchRadius}`);
 }
 
@@ -994,7 +981,6 @@ map.attributionControl.setPrefix("");
 
 let homeMarker = new L.Marker(locationDefault, {title: "Home", icon: homeIconMoto, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
 let searchCircle = new L.Circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
-let searchCircleHandle = new L.Circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0, weight: 22, fill: false, interactive: true, bubblingPointerEvents: false, radius: infiniteRadius, className: "search-radius-handle"});
 
 let showCarEventsButton = document.getElementById("showCarEvents");
 let showMotoEventsButton = document.getElementById("showMotoEvents");
@@ -1094,60 +1080,19 @@ function createTrackMarkers() {
 }
 
 function wireHomeAndRadius() {
-  let homeDragFrame = 0;
-  let homeDragTick = 0;
   homeMarker.on("dragstart", () => {
     homeLocked = true;
     map.closePopup();  // close "Drag Me" popup
-    homeDragTick = 0;
-    if (homeDragFrame) cancelAnimationFrame(homeDragFrame);
-    homeDragFrame = requestAnimationFrame(function followHomeCircle() {
-      homeDragTick++;
-      if (homeDragTick % 3 === 0) searchCircle.setLatLng(homeMarker.getLatLng());
-      homeDragFrame = requestAnimationFrame(followHomeCircle);
-    });
+  });
+  homeMarker.on("drag", () => {
+    searchCircle.setLatLng(homeMarker.getLatLng());
   });
   homeMarker.on("dragend", () => {
-    if (homeDragFrame) {
-      cancelAnimationFrame(homeDragFrame);
-      homeDragFrame = 0;
-    }
     let latlng = homeMarker.getLatLng();
     searchCircle.setLatLng(latlng);
-    searchCircleHandle.setLatLng(latlng);
     persistHomeLocation(latlng);
     updateTrackDistances();
     refresh({calendar: true, dropdown: true});
-  });
-
-  let travelDrag = false;
-  function onTravelDrag(e) {
-    // circle and slider follow live; icons, calendar, and hosts wait until release
-    let center = homeMarker.getLatLng();
-    let miles = milesBetween(center.lat, center.lng, e.latlng.lat, e.latlng.lng);
-    let snapped = nearestTravelRadius(miles);
-    if (snapped === searchRadius) return;
-    homeLocked = true;
-    radiusSliderElement.value = String(radiusValues.indexOf(snapped));
-    updateSearchRadius(snapped);
-  }
-  function endTravelDrag() {
-    if (!travelDrag) return;
-    travelDrag = false;
-    map.dragging.enable();
-    map.getContainer().classList.remove("travel-dragging");
-    map.off("pointermove", onTravelDrag);
-    L.DomEvent.off(document, "pointerup", endTravelDrag);
-    persistRadius();
-    refresh({calendar: true, dropdown: true});
-  }
-  searchCircleHandle.on("pointerdown", (e) => {
-    L.DomEvent.stop(e.originalEvent);
-    travelDrag = true;
-    map.dragging.disable();
-    map.getContainer().classList.add("travel-dragging");
-    map.on("pointermove", onTravelDrag);
-    L.DomEvent.on(document, "pointerup", endTravelDrag);
   });
 
   radiusSliderElement.addEventListener("input", () => {

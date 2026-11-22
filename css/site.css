@@ -140,10 +140,6 @@ button.suggest-link {border: 0; padding: 0; background: none; font: inherit; col
 .dragMe .leaflet-popup-content-wrapper {border-radius: 3px; background: rgba(255, 0, 0, 0.7); color: white; font-size: 0.5rem;}
 .dragMe .leaflet-popup-content {padding-right: 0px; margin: 0px 0px 0px 0px;}
 .dragMe .leaflet-popup-tip {width: 0px; height: 0px;}
-.leaflet-pane > svg path.search-radius-handle {pointer-events: stroke; cursor: e-resize;}
-.leaflet-container.travel-dragging,
-.leaflet-container.travel-dragging .search-radius-handle {cursor: grabbing;}
-
 .leaflet-popup-scrolled::-webkit-scrollbar-thumb {background-color: var(--muted);}  /* slider color */
 .leaflet-popup-scrolled::-webkit-scrollbar {width: 3px; height: 3px; background-color: var(--soft);}  /* popup slider size, background */
 
