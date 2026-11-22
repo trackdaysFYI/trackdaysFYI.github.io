@@ -16,7 +16,6 @@
 #calendar .cal-month-board .cal-nav,
 #calendar .cal-month-board .cal-nav.is-range {max-width: 100%; width: 100%; margin: 0 0 0.35rem;}
 #calendar .cal-month-board .cal-nav.is-range .cal-nav-title {max-width: none;}
-.cal-month-body {display: grid; grid-template-columns: minmax(0, 1fr) 2.1rem; gap: 0.35rem; align-items: stretch;}
 #calendar .cal-month-grid {max-height: min(28rem, 70vh); overflow: hidden; display: flex; flex-direction: column; min-width: 0;}
 #calendar .cal-month-weekdays {position: sticky; top: 0; z-index: 1; background: var(--bg); flex: 0 0 auto;}
 #calendar .cal-month-scroll {
@@ -28,33 +27,6 @@
   -ms-overflow-style: none;
 }
 #calendar .cal-month-scroll::-webkit-scrollbar {display: none;}
-.cal-month-rail {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  max-height: min(28rem, 70vh);
-  overflow: auto;
-  scrollbar-width: none;
-  padding: 0.1rem 0;
-}
-.cal-month-rail::-webkit-scrollbar {display: none;}
-.cal-month-rail-btn {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  padding: 0.28rem 0.1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  line-height: 1;
-}
-.cal-month-rail-btn.is-active {color: white; background: rgb(255 255 255 / 0.08);}
-.cal-month-rail-btn:hover {color: white;}
 .cal-month-label {margin: 0.7rem 0 0.25rem; text-align: center; font-size: 0.82rem; font-weight: 700; color: white;}
 .cal-month-section:first-child .cal-month-label {margin-top: 0.15rem;}
 #calendar .cal-month-grid.is-dragging {user-select: none; touch-action: none;}
@@ -74,6 +46,5 @@
   .cal-month-board {width: 100%;}
   .cal-month-detail {position: static;}
   /* ~1 month visible on small screens */
-  #calendar .cal-month-grid,
-  .cal-month-rail {max-height: 14rem;}
+  #calendar .cal-month-grid {max-height: 14rem;}
 }

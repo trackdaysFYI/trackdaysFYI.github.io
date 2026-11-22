@@ -1,4 +1,4 @@
-// Scrollable multi-month calendar with hidden scrollbar and month rail.
+// Scrollable multi-month calendar with hidden scrollbar.
 let calendarScrollTop = 0;
 let calendarActiveMonth = null;
 let calendarMonthObserver = null;
@@ -17,7 +17,7 @@ function renderCalendarView() {
   byDay.forEach((items) => {
     if (items.length > maxCount) maxCount = items.length;
   });
-  root.innerHTML = `<div class="cal cal-month"><div class="cal-month-layout"><div class="cal-month-board">${calendarHeaderHtml(range)}<div class="cal-month-body"><div class="cal-month-grid"><div class="cal-month-weekdays" aria-hidden="true">${calendarWeekdays}</div><div class="cal-month-scroll">${calendarMonthsHtml(bounds, byDay, maxCount, range)}</div></div><div class="cal-month-rail" aria-label="Months">${calendarRailHtml(bounds)}</div></div></div><div class="cal-month-detail"></div></div></div>`;
+  root.innerHTML = `<div class="cal cal-month"><div class="cal-month-layout"><div class="cal-month-board">${calendarHeaderHtml(range)}<div class="cal-month-grid"><div class="cal-month-weekdays" aria-hidden="true">${calendarWeekdays}</div><div class="cal-month-scroll">${calendarMonthsHtml(bounds, byDay, maxCount, range)}</div></div></div><div class="cal-month-detail"></div></div></div>`;
   let scroll = root.querySelector(".cal-month-scroll");
   scroll.scrollTop = calendarScrollTop;
   if (!range && !calendarScrollTop) {
@@ -36,16 +36,6 @@ function renderCalendarView() {
     }
   }
   bindMonthGrid(root, byDay, range);
-}
-
-function calendarRailHtml(bounds) {
-  let buttons = [];
-  for (let month = bounds.min.startOf("month"); !month.isAfter(bounds.max, "month"); month = month.add(1, "month")) {
-    let key = month.format("YYYY-MM");
-    let active = calendarActiveMonth.format("YYYY-MM") === key ? " is-active" : "";
-    buttons.push(`<button type="button" class="cal-month-rail-btn${active}" data-cal-rail-month="${key}">${escapeHtml(month.format("MMM"))}</button>`);
-  }
-  return buttons.join("");
 }
 
 function monthNearestScroll(scroll) {
@@ -196,10 +186,6 @@ function paintMonthFocus(root, byDay, range) {
   paintDaySelection(root, range);
   let title = root.querySelector(".cal-nav-title");
   if (title) title.textContent = range ? dateRangeButtonLabel() : calendarActiveMonth.format("MMMM YYYY");
-  let activeKey = calendarActiveMonth.format("YYYY-MM");
-  root.querySelectorAll("[data-cal-rail-month]").forEach((btn) => {
-    btn.classList.toggle("is-active", btn.dataset.calRailMonth === activeKey);
-  });
   let detail = root.querySelector(".cal-month-detail");
   detail.innerHTML = eventsPanelHtml(byDay, calendarActiveMonth, keysForRange(range));
   fitCalendarTitles();
@@ -254,17 +240,6 @@ function bindMonthGrid(root, byDay, range) {
   const longPressMs = 350;
   bindActiveMonth(root, byDay, scroll);
   paintMonthFocus(root, byDay, range);
-  root.querySelectorAll("[data-cal-rail-month]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      let section = scroll.querySelector(`[data-cal-month="${btn.dataset.calRailMonth}"]`);
-      if (!section) return;
-      scroll.scrollTop += section.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
-      calendarScrollTop = scroll.scrollTop;
-      calendarActiveMonth = dayjs(`${btn.dataset.calRailMonth}-01`, "YYYY-MM-DD", true).startOf("month");
-      selectedMonth = calendarActiveMonth.toDate();
-      if (!activeCalendarRange()) paintMonthFocus(root, byDay, null);
-    });
-  });
   grid.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
     let key = monthDayAt(grid, event);
