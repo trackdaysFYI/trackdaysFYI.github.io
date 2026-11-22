@@ -46,6 +46,16 @@
 }
 .cal-clear-dates:hover {opacity: 1; background: rgb(0 0 0 / 0.2);}
 
+.date-filter-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin: 0.55rem 0;
+  position: sticky;
+  top: 0.35rem;
+  z-index: 5;
+}
 .date-filter-bar {
   box-sizing: border-box;
   display: flex;
@@ -53,7 +63,9 @@
   align-items: center;
   justify-content: center;
   gap: 0.2rem 0.35rem;
-  margin: 0.55rem 0;
+  margin: 0;
+  width: fit-content;
+  max-width: 100%;
   /* Match .segmented button.colored padding / line-height */
   padding: 0.35rem 0.35rem 0.35rem 0.8rem;
   line-height: 1.35;
@@ -64,18 +76,18 @@
   border-radius: 999px;
   background: transparent;
   text-align: center;
-  position: sticky;
-  top: 0.35rem;
-  z-index: 5;
 }
 .date-filter-bar.is-idle {
-  visibility: hidden;
   pointer-events: none;
-  border-color: transparent;
+  border-style: dashed;
+  border-color: var(--line);
   background: transparent;
+  color: var(--muted);
 }
-.date-filter-bar.is-chip {background-color: var(--accent-soft); color: rgb(255, 255, 255);}
-.date-filter-bar-text {color: white;}
+.date-filter-bar.is-idle .date-filter-bar-text {color: var(--muted); font-weight: 300;}
+.date-filter-bar.is-chip {background-color: var(--accent-soft); color: rgb(255, 255, 255); padding-right: 0.35rem;}
+.date-filter-bar.is-chip .date-filter-bar-text {color: white;}
+.date-filter-bar-text {white-space: nowrap;}
 
 .cal-month-layout {display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: 1.25rem 2rem; align-items: start; width: 100%;}
 .cal-month-board {min-width: 0;}
@@ -125,7 +137,15 @@
 #calendar .cal-month-grid button.cal-day.has-events:hover:not(.is-selected) {background: color-mix(in srgb, var(--accent) calc(var(--heat, 0) * 68%), rgb(45, 51, 57));}
 #calendar .cal-month-grid .cal-day.is-selected {box-shadow: inset 0 0 0 1.5px rgb(186 148 58 / 0.55);}
 #calendar .cal-month-grid .cal-day.is-selected:not(.has-events) {background: transparent;}
+#calendar .cal-month-grid .cal-day.is-range-start,
+#calendar .cal-month-grid .cal-day.is-range-end {
+  box-shadow: inset 0 0 0 2px #f5d76e;
+}
 #calendar .cal-month-grid .cal-day.is-today.is-selected {box-shadow: inset 0 0 0 1.5px var(--accent), inset 0 0 0 3.5px rgb(186 148 58 / 0.55);}
+#calendar .cal-month-grid .cal-day.is-today.is-range-start,
+#calendar .cal-month-grid .cal-day.is-today.is-range-end {
+  box-shadow: inset 0 0 0 2px #f5d76e, inset 0 0 0 4px rgb(186 148 58 / 0.55);
+}
 .cal-month-detail {position: sticky; top: 0.75rem; min-height: 26rem;}
 
 @media (max-width: 720px) {

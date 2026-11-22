@@ -92,6 +92,8 @@ function monthDayButtons(month, byDay, maxCount, bounds, range) {
     if (cursor.isSame(today, "day")) classes.push("is-today");
     let selected = range && key >= range.start && key <= range.end;
     if (selected) classes.push("is-selected");
+    if (selected && key === range.start) classes.push("is-range-start");
+    if (selected && key === range.end) classes.push("is-range-end");
     if (range && !selected) classes.push("is-outside-range");
     if (items.length) classes.push("has-events");
     if (items.some((td) => savedEventsSet.has(getEventKey(td)))) classes.push("is-saved");
@@ -193,8 +195,11 @@ function paintDaySelection(root, range) {
   let keys = new Set(keysForRange(range) || []);
   let dim = !!range;
   root.querySelectorAll("[data-cal-day]").forEach((day) => {
-    let on = keys.has(day.dataset.calDay);
+    let key = day.dataset.calDay;
+    let on = keys.has(key);
     day.classList.toggle("is-selected", on);
+    day.classList.toggle("is-range-start", !!(on && range && key === range.start));
+    day.classList.toggle("is-range-end", !!(on && range && key === range.end));
     day.classList.toggle("is-outside-range", dim && !on);
     day.setAttribute("aria-pressed", on ? "true" : "false");
   });
