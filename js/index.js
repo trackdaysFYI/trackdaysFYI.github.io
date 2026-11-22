@@ -549,16 +549,12 @@ function updateTrackPopup() {
 function updateCalendar() {
   if (selectedMonth === undefined) {
     selectedMonth = dayjs().startOf("month").toDate();
+    calendarActiveMonth = dayjs(selectedMonth).startOf("month");
+    calendarScrollTop = 0;
   }
   // trackdays should be sorted by distance before this
   renderCalendarView();
   updatePillCounts();
-  if (dateRangePopover && !dateRangePopover.hidden) renderDateRangePopover();
-}
-
-function shiftSelectedMonth(delta) {
-  if (selectedMonth === undefined) return;
-  selectedMonth = dayjs(selectedMonth).startOf("month").add(delta, "month").toDate();
 }
 
 function updatePillCounts() {
@@ -604,20 +600,14 @@ function refresh({trackVisibility = false, popup = false, calendar = false, drop
 
 function applyCalendarBounds() {
   // exclusive comparisons: pad the start back 1s and the end forward 1 minute so those midnights are included
+  // an invalid bound means that side is open (no selection = all events)
   if (selectedCalendarStart && selectedCalendarEnd) {
     minDate = dayjs(selectedCalendarStart, "YYYY-MM-DD", true).subtract(1, "s");
     maxDate = dayjs(selectedCalendarEnd, "YYYY-MM-DD", true).add(1, "minute");
   } else {
-    minDate = dayjs().startOf("day").subtract(1, "s");
+    minDate = dayjs("", "YYYY-MM-DD", true);
     maxDate = dayjs("", "YYYY-MM-DD", true);
   }
-  let button = document.getElementById("dateRangeButton");
-  if (!button) return;
-  let label = dateRangeButtonLabel();
-  button.textContent = label;
-  let custom = !!(selectedCalendarStart && selectedCalendarEnd);
-  button.classList.toggle("is-set", custom);
-  button.setAttribute("aria-label", custom ? `Date range, ${label}` : `Date range, ${label}`);
 }
 
 let showSyncInfo = false;
@@ -678,15 +668,10 @@ document.getElementById("calendar").addEventListener("click", (event) => {
     onEventSaveToggle(star);
     return;
   }
-  if (event.target.closest("[data-cal-show-month]")) {
+  if (event.target.closest("[data-cal-clear-range]")) {
     setCalendarRange(null, null);
     refresh({trackVisibility: true, popup: true, calendar: true});
-    return;
   }
-  let nav = event.target.closest("[data-month-delta]");
-  if (!nav) return;
-  shiftSelectedMonth(Number(nav.dataset.monthDelta));
-  updateCalendar();
 }, true);
 
 function setCalendarRange(start, end) {
@@ -702,269 +687,6 @@ function setCalendarRange(start, end) {
   }
   applyCalendarBounds();
 }
-
-function paintCalendarRange(start, end) {
-  let lo = null;
-  let hi = null;
-  if (start && end) {
-    lo = start < end ? start : end;
-    hi = start < end ? end : start;
-  }
-  document.querySelectorAll("#dateRangeScroll [data-cal-day]").forEach((day) => {
-    let on = lo !== null && day.dataset.calDay >= lo && day.dataset.calDay <= hi;
-    day.classList.toggle("is-selected", on);
-    day.setAttribute("aria-pressed", on ? "true" : "false");
-  });
-}
-
-let dateRangeButton = document.getElementById("dateRangeButton");
-let dateRangePopover = document.getElementById("dateRangePopover");
-let dateRangeScroll = document.getElementById("dateRangeScroll");
-let dateDrag = null;
-let dateDragPoint = null;
-let dateDragScrollRaf = 0;
-
-function updateDateRangeHint() {
-  let hint = document.getElementById("dateRangeHint");
-  if (hint) hint.textContent = pendingCalendarDay ? "Select an end date" : "Select a start and end";
-}
-
-function paintCurrentSelection() {
-  if (pendingCalendarDay) paintCalendarRange(pendingCalendarDay, pendingCalendarDay);
-  else paintCalendarRange(selectedCalendarStart, selectedCalendarEnd);
-}
-
-function dateDayAt(x, y) {
-  for (let el of document.elementsFromPoint(x, y)) {
-    if (!el.closest) continue;
-    let day = el.closest("[data-cal-day]");
-    if (day && dateRangeScroll.contains(day)) return day.dataset.calDay;
-  }
-  return null;
-}
-
-function stopDateDragScroll() {
-  if (!dateDragScrollRaf) return;
-  cancelAnimationFrame(dateDragScrollRaf);
-  dateDragScrollRaf = 0;
-}
-
-function tickDateDragScroll() {
-  dateDragScrollRaf = 0;
-  if (!dateDrag || dateDrag.pointerType === "touch" || !dateDragPoint) return;
-  let box = dateRangeScroll.getBoundingClientRect();
-  let zone = 36;
-  let y = dateDragPoint.y;
-  let delta = 0;
-  if (y < box.top + zone) delta = -Math.ceil((box.top + zone - y) / 2);
-  else if (y > box.bottom - zone) delta = Math.ceil((y - (box.bottom - zone)) / 2);
-  if (!delta) return;
-  delta = Math.max(-18, Math.min(18, delta));
-  let before = dateRangeScroll.scrollTop;
-  dateRangeScroll.scrollTop += delta;
-  if (dateRangeScroll.scrollTop === before) return;
-  let key = dateDayAt(dateDragPoint.x, dateDragPoint.y);
-  if (key && key !== dateDrag.current) {
-    if (key !== dateDrag.anchor) dateDrag.moved = true;
-    dateDrag.current = key;
-    paintCalendarRange(dateDrag.anchor, dateDrag.current);
-  }
-  dateDragScrollRaf = requestAnimationFrame(tickDateDragScroll);
-}
-
-function scheduleDateDragScroll() {
-  if (dateDragScrollRaf) return;
-  dateDragScrollRaf = requestAnimationFrame(tickDateDragScroll);
-}
-
-function revealDateDay(el, center) {
-  let scrollerBox = dateRangeScroll.getBoundingClientRect();
-  let elBox = el.getBoundingClientRect();
-  let above = elBox.top < scrollerBox.top;
-  let below = elBox.bottom > scrollerBox.bottom;
-  if (!center && !above && !below) return;
-  let delta = elBox.top - scrollerBox.top - (dateRangeScroll.clientHeight - elBox.height) / 2;
-  dateRangeScroll.scrollTop += delta;
-}
-
-function closeDateRange(opts = {}) {
-  pendingCalendarDay = null;
-  stopDateDragScroll();
-  dateDrag = null;
-  dateDragPoint = null;
-  dateRangePopover.classList.remove("is-dragging");
-  dateRangePopover.hidden = true;
-  dateRangeButton.setAttribute("aria-expanded", "false");
-  updateDateRangeHint();
-  if (opts.focusButton) dateRangeButton.focus();
-}
-
-function openDateRange() {
-  pendingCalendarDay = null;
-  renderDateRangePopover();
-  dateRangePopover.hidden = false;
-  dateRangeButton.setAttribute("aria-expanded", "true");
-  updateDateRangeHint();
-  let key = selectedCalendarStart || dayjs().format("YYYY-MM-DD");
-  let el = dateRangeScroll.querySelector(`[data-cal-day="${key}"]`) || dateRangeScroll.querySelector("[data-cal-day]");
-  if (!el) return;
-  dateRangeScroll.querySelectorAll("[data-cal-day]").forEach((day) => {day.tabIndex = day === el ? 0 : -1;});
-  revealDateDay(el, true);
-  el.focus({preventScroll: true});
-}
-
-function commitCalendarRange(start, end) {
-  pendingCalendarDay = null;
-  setCalendarRange(start, end);
-  closeDateRange({focusButton: true});
-  if (typeof trackdays === "undefined") return;
-  refresh({trackVisibility: true, popup: true, calendar: true});
-}
-
-function swallowNextClick() {
-  let stop = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    cleanup();
-  };
-  let cleanup = () => {
-    document.removeEventListener("click", stop, true);
-    clearTimeout(timer);
-  };
-  document.addEventListener("click", stop, true);
-  let timer = setTimeout(cleanup, 500);
-}
-
-function onDateClick(key) {
-  if (!pendingCalendarDay) {
-    pendingCalendarDay = key;
-    setCalendarRange(key, key);
-    updateDateRangeHint();
-    if (typeof trackdays !== "undefined") refresh({trackVisibility: true, popup: true, calendar: true});
-    else paintCalendarRange(key, key);
-    let el = dateRangeScroll.querySelector(`[data-cal-day="${key}"]`);
-    if (el) {
-      dateRangeScroll.querySelectorAll("[data-cal-day]").forEach((day) => {day.tabIndex = day === el ? 0 : -1;});
-      el.focus({preventScroll: true});
-    }
-    return;
-  }
-  commitCalendarRange(pendingCalendarDay, key);
-}
-
-function moveDateFocus(day, deltaDays) {
-  let bounds = selectableDateBounds();
-  let next = dayjs(day.dataset.calDay, "YYYY-MM-DD", true).add(deltaDays, "day");
-  if (next.isBefore(bounds.min, "day") || next.isAfter(bounds.max, "day")) return;
-  let el = dateRangeScroll.querySelector(`[data-cal-day="${next.format("YYYY-MM-DD")}"]`);
-  if (!el) return;
-  day.tabIndex = -1;
-  el.tabIndex = 0;
-  el.focus({preventScroll: true});
-  revealDateDay(el, false);
-}
-
-dateRangeButton.addEventListener("click", () => {
-  if (dateRangePopover.hidden) openDateRange();
-  else closeDateRange();
-});
-
-document.getElementById("dateRangeClear").addEventListener("click", () => {
-  pendingCalendarDay = null;
-  setCalendarRange(null, null);
-  updateDateRangeHint();
-  if (!dateRangePopover.hidden) renderDateRangePopover();
-  if (typeof trackdays === "undefined") return;
-  refresh({trackVisibility: true, popup: true, calendar: true});
-});
-
-document.addEventListener("pointerdown", (event) => {
-  if (dateRangePopover.hidden) return;
-  if (dateRangePopover.contains(event.target) || dateRangeButton.contains(event.target)) return;
-  closeDateRange();
-}, true);
-
-document.addEventListener("keydown", (event) => {
-  if (dateRangePopover.hidden || event.key !== "Escape") return;
-  event.preventDefault();
-  closeDateRange({focusButton: true});
-});
-
-dateRangePopover.addEventListener("keydown", (event) => {
-  let day = event.target.closest("[data-cal-day]");
-  if (!day) return;
-  let delta = {ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7}[event.key];
-  if (delta) {
-    event.preventDefault();
-    moveDateFocus(day, delta);
-    return;
-  }
-  if (event.key === "Enter" || event.key === " ") {
-    event.preventDefault();
-    onDateClick(day.dataset.calDay);
-  }
-});
-
-dateRangePopover.addEventListener("pointerdown", (event) => {
-  if (event.button !== 0) return;
-  let day = event.target.closest("[data-cal-day]");
-  if (!day || !dateRangeScroll.contains(day)) return;
-  dateDrag = {
-    pointerId: event.pointerId,
-    pointerType: event.pointerType,
-    anchor: day.dataset.calDay,
-    current: day.dataset.calDay,
-    moved: false,
-    originX: event.clientX,
-    originY: event.clientY,
-  };
-  dateDragPoint = {x: event.clientX, y: event.clientY};
-  if (event.pointerType === "touch") return;
-  dateRangePopover.classList.add("is-dragging");
-  try {dateRangePopover.setPointerCapture(event.pointerId);} catch (e) {}
-  event.preventDefault();
-  paintCalendarRange(dateDrag.anchor, dateDrag.anchor);
-});
-
-dateRangePopover.addEventListener("pointermove", (event) => {
-  if (!dateDrag || event.pointerId !== dateDrag.pointerId || dateDrag.pointerType === "touch") return;
-  dateDragPoint = {x: event.clientX, y: event.clientY};
-  let key = dateDayAt(event.clientX, event.clientY);
-  if (key && key !== dateDrag.current) {
-    if (key !== dateDrag.anchor) dateDrag.moved = true;
-    dateDrag.current = key;
-    if (dateDrag.moved) paintCalendarRange(dateDrag.anchor, key);
-  }
-  if (Math.hypot(event.clientX - dateDrag.originX, event.clientY - dateDrag.originY) > 4) scheduleDateDragScroll();
-});
-
-dateRangePopover.addEventListener("pointerup", (event) => {
-  if (!dateDrag || event.pointerId !== dateDrag.pointerId) return;
-  stopDateDragScroll();
-  let drag = dateDrag;
-  dateDrag = null;
-  dateDragPoint = null;
-  dateRangePopover.classList.remove("is-dragging");
-  if (drag.pointerType === "touch") {
-    let travel = Math.hypot(event.clientX - drag.originX, event.clientY - drag.originY);
-    if (travel > 10) {
-      paintCurrentSelection();
-      return;
-    }
-    swallowNextClick();
-    onDateClick(drag.anchor);
-  } else if (drag.moved) commitCalendarRange(drag.anchor, drag.current);
-  else onDateClick(drag.anchor);
-});
-
-dateRangePopover.addEventListener("pointercancel", (event) => {
-  if (!dateDrag || event.pointerId !== dateDrag.pointerId) return;
-  stopDateDragScroll();
-  dateDrag = null;
-  dateDragPoint = null;
-  dateRangePopover.classList.remove("is-dragging");
-  paintCurrentSelection();
-});
 
 const headerAd = document.getElementById("fotosort-ad");
 if (localStorage.getItem("headerAdClosed")) {
@@ -1227,7 +949,6 @@ function wireFilterControls() {
     setFilterToggle(showTracksWithoutEventsToggleElement, true);
     Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
 
-    closeDateRange();
     setCalendarRange(null, null);
     Array.from(daySelectElement.options).forEach((opt) => {
       opt.selected = true;

@@ -9,20 +9,27 @@ function eventsByDay(include) {
   return byDay;
 }
 
-let pendingCalendarDay = null;
+// Heat tint ignores the selected date range so other days keep their event color.
+function calendarHeatByDay(bounds) {
+  let byDay = new Map();
+  if (typeof trackdays === "undefined") return byDay;
+  let selectedDays = selectedWeekdays();
+  trackdays.forEach((td) => {
+    if (td.date.isBefore(bounds.min, "day") || td.date.isAfter(bounds.max, "day")) return;
+    let saved = savedEventsSet.has(getEventKey(td));
+    let passes = passesFilters(td, {radius: true, day: true, org: true, vehicle: true, event: true, selectedDays});
+    if (!saved && !passes) return;
+    if (!saved && !trackWithinRadius(td.track)) return;
+    let key = td.date.format("YYYY-MM-DD");
+    if (!byDay.has(key)) byDay.set(key, []);
+    byDay.get(key).push(td);
+  });
+  return byDay;
+}
 
 function activeCalendarRange() {
   if (!selectedCalendarStart || !selectedCalendarEnd) return null;
   return {start: selectedCalendarStart, end: selectedCalendarEnd};
-}
-
-function monthNavHtml(month) {
-  let label = escapeHtml(month.format("MMMM YYYY"));
-  return `<div class="cal-nav">
-    <button type="button" class="cal-nav-btn" data-month-delta="-1" aria-label="Previous month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <span class="cal-nav-title">${label}</span>
-    <button type="button" class="cal-nav-btn" data-month-delta="1" aria-label="Next month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-  </div>`;
 }
 
 function selectableDateBounds() {
@@ -32,87 +39,8 @@ function selectableDateBounds() {
   };
 }
 
-function dateDotEvents() {
-  let byDay = new Map();
-  if (typeof trackdays === "undefined" || typeof tracks === "undefined") return byDay;
-  let selectedDays = selectedWeekdays();
-  trackdays.forEach((td) => {
-    let saved = savedEventsSet.has(getEventKey(td));
-    let passes = passesFilters(td, {radius: true, day: true, org: true, vehicle: true, event: true, selectedDays});
-    if (!saved && !passes) return;
-    let key = td.date.format("YYYY-MM-DD");
-    if (!byDay.has(key)) byDay.set(key, []);
-    byDay.get(key).push(td);
-  });
-  return byDay;
-}
-
-function popoverSelection() {
-  if (pendingCalendarDay) return {start: pendingCalendarDay, end: pendingCalendarDay};
-  return activeCalendarRange();
-}
-
-function renderDateRangePopover() {
-  let scroller = document.getElementById("dateRangeScroll");
-  if (!scroller) return;
-  let scrollTop = scroller.scrollTop;
-  let activeKey = document.activeElement && scroller.contains(document.activeElement) ? document.activeElement.dataset.calDay : null;
-  scroller.innerHTML = dateRangeMonthsHtml();
-  scroller.scrollTop = scrollTop;
-  let days = [...scroller.querySelectorAll("[data-cal-day]")];
-  let preferred = (activeKey && scroller.querySelector(`[data-cal-day="${activeKey}"]`)) || days[0];
-  days.forEach((day) => {day.tabIndex = day === preferred ? 0 : -1;});
-  if (activeKey && preferred) preferred.focus({preventScroll: true});
-}
-
-function dateRangeMonthsHtml() {
-  let bounds = selectableDateBounds();
-  let byDay = dateDotEvents();
-  let selection = popoverSelection();
-  let months = [];
-  for (let month = bounds.min.startOf("month"); !month.isAfter(bounds.max, "month"); month = month.add(1, "month")) {
-    months.push(`<section class="date-range-month" data-cal-month="${month.format("YYYY-MM")}">
-      <h3 class="date-range-month-label">${escapeHtml(month.format("MMMM YYYY"))}</h3>
-      ${monthCellsHtml(month, byDay, bounds, selection)}
-    </section>`);
-  }
-  return months.join("");
-}
-
-function monthCellsHtml(month, byDay, bounds, selection) {
-  let start = month.startOf("month");
-  let end = month.endOf("month");
-  let cursor = start.subtract(start.day(), "day");
-  let last = end.add(6 - end.day(), "day");
-  let today = dayjs().startOf("day");
-  let minKey = bounds.min.format("YYYY-MM-DD");
-  let maxKey = bounds.max.format("YYYY-MM-DD");
-  let cells = [];
-  for (; !cursor.isAfter(last, "day"); cursor = cursor.add(1, "day")) {
-    if (!cursor.isSame(month, "month")) {
-      cells.push(`<span class="cal-day is-outside" aria-hidden="true"></span>`);
-      continue;
-    }
-    let key = cursor.format("YYYY-MM-DD");
-    let items = byDay.get(key) || [];
-    let classes = ["cal-day"];
-    if (cursor.isSame(today, "day")) classes.push("is-today");
-    let selected = selection && key >= selection.start && key <= selection.end;
-    if (selected) classes.push("is-selected");
-    if (items.length) classes.push("has-events");
-    if (items.some(td => savedEventsSet.has(getEventKey(td)))) classes.push("is-saved");
-    if (key < minKey || key > maxKey) {
-      cells.push(`<button type="button" class="${classes.join(" ")} is-disabled" disabled><span class="cal-day-num">${cursor.date()}</span></button>`);
-      continue;
-    }
-    let countLabel = items.length ? `, ${items.length} ${items.length === 1 ? "event" : "events"}` : "";
-    cells.push(`<button type="button" class="${classes.join(" ")}" data-cal-day="${key}" aria-pressed="${selected ? "true" : "false"}" aria-label="${escapeHtml(cursor.format("MMMM D, YYYY"))}${countLabel}"><span class="cal-day-num">${cursor.date()}</span></button>`);
-  }
-  return `<div class="cal-grid">${cells.join("")}</div>`;
-}
-
 function dateRangeButtonLabel() {
-  if (!selectedCalendarStart || !selectedCalendarEnd) return "Today onward";
+  if (!selectedCalendarStart || !selectedCalendarEnd) return "";
   let start = dayjs(selectedCalendarStart, "YYYY-MM-DD", true);
   let end = dayjs(selectedCalendarEnd, "YYYY-MM-DD", true);
   if (selectedCalendarStart === selectedCalendarEnd) return start.format("MMM D");
