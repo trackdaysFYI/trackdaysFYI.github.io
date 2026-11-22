@@ -131,7 +131,7 @@ function rangeEmptyHtml() {
 
 function rangeHeaderHtml(keys) {
   if (!keys || !keys.length) return "";
-  return `<div class="cal-range-header"><span class="cal-range-header-text">${escapeHtml(dateRangeButtonLabel())}</span>${calendarClearDatesHtml()}</div>`;
+  return `<div class="cal-range-header"><span class="cal-range-header-text">${escapeHtml(dateRangeButtonLabel("MMMM"))}</span>${calendarClearDatesHtml()}</div>`;
 }
 
 function filteredNoteHtml(start, end) {

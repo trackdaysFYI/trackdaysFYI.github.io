@@ -39,14 +39,14 @@ function selectableDateBounds() {
   };
 }
 
-function dateRangeButtonLabel() {
+function dateRangeButtonLabel(monthFmt = "MMM") {
   if (!selectedCalendarStart || !selectedCalendarEnd) return "";
   let start = dayjs(selectedCalendarStart, "YYYY-MM-DD", true);
   let end = dayjs(selectedCalendarEnd, "YYYY-MM-DD", true);
-  if (selectedCalendarStart === selectedCalendarEnd) return start.format("MMM D");
-  if (!start.isSame(end, "year")) return `${start.format("MMM D, YYYY")} - ${end.format("MMM D, YYYY")}`;
-  if (start.isSame(end, "month")) return `${start.format("MMM D")} - ${end.format("D")}`;
-  return `${start.format("MMM D")} - ${end.format("MMM D")}`;
+  if (selectedCalendarStart === selectedCalendarEnd) return start.format(`${monthFmt} D`);
+  if (!start.isSame(end, "year")) return `${start.format(`${monthFmt} D, YYYY`)} - ${end.format(`${monthFmt} D, YYYY`)}`;
+  if (start.isSame(end, "month")) return `${start.format(`${monthFmt} D`)} - ${end.format("D")}`;
+  return `${start.format(`${monthFmt} D`)} - ${end.format(`${monthFmt} D`)}`;
 }
 
 function eventRowHtml(td) {
