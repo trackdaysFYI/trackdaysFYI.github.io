@@ -30,7 +30,6 @@
 .cal-month-label {margin: 0.7rem 0 0.25rem; text-align: center; font-size: 0.82rem; font-weight: 700; color: white;}
 .cal-month-section:first-child .cal-month-label {margin-top: 0.15rem;}
 #calendar .cal-month-grid.is-dragging {user-select: none; touch-action: none;}
-#calendar .cal-month-grid.is-dragging .cal-month-scroll {overflow: hidden;}
 #calendar .cal-month-grid .cal-day:not(.is-outside) .cal-day-num {font-weight: 700; color: var(--soft);}
 #calendar .cal-month-grid .cal-day:not(.is-outside).is-saved .cal-day-num {color: #f5d76e;}
 #calendar .cal-month-grid .cal-day.is-outside .cal-day-num {font-weight: 400; color: rgb(255 255 255 / 0.22);}
