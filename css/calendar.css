@@ -17,11 +17,14 @@
 #calendar .cal-month-board .cal-nav.is-range {max-width: 100%; width: 100%; margin: 0 0 0.35rem;}
 #calendar .cal-month-board .cal-nav.is-range .cal-nav-title {max-width: none;}
 #calendar .cal-month-grid.is-dragging {user-select: none;}
+#calendar .cal-month-grid .cal-day:not(.is-outside) .cal-day-num {font-weight: 700; color: var(--soft);}
+#calendar .cal-month-grid .cal-day:not(.is-outside).is-saved .cal-day-num {color: #f5d76e;}
+#calendar .cal-month-grid .cal-day.is-outside .cal-day-num {font-weight: 400; color: rgb(255 255 255 / 0.22);}
 #calendar .cal-month-grid .cal-day.has-events {background: color-mix(in srgb, var(--accent) calc(var(--heat, 0) * 68%), transparent);}
 #calendar .cal-month-grid button.cal-day.has-events:hover:not(.is-selected) {background: color-mix(in srgb, var(--accent) calc(var(--heat, 0) * 68%), rgb(45, 51, 57));}
-#calendar .cal-month-grid .cal-day.is-selected {box-shadow: inset 0 0 0 1.5px #f5d76e;}
+#calendar .cal-month-grid .cal-day.is-selected {box-shadow: inset 0 0 0 1.5px rgb(186 148 58 / 0.55);}
 #calendar .cal-month-grid .cal-day.is-selected:not(.has-events) {background: rgb(from var(--accent) r g b / 0.34);}
-#calendar .cal-month-grid .cal-day.is-today.is-selected {box-shadow: inset 0 0 0 1.5px var(--accent), inset 0 0 0 3.5px #f5d76e;}
+#calendar .cal-month-grid .cal-day.is-today.is-selected {box-shadow: inset 0 0 0 1.5px var(--accent), inset 0 0 0 3.5px rgb(186 148 58 / 0.55);}
 .cal-month-detail {position: sticky; top: 0.75rem; min-height: 26rem;}
 .cal-month.is-range .cal-month-grid {max-height: min(28rem, 70vh); overflow: auto;}
 .cal-month.is-range .cal-month-weekdays {position: sticky; top: 0; z-index: 1; background: var(--bg);}

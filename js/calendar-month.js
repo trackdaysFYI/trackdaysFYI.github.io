@@ -8,20 +8,25 @@ const calendarWeekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
 function calendarSpan() {
   let range = activeCalendarRange();
+  let start, end, ranged, key;
   if (range) {
-    return {
-      start: dayjs(range.start, "YYYY-MM-DD", true).startOf("day"),
-      end: dayjs(range.end, "YYYY-MM-DD", true).startOf("day"),
-      ranged: true,
-      key: `${range.start}|${range.end}`,
-    };
+    start = dayjs(range.start, "YYYY-MM-DD", true).startOf("day");
+    end = dayjs(range.end, "YYYY-MM-DD", true).startOf("day");
+    ranged = true;
+    key = `${range.start}|${range.end}`;
+  } else {
+    start = dayjs(selectedMonth).startOf("month");
+    end = start.endOf("month").startOf("day");
+    ranged = false;
+    key = start.format("YYYY-MM");
   }
-  let month = dayjs(selectedMonth).startOf("month");
   return {
-    start: month,
-    end: month.endOf("month").startOf("day"),
-    ranged: false,
-    key: month.format("YYYY-MM"),
+    start,
+    end,
+    ranged,
+    key,
+    gridStart: start.subtract(start.day(), "day"),
+    gridEnd: end.add(6 - end.day(), "day"),
   };
 }
 
@@ -33,7 +38,7 @@ function renderCalendarView() {
     calendarSelection = null;
     if (span.ranged) selectedMonth = span.start.startOf("month").toDate();
   }
-  let byDay = eventsByDay((td) => !td.date.isBefore(span.start, "day") && !td.date.isAfter(span.end, "day"));
+  let byDay = eventsByDay((td) => !td.date.isBefore(span.gridStart, "day") && !td.date.isAfter(span.gridEnd, "day"));
   let ranged = span.ranged ? " is-range" : "";
   root.innerHTML = `<div class="cal cal-month${ranged}"><div class="cal-month-layout"><div class="cal-month-board">${calendarHeaderHtml(span)}<div class="cal-month-grid"><div class="cal-month-weekdays" aria-hidden="true">${calendarWeekdays}</div>${spanDayButtons(span, byDay)}</div></div><div class="cal-month-detail"></div></div></div>`;
   bindMonthGrid(root, byDay, span);
@@ -46,29 +51,29 @@ function calendarHeaderHtml(span) {
 }
 
 function spanDayButtons(span, byDay) {
-  let cursor = span.start.subtract(span.start.day(), "day");
-  let last = span.end.add(6 - span.end.day(), "day");
   let today = dayjs().startOf("day");
   let maxCount = 1;
-  byDay.forEach((items) => {
+  byDay.forEach((items, key) => {
+    if (span.ranged && !dayInSpan(key, span)) return;
     if (items.length > maxCount) maxCount = items.length;
   });
   let cells = [];
-  for (; !cursor.isAfter(last, "day"); cursor = cursor.add(1, "day")) {
+  for (let cursor = span.gridStart; !cursor.isAfter(span.gridEnd, "day"); cursor = cursor.add(1, "day")) {
     let inSpan = !cursor.isBefore(span.start, "day") && !cursor.isAfter(span.end, "day");
+    if (!inSpan && span.ranged) {
+      let todayClass = cursor.isSame(today, "day") ? " is-today" : "";
+      cells.push(`<span class="cal-day is-outside${todayClass}" aria-hidden="true"><span class="cal-day-num">${cursor.date()}</span></span>`);
+      continue;
+    }
     let key = cursor.format("YYYY-MM-DD");
-    let items = inSpan ? (byDay.get(key) || []) : [];
+    let items = byDay.get(key) || [];
     let classes = ["cal-day"];
     if (!inSpan) classes.push("is-outside");
     if (cursor.isSame(today, "day")) classes.push("is-today");
     if (items.length) classes.push("has-events");
     if (items.some((td) => savedEventsSet.has(getEventKey(td)))) classes.push("is-saved");
-    if (!inSpan) {
-      cells.push(`<span class="${classes.join(" ")}" aria-hidden="true"><span class="cal-day-num">${cursor.date()}</span></span>`);
-      continue;
-    }
     let heat = items.length ? ` style="--heat:${(items.length / maxCount).toFixed(3)}"` : "";
-    let countLabel = items.length ? `, ${items.length} ${items.length === 1 ? "event" : "events"}` : ", no events";
+    let countLabel = items.length ? `, ${items.length} ${items.length === 1 ? "event" : "events"}` : (inSpan ? ", no events" : "");
     cells.push(`<button type="button" class="${classes.join(" ")}" data-cal-day="${key}" aria-pressed="false" aria-label="${escapeHtml(cursor.format("MMMM D, YYYY"))}${countLabel}"${heat}><span class="cal-day-num">${cursor.date()}</span></button>`);
   }
   return `<div class="cal-grid">${cells.join("")}</div>`;
@@ -80,12 +85,19 @@ function dayInSpan(key, span) {
   return day.isValid() && !day.isBefore(span.start, "day") && !day.isAfter(span.end, "day");
 }
 
+function dayOnGrid(key, span) {
+  if (span.ranged) return dayInSpan(key, span);
+  let day = dayjs(key, "YYYY-MM-DD", true);
+  if (!day.isValid()) return false;
+  return !day.isBefore(span.gridStart, "day") && !day.isAfter(span.gridEnd, "day");
+}
+
 function selectionRange(a, b) {
   return a <= b ? {start: a, end: b} : {start: b, end: a};
 }
 
 function keysForRange(span, range) {
-  if (!range || !dayInSpan(range.start, span) || !dayInSpan(range.end, span)) return null;
+  if (!range || !dayOnGrid(range.start, span) || !dayOnGrid(range.end, span)) return null;
   let keys = [];
   let cursor = dayjs(range.start, "YYYY-MM-DD", true);
   let last = dayjs(range.end, "YYYY-MM-DD", true);
@@ -95,6 +107,11 @@ function keysForRange(span, range) {
 
 function selectedKeys(span) {
   return keysForRange(span, calendarSelection);
+}
+
+function toggleDay(key) {
+  let same = calendarSelection && calendarSelection.start === key && calendarSelection.end === key;
+  calendarSelection = same ? null : {start: key, end: key};
 }
 
 function emptySpanMessage(span) {
@@ -111,7 +128,7 @@ function filteredNoteHtml(span) {
 
 function eventsPanelHtml(byDay, span, keys) {
   if (keys && keys.length === 1) return dayPanelHtml(keys[0], byDay);
-  let shown = keys ? keys.filter((key) => byDay.has(key)) : [...byDay.keys()].sort();
+  let shown = keys ? keys.filter((key) => byDay.has(key)) : [...byDay.keys()].filter((key) => dayInSpan(key, span)).sort();
   let body = shown.length
     ? `<div class="cal-month-groups">${shown.map((dayKey) => `<section class="cal-month-group">${dayPanelHtml(dayKey, byDay)}</section>`).join("")}</div>`
     : `<p class="cal-month-empty">${keys ? "No events" : escapeHtml(emptySpanMessage(span))}</p>`;
@@ -171,7 +188,7 @@ function bindMonthGrid(root, byDay, span) {
       ? Math.hypot(event.clientX - gesture.originX, event.clientY - gesture.originY) <= 10
       : !gesture.moved;
     if (gesture.pointerType !== "touch" && gesture.moved) calendarSelection = selectionRange(gesture.anchor, gesture.current);
-    else if (tapped) calendarSelection = calendarSelection && calendarSelection.start === gesture.anchor && calendarSelection.end === gesture.anchor ? null : {start: gesture.anchor, end: gesture.anchor};
+    else if (tapped) toggleDay(gesture.anchor);
     finishDrag();
   });
   grid.addEventListener("pointercancel", (event) => {
@@ -182,7 +199,7 @@ function bindMonthGrid(root, byDay, span) {
     if (event.detail !== 0) return;
     let key = monthDayAt(grid, event);
     if (!key) return;
-    calendarSelection = calendarSelection && calendarSelection.start === key && calendarSelection.end === key ? null : {start: key, end: key};
+    toggleDay(key);
     paintMonthFocus(root, byDay, span);
   });
   paintMonthFocus(root, byDay, span);
