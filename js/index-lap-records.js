@@ -8,6 +8,11 @@ let lapRecords = {
 let recordLoads = {};
 let recordsUi = {open: false, submitting: false, submitId: 0};
 const LAP_RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
+// Toggle: true = fetch all tracks' lap records with getTrackdays (current).
+// false = per-track fetch in loadTrackRecords on popup/form open (use when volume grows).
+// Also stop awaiting loadAllLapRecords() from visualizeData when flipping to false.
+const PRELOAD_ALL_LAP_RECORDS = true;
+let lapRecordsPreloadOk = false;
 
 function trackRecords(trackKey) {
   let entry = lapRecords.tracks && lapRecords.tracks[trackKey];
@@ -16,6 +21,42 @@ function trackRecords(trackKey) {
 
 function recordClassName(record) {
   return record.vehicleClass || "";
+}
+
+async function loadAllLapRecords() {
+  lapRecordsPreloadOk = false;
+  if (!PRELOAD_ALL_LAP_RECORDS) return;
+  try {
+    let res = await fetch(LAP_RECORDS_URL);
+    if (!res.ok) {
+      let failure = new Error("HTTP " + res.status);
+      failure.status = res.status;
+      throw failure;
+    }
+    let records = await res.json();
+    if (!Array.isArray(records)) throw new Error("Unable to load lap records.");
+    let byTrack = {};
+    records.forEach((record) => {
+      let key = String(record.track || "").toUpperCase();
+      if (!key) return;
+      if (!byTrack[key]) byTrack[key] = [];
+      byTrack[key].push(record);
+    });
+    Object.keys(byTrack).forEach((key) => {
+      lapRecords.tracks[key] = {records: byTrack[key], loading: false, loaded: true, error: ""};
+    });
+    lapRecordsPreloadOk = true;
+  } catch (err) {
+    // Leave cache empty so loadTrackRecords can still fetch per track on open.
+  }
+}
+
+function finishLapRecordsPreload() {
+  if (!PRELOAD_ALL_LAP_RECORDS || !lapRecordsPreloadOk || typeof tracks === "undefined" || !tracks) return;
+  Object.keys(tracks).forEach((key) => {
+    if (lapRecords.tracks[key]) return;
+    lapRecords.tracks[key] = {records: [], loading: false, loaded: true, error: ""};
+  });
 }
 
 async function loadTrackRecords(trackKey) {
@@ -28,6 +69,7 @@ async function loadTrackRecords(trackKey) {
     updateTrackPopup();
     return;
   }
+  // Per-track path (also fallback if PRELOAD_ALL_LAP_RECORDS failed or is false).
   let token = {};
   recordLoads[trackKey] = token;
   lapRecords.tracks[trackKey] = {records: [], loading: true, loaded: false, error: ""};

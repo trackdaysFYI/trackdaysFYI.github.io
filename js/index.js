@@ -784,7 +784,7 @@ function createTrackMarkers() {
       let trackKey = e.target.options.title.toUpperCase();
       if (trackKey !== lastOpenedTrack) resetRecordForm();
       lastOpenedTrack = trackKey;
-      // records are new, so load them on open and spare the wait. later, load only when that tab is open: if (recordsUi.open) loadTrackRecords(trackKey); else updateTrackPopup();
+      // Cache hit when PRELOAD_ALL_LAP_RECORDS; otherwise fetches this track (see index-lap-records.js).
       loadTrackRecords(trackKey);
     });
     // leaflet measures popup width before flex/scroll layout settles; remeasure after paint so text isn't truncated on first open
@@ -960,7 +960,10 @@ function wireFilterControls() {
 
 async function visualizeData() {
   try {
-    await fetchAndNormalizeTrackdays();
+    // Lap records: PRELOAD_ALL_LAP_RECORDS in index-lap-records.js. Drop loadAllLapRecords from this
+    // Promise.all (and set that flag false) to switch back to per-track loading on popup open.
+    await Promise.all([fetchAndNormalizeTrackdays(), loadAllLapRecords()]);
+    finishLapRecordsPreload();
     createTrackMarkers();
     wireHomeAndRadius();
     wireFilterControls();
