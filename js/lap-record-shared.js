@@ -6,6 +6,14 @@ const SUGGESTED_CLASSES = {
   C: ["Open"],
   M: ["Open", "600cc", "Twins", "Lightweight", "Motard"],
 };
+const TIMING_DEVICES = [
+  "Official Result",
+  "Transponder",
+  "Data Logger (AiM/RaceBox)",
+  "Phone GPS",
+  "Video",
+  "My Imagination",
+];
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -185,6 +193,7 @@ function readCreateDraft(form) {
     time: String(data.get("time") || "").trim(),
     holder: String(data.get("holder") || "").trim(),
     date: String(data.get("date") || "").trim(),
+    timingDevice: String(data.get("timingDevice") || "").trim(),
     evidence: String(data.get("evidence") || "").trim(),
     note: String(data.get("note") || "").trim(),
   };
@@ -202,6 +211,7 @@ function createLapRecordPayload(draft) {
     time: formatLapTime(draft.time),
     holder: draft.holder,
     date: draft.date,
+    timingDevice: draft.timingDevice,
   };
   let year = parseOptionalYear(draft.vehicleYear).value;
   if (year != null) payload.vehicleYear = year;
@@ -224,6 +234,7 @@ function validateCreateDraft(draft, opts) {
   }
   let shared = validateSharedEditFields(draft);
   if (shared) return shared;
+  if (!TIMING_DEVICES.includes(draft.timingDevice)) return "Choose a timing device.";
   if (knownSubtracks.length && !knownSubtracks.includes(draft.subtrack)) return "Choose a subtrack.";
   if (draft.subtrack.length > 40) return "Subtrack is too long.";
   if (!draft.holder || draft.holder.length > 80) return "Enter the record holder.";
@@ -396,6 +407,7 @@ const LAP_RECORD_FORM_HTML = `
     <label class="rec-field"><span>Time</span><input name="time" placeholder="1:23.456" inputmode="decimal"></label>
     <label class="rec-field"><span>Lap date</span><input name="date" type="date"></label>
   </div>
+  <label class="rec-field"><span>Timing device</span><select name="timingDevice"><option value="">Choose</option>${TIMING_DEVICES.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")}</select></label>
   <label class="rec-field"><span>Holder name</span><input name="holder" maxlength="80"></label>
   <label class="rec-field"><span>Evidence (optional)</span><input name="evidence" type="url" placeholder="https://" maxlength="300"></label>
   <label class="rec-field"><span>Note (optional)</span><textarea name="note" maxlength="300" rows="1"></textarea></label>
