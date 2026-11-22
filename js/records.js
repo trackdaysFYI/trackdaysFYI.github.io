@@ -560,6 +560,17 @@ function setChangeAction(action) {
   setFormMessage(changeMessage, null);
 }
 
+function fillTimingDeviceSelect(select, selected) {
+  select.replaceChildren();
+  TIMING_DEVICES.forEach(name => {
+    let option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    select.appendChild(option);
+  });
+  select.value = selected;
+}
+
 function fillChangeForm(record) {
   changeUi.record = record;
   changeForm.reset();
@@ -577,6 +588,7 @@ function fillChangeForm(record) {
   changeForm.elements.time.value = record.time || "";
   changeForm.elements.date.value = record.date || "";
   changeForm.elements.date.max = todayIso();
+  fillTimingDeviceSelect(changeForm.elements.timingDevice, record.timingDevice || "");
   changeForm.elements.evidence.value = record.evidence || "";
   changeForm.elements.note.value = "";
   setChangeAction("edit");
@@ -604,6 +616,7 @@ function readChangeDraft() {
     vehicleModel: String(changeForm.elements.vehicleModel.value || "").trim(),
     time: String(changeForm.elements.time.value || "").trim(),
     date: String(changeForm.elements.date.value || "").trim(),
+    timingDevice: String(changeForm.elements.timingDevice.value || "").trim(),
     evidence: String(changeForm.elements.evidence.value || "").trim(),
     note: String(changeForm.elements.note.value || "").trim(),
   };
@@ -619,6 +632,7 @@ function validateChangeDraft(draft) {
   if (changeUi.action === "contest") return validateNote(draft.note, true);
   let shared = validateSharedEditFields(draft);
   if (shared) return shared;
+  if (!TIMING_DEVICES.includes(draft.timingDevice)) return "Choose a timing device.";
   let year = parseOptionalYear(draft.vehicleYear).value;
   let currentYear = record.vehicleYear != null && record.vehicleYear !== ""
     ? Number(record.vehicleYear)
@@ -629,6 +643,7 @@ function validateChangeDraft(draft) {
     draft.vehicleModel !== (record.vehicleModel || "") ||
     !sameLapTime(draft.time, record.time) ||
     draft.date !== (record.date || "") ||
+    draft.timingDevice !== (record.timingDevice || "") ||
     draft.evidence !== (record.evidence || "");
   if (!changed) return "Change at least one field.";
   return "";
@@ -645,6 +660,7 @@ function changePayload(draft) {
   if (changeUi.action === "contest") return payload;
   payload.time = formatLapTime(draft.time);
   payload.date = draft.date;
+  payload.timingDevice = draft.timingDevice;
   payload.vehicleYear = parseOptionalYear(draft.vehicleYear).value;
   payload.vehicleMake = draft.vehicleMake;
   payload.vehicleModel = draft.vehicleModel;
