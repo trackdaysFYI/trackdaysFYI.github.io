@@ -1,0 +1,31 @@
+.cal-month-weekdays {display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; margin-bottom: 2px;}
+.cal-month-heading {display: flex; align-items: center; justify-content: center; min-height: 0; margin: 0; line-height: 1.25; text-align: center; font-size: 0.95rem; font-weight: 700; color: white;}
+.cal-month-empty {margin: 0.28rem 0 0; padding: 0.7rem 0.8rem; border: 1px solid var(--line); border-radius: 10px; background: rgb(255 255 255 / 0.03); color: var(--muted); text-align: center;}
+#calendar .cal-month-detail > .cal-month-empty:first-child {margin-top: calc(0.95rem * 1.25 + 0.28rem);}
+#calendar .cal-month-detail .cal-list {gap: 0; margin-top: 0.28rem; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: rgb(255 255 255 / 0.03);}
+#calendar .cal-month-detail .cal-event {border: 0; border-radius: 0; background: transparent;}
+#calendar .cal-month-detail .cal-event + .cal-event {border-top: 1px solid rgb(255 255 255 / 0.08);}
+#calendar .cal-month-detail .cal-event.is-saved {box-shadow: inset 3px 0 0 #f5d76e;}
+#calendar .cal-month-detail .cal-event-main {padding-top: 0.28rem; padding-bottom: 0.28rem; border-radius: 0;}
+#calendar .cal-month-detail .event-save-star {width: 36px; height: 36px;}
+.cal-month-group + .cal-month-group {margin-top: 0.55rem;}
+
+.cal-month-layout {display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: 1.25rem 2rem; align-items: start; width: 100%;}
+.cal-month-board {min-width: 0;}
+#calendar .cal-month-board .cal-nav,
+#calendar .cal-month-board .cal-nav.is-range {max-width: 100%; width: 100%; margin: 0 0 0.35rem;}
+#calendar .cal-month-board .cal-nav.is-range .cal-nav-title {max-width: none;}
+#calendar .cal-month-grid.is-dragging {user-select: none;}
+#calendar .cal-month-grid .cal-day.has-events {background: color-mix(in srgb, var(--accent) calc(var(--heat, 0) * 68%), transparent);}
+#calendar .cal-month-grid button.cal-day.has-events:hover:not(.is-selected) {background: color-mix(in srgb, var(--accent) calc(var(--heat, 0) * 68%), rgb(45, 51, 57));}
+#calendar .cal-month-grid .cal-day.is-selected {box-shadow: inset 0 0 0 1.5px #f5d76e;}
+#calendar .cal-month-grid .cal-day.is-selected:not(.has-events) {background: rgb(from var(--accent) r g b / 0.34);}
+#calendar .cal-month-grid .cal-day.is-today.is-selected {box-shadow: inset 0 0 0 1.5px var(--accent), inset 0 0 0 3.5px #f5d76e;}
+.cal-month-detail {position: sticky; top: 0.75rem; min-height: min(70vh, 36rem);}
+.cal-month.is-range .cal-month-grid {max-height: min(28rem, 70vh); overflow: auto;}
+
+@media (max-width: 720px) {
+  .cal-month-layout {grid-template-columns: 1fr;}
+  .cal-month-board {width: 100%;}
+  .cal-month-detail {position: static;}
+}

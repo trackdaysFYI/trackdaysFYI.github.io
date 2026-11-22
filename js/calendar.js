@@ -11,28 +11,6 @@ function eventsByDay(include) {
 
 let pendingCalendarDay = null;
 
-function renderCalendarView() {
-  let root = document.getElementById("calendar");
-  let range = activeCalendarRange();
-  if (range) {
-    let byDay = eventsByDay((td) => {
-      let key = td.date.format("YYYY-MM-DD");
-      return key >= range.start && key <= range.end;
-    });
-    let keys = [...byDay.keys()].sort();
-    let empty = range.start === range.end ? "No events this day" : "No events in this date range";
-    let list = keys.length ? `<div class="cal-list">${agendaHtml(byDay, keys)}</div>` : `<div class="cal-empty">${empty}</div>`;
-    let clear = `<button type="button" class="cal-nav-btn" data-cal-show-month aria-label="Clear range" title="Clear range"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>`;
-    root.innerHTML = `<div class="cal"><div class="cal-nav is-range"><span class="cal-nav-spacer" aria-hidden="true"></span><span class="cal-nav-title">${escapeHtml(selectionLabel(range))}</span>${clear}</div>${list}</div>`;
-  } else {
-    let month = dayjs(selectedMonth).startOf("month");
-    let byDay = eventsByDay((td) => td.date.isSame(month, "month"));
-    let list = byDay.size === 0 ? `<div class="cal-empty">No events this month</div>` : `<div class="cal-list">${agendaHtml(byDay)}</div>`;
-    root.innerHTML = `<div class="cal">${monthNavHtml(month)}${list}</div>`;
-  }
-  fitCalendarTitles();
-}
-
 function activeCalendarRange() {
   if (!selectedCalendarStart || !selectedCalendarEnd) return null;
   return {start: selectedCalendarStart, end: selectedCalendarEnd};
@@ -143,17 +121,6 @@ function dateRangeButtonLabel() {
   return `${start.format("MMM D")} – ${end.format("MMM D")}`;
 }
 
-function agendaHtml(byDay, keys) {
-  let list = keys || [...byDay.keys()].sort();
-  let todayKey = dayjs().format("YYYY-MM-DD");
-  return list.map((key) => {
-    let items = byDay.get(key);
-    let day = dayjs(key, "YYYY-MM-DD", true);
-    let today = key === todayKey ? " is-today" : "";
-    return `<div class="cal-gutter-day${today}"><div class="cal-gutter"><span class="cal-gutter-dow">${escapeHtml(day.format("ddd"))}</span><span class="cal-gutter-num">${day.date()}</span></div><div class="cal-gutter-events">${items.map(td => eventRowHtml(td)).join("")}</div></div>`;
-  }).join("");
-}
-
 function selectionLabel(selection) {
   let start = dayjs(selection.start, "YYYY-MM-DD", true);
   let end = dayjs(selection.end, "YYYY-MM-DD", true);
@@ -202,7 +169,7 @@ function saveStarHtml(td) {
 
 function fitCalendarTitles() {
   // Full names stay when they fit. Otherwise use nicknames, then drop price and distance if the name still does not fit.
-  document.querySelectorAll("#calendar .cal-gutter-day .cal-event-title").forEach((title) => {
+  document.querySelectorAll("#calendar .cal-month-detail .cal-event-title").forEach((title) => {
     let full = title.querySelector(".cal-event-full");
     let short = title.querySelector(".cal-event-short");
     let main = title.closest(".cal-event-main");
