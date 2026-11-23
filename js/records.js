@@ -548,7 +548,7 @@ function setChangeSubmitting(submitting) {
 }
 
 function setChangeAction(action) {
-  changeUi.action = action === "contest" ? "contest" : "edit";
+  changeUi.action = action === "delete" ? "delete" : "edit";
   changeForm.querySelectorAll(".rec-type[data-action]").forEach(btn => {
     btn.classList.toggle("on", btn.getAttribute("data-action") === changeUi.action);
   });
@@ -630,7 +630,7 @@ function sameLapTime(a, b) {
 function validateChangeDraft(draft) {
   let record = changeUi.record;
   if (!record || !record.recordId) return "Choose a lap record.";
-  if (changeUi.action === "contest") return validateNote(draft.note, true);
+  if (changeUi.action === "delete") return validateNote(draft.note, true);
   let shared = validateSharedEditFields(draft);
   if (shared) return shared;
   if (!TIMING_DEVICES.includes(draft.timingDevice)) return "Choose a timing device.";
@@ -658,7 +658,7 @@ function changePayload(draft) {
     track: record.track,
   };
   if (draft.note) payload.note = draft.note;
-  if (changeUi.action === "contest") return payload;
+  if (changeUi.action === "delete") return payload;
   payload.time = formatLapTime(draft.time);
   payload.date = draft.date;
   payload.timingDevice = draft.timingDevice;
