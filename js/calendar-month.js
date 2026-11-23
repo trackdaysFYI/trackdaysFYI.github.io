@@ -297,13 +297,57 @@ function bindMonthGrid(root, byDay, range) {
   let grid = root.querySelector(".cal-month-grid");
   let scroll = root.querySelector(".cal-month-scroll");
   let drag = null;
-  const touchSlop = 10;
+  const touchSlop = 14;
+  let onTouchMove = null;
+  let onDocPointerMove = null;
+  let onDocPointerUp = null;
+
+  function unbindTouchGuards() {
+    if (onTouchMove) {
+      grid.removeEventListener("touchmove", onTouchMove);
+      onTouchMove = null;
+    }
+    if (onDocPointerMove) {
+      document.removeEventListener("pointermove", onDocPointerMove);
+      onDocPointerMove = null;
+    }
+    if (onDocPointerUp) {
+      document.removeEventListener("pointerup", onDocPointerUp);
+      document.removeEventListener("pointercancel", onDocPointerUp);
+      onDocPointerUp = null;
+    }
+  }
+
+  function finishDrag(event, cancelledByBrowser) {
+    if (!drag || (event && event.pointerId !== drag.pointerId)) return;
+    let gesture = drag;
+    drag = null;
+    stopDragExtras(gesture);
+    unbindTouchGuards();
+    grid.classList.remove("is-dragging");
+    if (cancelledByBrowser || gesture.cancelled) {
+      paintMonthFocus(root, byDay, activeCalendarRange());
+      return;
+    }
+    if (gesture.selecting && gesture.moved) {
+      commitCalendarSelection(selectionRange(gesture.anchor, gesture.current));
+      return;
+    }
+    let tapped = Math.hypot(event.clientX - gesture.originX, event.clientY - gesture.originY) <= touchSlop;
+    if (tapped || (gesture.selecting && !gesture.moved)) toggleDaySelection(gesture.anchor);
+    else paintMonthFocus(root, byDay, activeCalendarRange());
+  }
+
   bindActiveMonth(root, byDay, scroll);
   paintMonthFocus(root, byDay, range);
+  grid.addEventListener("contextmenu", (event) => {
+    if (event.target instanceof Element && event.target.closest("[data-cal-day]")) event.preventDefault();
+  });
   grid.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
     let key = monthDayAt(grid, event);
     if (!key) return;
+    unbindTouchGuards();
     drag = {
       pointerId: event.pointerId,
       pointerType: event.pointerType,
@@ -320,6 +364,38 @@ function bindMonthGrid(root, byDay, range) {
       scrollRaf: null,
     };
     if (event.pointerType === "touch") {
+      // Claim the gesture while the finger stays put so the scroller doesn't cancel the long-press.
+      onTouchMove = (touchEvent) => {
+        if (!drag || drag.cancelled) return;
+        let touch = touchEvent.touches[0] || touchEvent.changedTouches[0];
+        if (!touch) return;
+        drag.pointerX = touch.clientX;
+        drag.pointerY = touch.clientY;
+        let dist = Math.hypot(touch.clientX - drag.originX, touch.clientY - drag.originY);
+        if (!drag.selecting) {
+          if (dist > touchSlop) {
+            stopDragExtras(drag);
+            drag.cancelled = true;
+            unbindTouchGuards();
+            return;
+          }
+          touchEvent.preventDefault();
+          return;
+        }
+        touchEvent.preventDefault();
+        paintDragDay(root, grid, drag, touch.clientX, touch.clientY);
+      };
+      grid.addEventListener("touchmove", onTouchMove, {passive: false});
+      onDocPointerMove = (moveEvent) => {
+        if (!drag || moveEvent.pointerId !== drag.pointerId || drag.cancelled || !drag.selecting) return;
+        drag.pointerX = moveEvent.clientX;
+        drag.pointerY = moveEvent.clientY;
+        paintDragDay(root, grid, drag, moveEvent.clientX, moveEvent.clientY);
+      };
+      onDocPointerUp = (upEvent) => finishDrag(upEvent, upEvent.type === "pointercancel" && !drag?.selecting);
+      document.addEventListener("pointermove", onDocPointerMove);
+      document.addEventListener("pointerup", onDocPointerUp);
+      document.addEventListener("pointercancel", onDocPointerUp);
       drag.timer = setTimeout(() => beginDragSelect(root, grid, scroll, drag), 350);
       return;
     }
@@ -330,40 +406,19 @@ function bindMonthGrid(root, byDay, range) {
     if (!drag || event.pointerId !== drag.pointerId || drag.cancelled) return;
     drag.pointerX = event.clientX;
     drag.pointerY = event.clientY;
-    if (drag.pointerType === "touch" && !drag.selecting) {
-      if (Math.hypot(event.clientX - drag.originX, event.clientY - drag.originY) > touchSlop) {
-        stopDragExtras(drag);
-        drag.cancelled = true;
-      }
-      return;
-    }
+    if (drag.pointerType === "touch" && !drag.selecting) return;
     if (!drag.selecting) return;
     paintDragDay(root, grid, drag, event.clientX, event.clientY);
   });
-  grid.addEventListener("pointerup", (event) => {
-    if (!drag || event.pointerId !== drag.pointerId) return;
-    let gesture = drag;
-    drag = null;
-    stopDragExtras(gesture);
-    grid.classList.remove("is-dragging");
-    if (gesture.cancelled) {
-      paintMonthFocus(root, byDay, activeCalendarRange());
-      return;
-    }
-    if (gesture.selecting && gesture.moved) {
-      commitCalendarSelection(selectionRange(gesture.anchor, gesture.current));
-      return;
-    }
-    let tapped = Math.hypot(event.clientX - gesture.originX, event.clientY - gesture.originY) <= touchSlop;
-    if (tapped || (gesture.selecting && !gesture.moved)) toggleDaySelection(gesture.anchor);
-    else paintMonthFocus(root, byDay, activeCalendarRange());
-  });
+  grid.addEventListener("pointerup", (event) => finishDrag(event, false));
   grid.addEventListener("pointercancel", (event) => {
+    // After long-press starts we keep the gesture; early cancel means the browser took over scrolling.
     if (!drag || event.pointerId !== drag.pointerId) return;
-    stopDragExtras(drag);
-    drag = null;
-    grid.classList.remove("is-dragging");
-    paintMonthFocus(root, byDay, activeCalendarRange());
+    if (drag.selecting) {
+      finishDrag(event, false);
+      return;
+    }
+    finishDrag(event, true);
   });
   grid.addEventListener("click", (event) => {
     if (event.detail !== 0) return;
