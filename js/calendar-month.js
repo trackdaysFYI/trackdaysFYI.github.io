@@ -72,17 +72,37 @@ function scrollChildToStart(scroll, el) {
   scroll.scrollTop += el.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
 }
 
-// Active month = last section whose top has reached the scrollport (offset clears sticky weekdays).
+// Active month = last section whose label has crossed a probe below the scroll top.
+// Weekdays sit outside the scroller. Probe/band are sized for coarse mouse-wheel steps.
 function monthNearestScroll(scroll) {
   let sections = [...scroll.querySelectorAll("[data-cal-month]")];
   if (!sections.length) return null;
-  let top = scroll.getBoundingClientRect().top + 64;
-  let best = sections[0];
-  for (let section of sections) {
-    if (section.getBoundingClientRect().top <= top) best = section;
+  let viewTop = scroll.getBoundingClientRect().top;
+  let currentKey = calendarActiveMonth ? calendarActiveMonth.format("YYYY-MM") : null;
+  let curIdx = currentKey
+    ? sections.findIndex((section) => section.dataset.calMonth === currentKey)
+    : -1;
+
+  // Buffer into the viewport so a single wheel notch near a boundary does not flip months.
+  let buffer = Math.min(72, Math.round(scroll.clientHeight * 0.2));
+  let probe = viewTop + buffer;
+  let index = 0;
+  for (let i = 0; i < sections.length; i++) {
+    if (sections[i].getBoundingClientRect().top <= probe) index = i;
     else break;
   }
-  return dayjs(`${best.dataset.calMonth}-01`, "YYYY-MM-DD", true).startOf("month");
+
+  // Extra stickiness past the probe so scroll bounce / partial notches settle cleanly.
+  if (curIdx >= 0 && index !== curIdx) {
+    let band = buffer;
+    if (index > curIdx) {
+      if (sections[curIdx].getBoundingClientRect().top > viewTop - band) index = curIdx;
+    } else if (sections[curIdx].getBoundingClientRect().top < viewTop + band) {
+      index = curIdx;
+    }
+  }
+
+  return dayjs(`${sections[index].dataset.calMonth}-01`, "YYYY-MM-DD", true).startOf("month");
 }
 
 function calendarClearDatesHtml() {
