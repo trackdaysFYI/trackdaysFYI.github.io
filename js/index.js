@@ -495,7 +495,6 @@ function updateTrackPopup() {
   let trackdaysAtTrack = trackdays.filter(td => td.track === lastOpenedTrack);
   let trackdaysFiltered = trackdaysAtTrack.filter(td => td.visibilityMap);
   let hiddenTrackdays = trackdaysAtTrack.filter(td => !td.visibilityMap);
-  let numTrackdaysHidden = hiddenTrackdays.length;
   let multipleVehicleTypes = (selectedVehicleTypes.size > 1);
   let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") && (selectedEventTypes.size > 1);
   const eventLabel = {"T": "Trackday", "S": "School", "R": "Race"};
@@ -523,7 +522,12 @@ function updateTrackPopup() {
   let directionsUrl = "https://www.google.com/maps?q=" + encodeURIComponent("directions " + track.name);
   let weatherUrl = "https://www.google.com/search?q=" + encodeURIComponent("weather " + track.name);
   let nickname = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
-  let hiddenNote = numTrackdaysHidden ? `<span class="hidden-note">${hiddenEventNote(hiddenTrackdays)}</span>` : "";
+  let dateHidden = hiddenTrackdays.filter(td => !dateInRange(td.date));
+  let otherHidden = hiddenTrackdays.filter(td => dateInRange(td.date));
+  let dateNote = dateHidden.length
+    ? `<span class="hidden-note date-hidden-note">${dateHidden.length} ${dateHidden.length === 1 ? "event" : "events"} outside selected dates <button type="button" class="popup-clear-dates" data-popup-action="clear-date-range">Clear</button></span>`
+    : "";
+  let otherNote = otherHidden.length ? `<span class="hidden-note">${hiddenEventNote(otherHidden)}</span>` : "";
   let head = `<div class="popup-head"><b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><div class="popup-links"><a href="${escapeHtml(directionsUrl)}" target="_blank" rel="noopener" title="Directions">${directionImg}</a><a href="${escapeHtml(weatherUrl)}" target="_blank" rel="noopener" title="Weather">${weatherImg}</a></div></div>`;
   let lastDate = "";
   let rows = trackdaysFiltered.map((td) => {
@@ -537,9 +541,12 @@ function updateTrackPopup() {
     let mark = `<span class="tl-mark"><span class="tl-date">${showDate ? escapeHtml(td.date.format("MMM D")) : ""}</span><span class="tl-dot"></span></span>`;
     return `<div class="event-item tl-item${saved}">${rowMain(td, meta, price, mark)}${saveBox(eventKey)}</div>`;
   }).join("");
-  let list = trackdaysFiltered.length === 0 ? `<div class="empty">No Events Found</div>` : `<div class="tl">${rows}</div>`;
+  let emptyMsg = trackdaysAtTrack.length === 0 ? "No upcoming events" : "No matching events";
+  let list = trackdaysFiltered.length === 0
+    ? `<div class="empty">${emptyMsg}</div>`
+    : `<div class="tl">${rows}</div>`;
   let report = `<button type="button" class="missing-event-link" data-popup-action="missing-event">Missing an event?</button>`;
-  let eventsBody = popupList(list, hiddenNote + report);
+  let eventsBody = popupList(list, dateNote + otherNote + report);
   let tabs = `<div class="rec-tabs"><button type="button" class="${recordsUi.open ? "" : "on"}" data-popup-action="records-tab" data-open="0">Events</button><button type="button" class="${recordsUi.open ? "on" : ""}" data-popup-action="records-tab" data-open="1">Records</button></div>`;
   let body = recordsUi.open ? recordsListHtml(lastOpenedTrack) : eventsBody;
   let popup = mapMarkers[lastOpenedTrack].getPopup();
@@ -673,6 +680,7 @@ function wirePopupActions() {
     else if (action === "missing-event") reportMissingEvent();
     else if (action === "records-tab") setRecordsOpen(el.dataset.open === "1");
     else if (action === "add-record") openRecordForm();
+    else if (action === "clear-date-range") clearCalendarDateFilter();
   }, true);
 }
 wirePopupActions();

@@ -101,6 +101,9 @@ svg, header img {vertical-align: middle;}
 .popup-timeline .event-save-star[aria-pressed="true"] svg {fill: currentColor;}
 .popup-timeline .empty {padding: 8px 0 2px; color: var(--panel-dim); font-size: 13px; text-align: center;}
 .popup-timeline .hidden-note {display: block; margin-top: 6px; font-size: 10px; color: var(--panel-label); text-align: center;}
+.popup-timeline .date-hidden-note {font-size: 11px; color: var(--panel-muted);}
+.popup-timeline .popup-clear-dates {border: 0; padding: 0; margin-left: 0.35em; background: transparent; font: inherit; font-size: inherit; font-weight: 650; color: var(--accent); cursor: pointer;}
+.popup-timeline .popup-clear-dates:hover {text-decoration: underline;}
 .popup-timeline .rec-subhead {margin: 8px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--panel-muted);}
 .popup-timeline .rec-typehead {margin: 10px 0 4px; padding-top: 8px; border-top: 1px solid var(--panel-line); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--panel-ink);}
 .popup-timeline .rec-typehead.first {margin-top: 0; padding-top: 0; border-top: 0;}
