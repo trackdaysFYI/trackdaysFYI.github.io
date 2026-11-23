@@ -15,8 +15,25 @@ const calendarWeekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
   .map((day) => `<span class="cal-weekday">${day}</span>`)
   .join("");
 
+const calendarMonthsMq = window.matchMedia("(max-width: 700px)");
+
 function calendarMonthsHorizontal() {
-  return window.matchMedia("(max-width: 700px)").matches;
+  return calendarMonthsMq.matches;
+}
+
+// Portrait <-> landscape often crosses the stacked/side-by-side breakpoint; rebuild so
+// transform carousel vs vertical scroll state and bindings match the new layout.
+function onCalendarMonthsLayoutChange() {
+  let root = document.getElementById("calendar");
+  if (!root?.querySelector(".cal-month")) return;
+  calendarScrollTop = 0;
+  renderCalendarView();
+}
+
+if (typeof calendarMonthsMq.addEventListener === "function") {
+  calendarMonthsMq.addEventListener("change", onCalendarMonthsLayoutChange);
+} else if (typeof calendarMonthsMq.addListener === "function") {
+  calendarMonthsMq.addListener(onCalendarMonthsLayoutChange);
 }
 
 function syncMonthCarousel(scroll) {
@@ -46,11 +63,13 @@ function renderCalendarView() {
   if (calendarMonthsHorizontal()) {
     syncMonthCarousel(scroll);
   } else {
+    scroll.style.transform = "";
     scroll.scrollTop = calendarScrollTop;
-    if (!range && !calendarScrollTop) {
-      // Prefer today's month section (header at top), not the day cell.
+    if (!calendarScrollTop) {
+      // Prefer today's month when idle; otherwise keep the active month on screen
+      // (e.g. after rotating across the stacked breakpoint).
       let todayMonth = dayjs().format("YYYY-MM");
-      let section = scroll.querySelector(`[data-cal-month="${todayMonth}"]`)
+      let section = (!range && scroll.querySelector(`[data-cal-month="${todayMonth}"]`))
         || scroll.querySelector(`[data-cal-month="${calendarActiveMonth.format("YYYY-MM")}"]`);
       // Scroll only inside .cal-month-scroll - scrollIntoView also moves the page.
       scrollChildToStart(scroll, section);
