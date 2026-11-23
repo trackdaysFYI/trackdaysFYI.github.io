@@ -51,6 +51,20 @@ function syncMonthCarousel(scroll) {
   scroll.style.transform = `translate3d(${-index * 100}%, 0, 0)`;
 }
 
+function stepMonthCarousel(root, byDay, scroll, dir) {
+  let sections = [...scroll.querySelectorAll("[data-cal-month]")];
+  let key = calendarActiveMonth.format("YYYY-MM");
+  let index = sections.findIndex((section) => section.dataset.calMonth === key);
+  if (index < 0) index = 0;
+  index = Math.max(0, Math.min(sections.length - 1, index + dir));
+  let nextKey = sections[index].dataset.calMonth;
+  if (nextKey === calendarActiveMonth.format("YYYY-MM")) return;
+  calendarActiveMonth = dayjs(`${nextKey}-01`).startOf("month");
+  selectedMonth = calendarActiveMonth.toDate();
+  syncMonthCarousel(scroll);
+  paintMonthFocus(root, byDay, activeCalendarRange());
+}
+
 function renderCalendarView() {
   let root = document.getElementById("calendar");
   let bounds = selectableDateBounds();
@@ -135,7 +149,7 @@ function calendarMonthsHtml(bounds, byDay, maxCount, range) {
   let months = [];
   for (let month = bounds.min.startOf("month"); !month.isAfter(bounds.max, "month"); month = month.add(1, "month")) {
     months.push(`<section class="cal-month-section" data-cal-month="${month.format("YYYY-MM")}">
-      <h3 class="cal-month-label">${escapeHtml(month.format("MMMM YYYY"))}</h3>
+      <h3 class="cal-month-label"><button type="button" class="cal-month-nav" data-cal-month-dir="-1" aria-label="Previous month"></button><span>${escapeHtml(month.format("MMMM YYYY"))}</span><button type="button" class="cal-month-nav" data-cal-month-dir="1" aria-label="Next month"></button></h3>
       ${monthDayButtons(month, byDay, maxCount, bounds, range)}
     </section>`);
   }
@@ -302,11 +316,16 @@ function bindActiveMonth(root, byDay, scroll) {
   }, {passive: true});
 }
 
-// Snap to next/prev month after a horizontal swipe. No touchmove preventDefault (keeps page scroll).
+// Snap to next/prev month after a horizontal swipe or nav click. No touchmove preventDefault (keeps page scroll).
 function bindMobileCarousel(root, byDay, scroll) {
   let grid = root.querySelector(".cal-month-grid");
   let startX = 0;
   let startY = 0;
+  grid.addEventListener("click", (event) => {
+    let nav = event.target instanceof Element ? event.target.closest("[data-cal-month-dir]") : null;
+    if (!nav || !grid.contains(nav) || !calendarMonthsHorizontal()) return;
+    stepMonthCarousel(root, byDay, scroll, Number(nav.dataset.calMonthDir));
+  });
   grid.addEventListener("touchstart", (event) => {
     if (event.touches.length !== 1 || calendarDragSelecting) return;
     startX = event.touches[0].clientX;
@@ -319,15 +338,7 @@ function bindMobileCarousel(root, byDay, scroll) {
     let dx = touch.clientX - startX;
     let dy = touch.clientY - startY;
     if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
-    let sections = [...scroll.querySelectorAll("[data-cal-month]")];
-    let key = calendarActiveMonth.format("YYYY-MM");
-    let index = sections.findIndex((section) => section.dataset.calMonth === key);
-    if (index < 0) index = 0;
-    index = Math.max(0, Math.min(sections.length - 1, index + (dx < 0 ? 1 : -1)));
-    calendarActiveMonth = dayjs(`${sections[index].dataset.calMonth}-01`, "YYYY-MM-DD", true).startOf("month");
-    selectedMonth = calendarActiveMonth.toDate();
-    syncMonthCarousel(scroll);
-    paintMonthFocus(root, byDay, activeCalendarRange());
+    stepMonthCarousel(root, byDay, scroll, dx < 0 ? 1 : -1);
   }, {passive: true});
 }
 
