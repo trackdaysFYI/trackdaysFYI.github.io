@@ -614,7 +614,10 @@ function updateDateFilterBar() {
   if (!ranged) {
     bar.classList.add("is-idle");
     bar.classList.remove("is-chip");
-    bar.setAttribute("aria-hidden", "true");
+    bar.removeAttribute("aria-hidden");
+    bar.setAttribute("role", "button");
+    bar.setAttribute("tabindex", "0");
+    bar.setAttribute("aria-label", "Select dates on calendar");
     bar.innerHTML = `<span class="date-filter-bar-text">Select on calendar</span>`;
     return;
   }
@@ -622,6 +625,9 @@ function updateDateFilterBar() {
   bar.classList.remove("is-idle");
   bar.classList.add("is-chip");
   bar.removeAttribute("aria-hidden");
+  bar.removeAttribute("role");
+  bar.removeAttribute("tabindex");
+  bar.removeAttribute("aria-label");
   bar.innerHTML = `<span class="date-filter-bar-text">${escapeHtml(label)}</span>${calendarClearDatesHtml()}`;
 }
 
@@ -701,8 +707,20 @@ document.getElementById("calendar").addEventListener("click", (event) => {
 }, true);
 
 document.getElementById("dateFilterBar").addEventListener("click", (event) => {
-  if (!event.target.closest("[data-cal-clear-range]")) return;
-  clearCalendarDateFilter();
+  let bar = event.currentTarget;
+  if (event.target.closest("[data-cal-clear-range]")) {
+    clearCalendarDateFilter();
+    return;
+  }
+  if (!bar.classList.contains("is-idle")) return;
+  document.getElementById("calendar")?.scrollIntoView({behavior: "smooth", block: "start"});
+});
+document.getElementById("dateFilterBar").addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  let bar = event.currentTarget;
+  if (!bar.classList.contains("is-idle")) return;
+  event.preventDefault();
+  document.getElementById("calendar")?.scrollIntoView({behavior: "smooth", block: "start"});
 });
 
 function clearCalendarDateFilter() {

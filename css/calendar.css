@@ -68,13 +68,15 @@
   text-align: center;
 }
 .date-filter-bar.is-idle {
-  pointer-events: none;
   border-style: dashed;
   border-color: var(--line);
   background: transparent;
   color: var(--muted);
+  cursor: pointer;
 }
 .date-filter-bar.is-idle .date-filter-bar-text {color: var(--muted); font-weight: 300;}
+.date-filter-bar.is-idle:hover {border-color: var(--accent); color: var(--soft);}
+.date-filter-bar.is-idle:hover .date-filter-bar-text {color: var(--soft);}
 .date-filter-bar.is-chip {background-color: var(--accent-soft); color: rgb(255, 255, 255); padding-right: 0.35rem;}
 .date-filter-bar.is-chip .date-filter-bar-text {color: white;}
 .date-filter-bar-text {white-space: nowrap;}
