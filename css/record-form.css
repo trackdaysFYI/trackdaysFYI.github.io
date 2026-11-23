@@ -12,8 +12,10 @@
 .suggest-dialog .rec-types {display: flex; gap: var(--form-types-gap, 5px); margin: 0; flex-wrap: wrap; align-items: center;}
 .suggest-dialog .rec-type {border: 0; border-radius: 999px; padding: var(--form-chip-pad, 3px 10px); font: inherit; font-size: var(--form-chip-size, 13px); font-weight: 650; color: var(--form-muted, var(--panel-muted)); background: var(--form-chip-bg, var(--panel-soft)); cursor: pointer;}
 .suggest-dialog .rec-type.on {color: #fff; background: var(--accent);}
-.suggest-dialog .rec-meta {margin: 0; padding: 0.55rem 0.7rem; border-radius: 10px; background: rgba(255, 255, 255, 0.04); font-size: 0.88rem; color: var(--muted); line-height: 1.4;}
-.suggest-dialog .rec-meta strong {color: var(--soft); font-weight: 650;}
+.suggest-dialog .rec-meta {margin: 0; padding: 0.55rem 0.7rem; border-radius: 10px; background: rgba(255, 255, 255, 0.04); font-size: 0.88rem; color: var(--muted, var(--panel-muted)); line-height: 1.4;}
+.suggest-dialog .rec-meta strong {color: var(--soft, var(--panel-ink)); font-weight: 650;}
+.suggest-dialog .rec-meta a {color: var(--accent); font-weight: 650; text-decoration: underline; text-underline-offset: 2px;}
+.suggest-dialog .rec-meta a:hover {text-decoration-thickness: 2px;}
 .suggest-dialog .rec-field {display: flex; flex-direction: column; gap: var(--form-field-gap, 3px); min-width: 0; position: relative;}
 .suggest-dialog .rec-field[hidden], .suggest-dialog .rec-edit-only[hidden] {display: none;}
 .suggest-dialog .rec-field span {font-size: var(--form-label-size, 11px); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--form-label, var(--panel-label));}
