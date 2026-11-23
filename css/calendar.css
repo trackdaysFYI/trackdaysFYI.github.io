@@ -163,6 +163,20 @@
   .cal-month-board {width: 100%;}
   .cal-month-detail {position: static;}
   .cal-range-header {top: 0.35rem;}
-  /* ~1 month visible on small screens */
-  #calendar .cal-month-grid {max-height: 14rem;}
+  /* Transform carousel: no overflow-x scroller (those block vertical page scroll on mobile). */
+  #calendar .cal-month-grid {max-height: none; overflow: hidden;}
+  #calendar .cal-month-grid::after {display: none;}
+  #calendar .cal-month-grid,
+  #calendar .cal-month-grid .cal-day,
+  #calendar .cal-month-scroll {touch-action: pan-y;}
+  #calendar .cal-month-scroll {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    overflow: visible;
+    padding-bottom: 0;
+    transition: transform 0.2s ease;
+  }
+  #calendar .cal-month-section {flex: 0 0 100%; min-width: 100%; box-sizing: border-box;}
+  #calendar .cal-month-section .cal-month-label {margin-top: 0.15rem;}
 }

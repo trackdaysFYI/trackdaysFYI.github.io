@@ -1,4 +1,6 @@
 // Scrollable multi-month calendar with hidden scrollbar.
+// Mobile (≤720px): one-month transform carousel (no overflow-x; page keeps vertical scroll).
+// Desktop: vertical list scroller.
 let calendarScrollTop = 0;
 let calendarActiveMonth = null;
 let calendarMonthObserver = null;
@@ -7,6 +9,22 @@ let calendarDragSelecting = false;
 const calendarWeekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
   .map((day) => `<span class="cal-weekday">${day}</span>`)
   .join("");
+
+function calendarMonthsHorizontal() {
+  return window.matchMedia("(max-width: 720px)").matches;
+}
+
+function syncMonthCarousel(scroll) {
+  if (!calendarMonthsHorizontal()) {
+    scroll.style.transform = "";
+    return;
+  }
+  let sections = [...scroll.querySelectorAll("[data-cal-month]")];
+  let key = calendarActiveMonth.format("YYYY-MM");
+  let index = sections.findIndex((section) => section.dataset.calMonth === key);
+  if (index < 0) index = 0;
+  scroll.style.transform = `translate3d(${-index * 100}%, 0, 0)`;
+}
 
 function renderCalendarView() {
   let root = document.getElementById("calendar");
@@ -20,20 +38,24 @@ function renderCalendarView() {
   });
   root.innerHTML = `<div class="cal cal-month"><div class="cal-month-layout"><div class="cal-month-board"><div class="cal-month-grid"><div class="cal-month-weekdays" aria-hidden="true">${calendarWeekdays}</div><div class="cal-month-scroll">${calendarMonthsHtml(bounds, byDay, maxCount, range)}</div></div></div><div class="cal-month-detail"></div></div></div>`;
   let scroll = root.querySelector(".cal-month-scroll");
-  scroll.scrollTop = calendarScrollTop;
-  if (!range && !calendarScrollTop) {
-    let today = dayjs().format("YYYY-MM-DD");
-    let todayEl = scroll.querySelector(`[data-cal-day="${today}"]`);
-    let section = scroll.querySelector(`[data-cal-month="${calendarActiveMonth.format("YYYY-MM")}"]`);
-    // Scroll only inside .cal-month-scroll - scrollIntoView also moves the page.
-    scrollChildToStart(scroll, todayEl || section);
-    calendarScrollTop = scroll.scrollTop;
-  }
-  if (!range) {
-    let active = monthNearestScroll(scroll);
-    if (active) {
-      calendarActiveMonth = active;
-      selectedMonth = active.toDate();
+  if (calendarMonthsHorizontal()) {
+    syncMonthCarousel(scroll);
+  } else {
+    scroll.scrollTop = calendarScrollTop;
+    if (!range && !calendarScrollTop) {
+      let today = dayjs().format("YYYY-MM-DD");
+      let todayEl = scroll.querySelector(`[data-cal-day="${today}"]`);
+      let section = scroll.querySelector(`[data-cal-month="${calendarActiveMonth.format("YYYY-MM")}"]`);
+      // Scroll only inside .cal-month-scroll - scrollIntoView also moves the page.
+      scrollChildToStart(scroll, todayEl || section);
+      calendarScrollTop = scroll.scrollTop;
+    }
+    if (!range) {
+      let active = monthNearestScroll(scroll);
+      if (active) {
+        calendarActiveMonth = active;
+        selectedMonth = active.toDate();
+      }
     }
   }
   bindMonthGrid(root, byDay, range);
@@ -228,6 +250,7 @@ function bindActiveMonth(root, byDay, scroll) {
     calendarMonthObserver.disconnect();
     calendarMonthObserver = null;
   }
+  if (calendarMonthsHorizontal()) return;
   let syncActive = () => {
     if (calendarDragSelecting || activeCalendarRange()) return;
     let next = monthNearestScroll(scroll);
@@ -247,6 +270,35 @@ function bindActiveMonth(root, byDay, scroll) {
     }, {root: scroll, threshold: [0.2, 0.5, 0.8]});
     sections.forEach((section) => calendarMonthObserver.observe(section));
   }
+}
+
+// Snap to next/prev month after a horizontal swipe. No touchmove preventDefault (keeps page scroll).
+function bindMobileCarousel(root, byDay, scroll) {
+  let grid = root.querySelector(".cal-month-grid");
+  let startX = 0;
+  let startY = 0;
+  grid.addEventListener("touchstart", (event) => {
+    if (event.touches.length !== 1 || calendarDragSelecting) return;
+    startX = event.touches[0].clientX;
+    startY = event.touches[0].clientY;
+  }, {passive: true});
+  grid.addEventListener("touchend", (event) => {
+    if (!calendarMonthsHorizontal() || calendarDragSelecting) return;
+    let touch = event.changedTouches[0];
+    if (!touch) return;
+    let dx = touch.clientX - startX;
+    let dy = touch.clientY - startY;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+    let sections = [...scroll.querySelectorAll("[data-cal-month]")];
+    let key = calendarActiveMonth.format("YYYY-MM");
+    let index = sections.findIndex((section) => section.dataset.calMonth === key);
+    if (index < 0) index = 0;
+    index = Math.max(0, Math.min(sections.length - 1, index + (dx < 0 ? 1 : -1)));
+    calendarActiveMonth = dayjs(`${sections[index].dataset.calMonth}-01`, "YYYY-MM-DD", true).startOf("month");
+    selectedMonth = calendarActiveMonth.toDate();
+    syncMonthCarousel(scroll);
+    paintMonthFocus(root, byDay, activeCalendarRange());
+  }, {passive: true});
 }
 
 function stopDragExtras(drag) {
@@ -277,6 +329,8 @@ function beginDragSelect(root, grid, scroll, drag) {
   grid.classList.add("is-dragging");
   try {grid.setPointerCapture(drag.pointerId);} catch (e) {}
   paintDaySelection(root, selectionRange(drag.anchor, drag.current));
+  // Mobile carousel: no edge auto-scroll (within-month select only).
+  if (calendarMonthsHorizontal()) return;
   let step = () => {
     drag.scrollRaf = null;
     if (!drag.selecting || drag.cancelled) return;
@@ -339,6 +393,7 @@ function bindMonthGrid(root, byDay, range) {
   }
 
   bindActiveMonth(root, byDay, scroll);
+  if (calendarMonthsHorizontal()) bindMobileCarousel(root, byDay, scroll);
   paintMonthFocus(root, byDay, range);
   grid.addEventListener("contextmenu", (event) => {
     if (event.target instanceof Element && event.target.closest("[data-cal-day]")) event.preventDefault();
@@ -364,7 +419,7 @@ function bindMonthGrid(root, byDay, range) {
       scrollRaf: null,
     };
     if (event.pointerType === "touch") {
-      // Claim the gesture while the finger stays put so the scroller doesn't cancel the long-press.
+      // Arm long-press carefully: preventDefault on touchmove cancels page scroll for the whole gesture.
       onTouchMove = (touchEvent) => {
         if (!drag || drag.cancelled) return;
         let touch = touchEvent.touches[0] || touchEvent.changedTouches[0];
@@ -379,7 +434,9 @@ function bindMonthGrid(root, byDay, range) {
             unbindTouchGuards();
             return;
           }
-          touchEvent.preventDefault();
+          // Desktop: claim tiny moves so nested scroll doesn't kill long-press.
+          // Mobile: skip preventDefault so the page can still scroll vertically.
+          if (!calendarMonthsHorizontal()) touchEvent.preventDefault();
           return;
         }
         touchEvent.preventDefault();
