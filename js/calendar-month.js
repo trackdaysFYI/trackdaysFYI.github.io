@@ -21,13 +21,16 @@ function calendarMonthsHorizontal() {
   return calendarMonthsMq.matches;
 }
 
-// Portrait <-> landscape often crosses the stacked/side-by-side breakpoint; rebuild so
-// transform carousel vs vertical scroll state and bindings match the new layout.
+// Portrait <-> landscape often crosses the stacked/side-by-side breakpoint. Carrying an
+// arbitrary active month across axes was flaky — reset to the current month instead.
 function onCalendarMonthsLayoutChange() {
   let root = document.getElementById("calendar");
   if (!root?.querySelector(".cal-month")) return;
+  selectedMonth = undefined;
+  calendarActiveMonth = null;
   calendarScrollTop = 0;
-  renderCalendarView();
+  // Let the max-width layout CSS apply before measuring / binding scroll.
+  requestAnimationFrame(() => updateCalendar());
 }
 
 if (typeof calendarMonthsMq.addEventListener === "function") {
