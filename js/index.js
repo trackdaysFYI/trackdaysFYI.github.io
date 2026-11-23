@@ -133,7 +133,7 @@ function getGPSLocation() {
   function setGPSLocation(position) {
     locationDefault = [position.coords.latitude, position.coords.longitude];
     isGPSLocation = true;
-    // panning, filters, and the calendar can be reset; a moved pin or radius cannot
+    // Re-home map/radius when the pin was not moved; keep the viewed calendar month.
     if (tracks && !homeLocked) resetHome();
   }
   // timeout starts after the permission prompt, so a hung lookup cannot arrive much later
@@ -154,7 +154,7 @@ function resetHome() {
 
   updateTrackDistances();
   updateSearchRadius(radiusValues[radiusSliderElement.value]);
-  selectedMonth = undefined;  // updateCalendar updates to current month
+  // Keep the viewed month — GPS can arrive after the user has already scrolled/swiped.
   refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
 }
 
@@ -1003,6 +1003,7 @@ function wireFilterControls() {
     Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
 
     setCalendarRange(null, null);
+    selectedMonth = undefined;  // updateCalendar returns to the current month
     Array.from(daySelectElement.options).forEach((opt) => {
       opt.selected = true;
     });
