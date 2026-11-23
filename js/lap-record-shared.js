@@ -386,6 +386,7 @@ const LAP_RECORD_FORM_HTML = `
     <b id="recordTitle">Add a Lap Record</b>
     <button type="button" class="suggest-close" id="record-close" aria-label="Close">×</button>
   </div>
+  <p class="rec-meta" id="record-add-tip">Already have a record for the same or a similar vehicle?<br><a href="records.html" target="_blank" rel="noopener">Update it on the Records page</a> instead of creating a new one.</p>
   <label class="rec-field"><span>Track</span><select name="track"></select></label>
   <label class="rec-field"><span>Subtrack</span><select name="subtrack"></select></label>
   <div class="rec-type-class">
@@ -421,6 +422,10 @@ const LAP_RECORD_FORM_HTML = `
 function mountLapRecordForm(dialog) {
   if (!dialog || dialog.querySelector("#lap-record-form")) return;
   dialog.innerHTML = LAP_RECORD_FORM_HTML;
+  let tip = dialog.querySelector("#record-add-tip");
+  if (tip && /(^|\/)records\.html$/i.test(location.pathname)) {
+    tip.innerHTML = "Already have a record for the same or a similar vehicle?<br>Update it instead of creating a new one.";
+  }
 }
 
 mountLapRecordForm(document.getElementById("recordDialog"));
