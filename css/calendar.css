@@ -129,8 +129,8 @@
   overscroll-behavior: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  /* Clears the bottom fade when scrolled to the end */
-  padding-bottom: 2.25rem;
+  /* Fade clearance + room so the last month can scroll up into the active slot */
+  padding-bottom: min(20rem, 55vh);
 }
 #calendar .cal-month-scroll::-webkit-scrollbar {display: none;}
 .cal-month-label {margin: 0.7rem 0 0.25rem; text-align: center; font-size: 0.82rem; font-weight: 700; color: white;}
@@ -140,7 +140,6 @@
 #calendar .cal-month-grid .cal-day.is-outside-range {opacity: 0.38;}
 #calendar .cal-month-grid .cal-day.is-outside-range:hover {opacity: 0.55;}
 #calendar .cal-month-grid.is-dragging {user-select: none; touch-action: none; -webkit-touch-callout: none;}
-#calendar .cal-month-grid.is-dragging .cal-month-scroll {overflow: hidden;}
 #calendar .cal-month-grid .cal-day {-webkit-touch-callout: none;}
 #calendar .cal-month-grid .cal-day:not(.is-outside) .cal-day-num {font-weight: 700; color: var(--soft);}
 #calendar .cal-month-grid .cal-day:not(.is-outside).is-saved .cal-day-num {color: #f5d76e;}
@@ -175,7 +174,9 @@
   #calendar .cal-month-scroll {
     display: flex;
     flex-direction: row;
+    flex: 0 0 auto;
     width: 100%;
+    min-height: auto;
     overflow: visible;
     padding-bottom: 0;
     transition: transform 0.2s ease;
