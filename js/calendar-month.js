@@ -3,6 +3,13 @@
 let calendarScrollTop = 0;
 let calendarActiveMonth = null;
 let calendarDragSelecting = false;
+// Day tap/range-select finishes on pointerup before touchend; block that touchend from swiping months.
+let calendarSuppressMonthSwipe = false;
+
+function suppressNextMonthSwipe() {
+  calendarSuppressMonthSwipe = true;
+  setTimeout(() => { calendarSuppressMonthSwipe = false; }, 0);
+}
 
 const calendarWeekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
   .map((day) => `<span class="cal-weekday">${day}</span>`)
@@ -264,7 +271,7 @@ function bindMobileCarousel(root, byDay, scroll) {
     startY = event.touches[0].clientY;
   }, {passive: true});
   grid.addEventListener("touchend", (event) => {
-    if (!calendarMonthsHorizontal() || calendarDragSelecting) return;
+    if (!calendarMonthsHorizontal() || calendarDragSelecting || calendarSuppressMonthSwipe) return;
     let touch = event.changedTouches[0];
     if (!touch) return;
     let dx = touch.clientX - startX;
@@ -361,9 +368,12 @@ function bindMonthGrid(root, byDay, range) {
     unbindTouchGuards();
     grid.classList.remove("is-dragging");
     if (cancelledByBrowser || gesture.cancelled) {
+      // Cancelled move (e.g. month swipe from a day) must not suppress the carousel touchend.
       paintMonthFocus(root, byDay, activeCalendarRange());
       return;
     }
+    // Completed tap or range select — don't let horizontal motion also change months.
+    suppressNextMonthSwipe();
     if (gesture.selecting && gesture.moved) {
       commitCalendarSelection(selectionRange(gesture.anchor, gesture.current));
       return;
