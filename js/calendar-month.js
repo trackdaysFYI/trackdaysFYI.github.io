@@ -1,6 +1,5 @@
 // Scrollable multi-month calendar with hidden scrollbar.
-// Mobile (≤720px): one-month transform carousel (no overflow-x; page keeps vertical scroll).
-// Desktop: vertical list scroller.
+// ≤700px (stacked layout): transform month carousel. Wider: vertical list scroller.
 let calendarScrollTop = 0;
 let calendarActiveMonth = null;
 let calendarMonthObserver = null;
@@ -11,7 +10,7 @@ const calendarWeekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
   .join("");
 
 function calendarMonthsHorizontal() {
-  return window.matchMedia("(max-width: 720px)").matches;
+  return window.matchMedia("(max-width: 700px)").matches;
 }
 
 function syncMonthCarousel(scroll) {

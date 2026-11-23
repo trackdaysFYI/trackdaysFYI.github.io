@@ -158,12 +158,12 @@
 }
 .cal-month-detail {position: sticky; top: 0.75rem; min-height: 26rem;}
 
-@media (max-width: 720px) {
+@media (max-width: 700px) {
   .cal-month-layout {grid-template-columns: 1fr;}
   .cal-month-board {width: 100%;}
-  .cal-month-detail {position: static;}
+  .cal-month-detail {position: static; min-height: 0;}
   .cal-range-header {top: 0.35rem;}
-  /* Transform carousel: no overflow-x scroller (those block vertical page scroll on mobile). */
+  /* Transform carousel: avoids overflow-x (blocks vertical page scroll on mobile). */
   #calendar .cal-month-grid {max-height: none; overflow: hidden;}
   #calendar .cal-month-grid::after {display: none;}
   #calendar .cal-month-grid,
