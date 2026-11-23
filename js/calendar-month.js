@@ -2,7 +2,6 @@
 // ≤700px (stacked layout): transform month carousel. Wider: vertical list scroller.
 let calendarScrollTop = 0;
 let calendarActiveMonth = null;
-let calendarMonthObserver = null;
 let calendarDragSelecting = false;
 
 const calendarWeekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
@@ -42,11 +41,12 @@ function renderCalendarView() {
   } else {
     scroll.scrollTop = calendarScrollTop;
     if (!range && !calendarScrollTop) {
-      let today = dayjs().format("YYYY-MM-DD");
-      let todayEl = scroll.querySelector(`[data-cal-day="${today}"]`);
-      let section = scroll.querySelector(`[data-cal-month="${calendarActiveMonth.format("YYYY-MM")}"]`);
+      // Prefer today's month section (header at top), not the day cell.
+      let todayMonth = dayjs().format("YYYY-MM");
+      let section = scroll.querySelector(`[data-cal-month="${todayMonth}"]`)
+        || scroll.querySelector(`[data-cal-month="${calendarActiveMonth.format("YYYY-MM")}"]`);
       // Scroll only inside .cal-month-scroll - scrollIntoView also moves the page.
-      scrollChildToStart(scroll, todayEl || section);
+      scrollChildToStart(scroll, section);
       calendarScrollTop = scroll.scrollTop;
     }
     if (!range) {
@@ -65,20 +65,16 @@ function scrollChildToStart(scroll, el) {
   scroll.scrollTop += el.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
 }
 
+// Active month = last section whose top has reached the scrollport (offset clears sticky weekdays).
 function monthNearestScroll(scroll) {
   let sections = [...scroll.querySelectorAll("[data-cal-month]")];
   if (!sections.length) return null;
-  let top = scroll.getBoundingClientRect().top + 24;
+  let top = scroll.getBoundingClientRect().top + 64;
   let best = sections[0];
-  let bestDist = Infinity;
-  sections.forEach((section) => {
-    let box = section.getBoundingClientRect();
-    let dist = Math.abs(box.top - top);
-    if (box.bottom > top && dist < bestDist) {
-      best = section;
-      bestDist = dist;
-    }
-  });
+  for (let section of sections) {
+    if (section.getBoundingClientRect().top <= top) best = section;
+    else break;
+  }
   return dayjs(`${best.dataset.calMonth}-01`, "YYYY-MM-DD", true).startOf("month");
 }
 
@@ -245,30 +241,16 @@ function paintMonthFocus(root, byDay, range) {
 }
 
 function bindActiveMonth(root, byDay, scroll) {
-  if (calendarMonthObserver) {
-    calendarMonthObserver.disconnect();
-    calendarMonthObserver = null;
-  }
   if (calendarMonthsHorizontal()) return;
-  let syncActive = () => {
+  scroll.addEventListener("scroll", () => {
+    calendarScrollTop = scroll.scrollTop;
     if (calendarDragSelecting || activeCalendarRange()) return;
     let next = monthNearestScroll(scroll);
     if (!next || calendarActiveMonth.format("YYYY-MM") === next.format("YYYY-MM")) return;
     calendarActiveMonth = next;
     selectedMonth = next.toDate();
     paintMonthFocus(root, byDay, null);
-  };
-  let sections = [...scroll.querySelectorAll("[data-cal-month]")];
-  scroll.addEventListener("scroll", () => {
-    calendarScrollTop = scroll.scrollTop;
-    if (!activeCalendarRange()) syncActive();
   }, {passive: true});
-  if (typeof IntersectionObserver !== "undefined") {
-    calendarMonthObserver = new IntersectionObserver(() => {
-      if (!activeCalendarRange()) syncActive();
-    }, {root: scroll, threshold: [0.2, 0.5, 0.8]});
-    sections.forEach((section) => calendarMonthObserver.observe(section));
-  }
 }
 
 // Snap to next/prev month after a horizontal swipe. No touchmove preventDefault (keeps page scroll).
@@ -435,10 +417,11 @@ function bindMonthGrid(root, byDay, range) {
           }
           // Desktop: claim tiny moves so nested scroll doesn't kill long-press.
           // Mobile: skip preventDefault so the page can still scroll vertically.
-          if (!calendarMonthsHorizontal()) touchEvent.preventDefault();
+          // Only cancel when allowed — browser may already be scrolling (cancelable=false).
+          if (!calendarMonthsHorizontal() && touchEvent.cancelable) touchEvent.preventDefault();
           return;
         }
-        touchEvent.preventDefault();
+        if (touchEvent.cancelable) touchEvent.preventDefault();
         paintDragDay(root, grid, drag, touch.clientX, touch.clientY);
       };
       grid.addEventListener("touchmove", onTouchMove, {passive: false});

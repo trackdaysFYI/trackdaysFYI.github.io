@@ -130,7 +130,7 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   /* Fade clearance + room so the last month can scroll up into the active slot */
-  padding-bottom: min(20rem, 55vh);
+  padding-bottom: min(15rem, 38vh);
 }
 #calendar .cal-month-scroll::-webkit-scrollbar {display: none;}
 .cal-month-label {margin: 0.7rem 0 0.25rem; text-align: center; font-size: 0.82rem; font-weight: 700; color: white;}
