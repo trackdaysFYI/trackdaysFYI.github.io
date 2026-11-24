@@ -102,6 +102,7 @@ select option {color: #1c2733;}
 .view-switch {display: flex; flex: 0 0 auto; gap: 0.35rem; padding: 0.2rem; border-radius: 999px; background: var(--switch-bg);}
 .view-switch button {border: 0; border-radius: 999px; min-height: 2.2rem; padding: 0.35rem 0.9rem; font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--muted); background: transparent; cursor: pointer;}
 .view-switch button.on {color: var(--on-text); background: var(--on-bg);}
+.view-switch button:disabled {opacity: 0.45; cursor: default;}
 .table-wrap {
   overflow-x: auto; -webkit-overflow-scrolling: touch;
   border: 1px solid var(--panel-border);

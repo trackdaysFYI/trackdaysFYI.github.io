@@ -349,6 +349,9 @@ function wireReviewDialog(dialog, {state, form, messageEl, close}) {
   form.querySelectorAll(".suggest-close, .rec-cancel").forEach(el => {
     el.addEventListener("click", close);
   });
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) close();
+  });
   dialog.addEventListener("cancel", (event) => {
     if (state.submitting) event.preventDefault();
   });

@@ -1,14 +1,15 @@
 /* Shared suggest and lap-record dialogs.
    Fallbacks are the map page. The records page sets --form-* for its darker theme.
    Font size comes from --form-size, set on the map page only, so each page keeps its own type. */
-.suggest-dialog {width: min(var(--form-max, 30rem), calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; padding: var(--form-pad, 15px 15px 13px); border: 0; border-radius: var(--form-radius, 14px); background: var(--form-bg, var(--panel-bg)); color: var(--form-ink, var(--panel-ink)); font-size: var(--form-size); text-align: left; box-shadow: var(--form-shadow, 0 16px 50px rgba(0, 0, 0, 0.35));}
+.suggest-dialog {width: min(var(--form-max, 30rem), calc(100vw - 2rem)); overflow: visible; padding: var(--form-pad, 15px 15px 13px); border: 0; border-radius: var(--form-radius, 14px); background: var(--form-bg, var(--panel-bg)); color: var(--form-ink, var(--panel-ink)); font-size: var(--form-size); text-align: left; box-shadow: var(--form-shadow, 0 16px 50px rgba(0, 0, 0, 0.35));}
 .suggest-dialog::backdrop {background: var(--form-backdrop, rgba(20, 22, 26, 0.55));}
-.suggest-dialog, .suggest-dialog input, .suggest-dialog textarea, .suggest-dialog select {-webkit-user-select: text; -ms-user-select: text; user-select: text;}
+.suggest-dialog, .suggest-dialog input, .suggest-dialog textarea {-webkit-user-select: text; -ms-user-select: text; user-select: text;}
+.suggest-dialog select {-webkit-user-select: auto; -ms-user-select: auto; user-select: auto;}
 .suggest-head {display: flex; align-items: center; gap: var(--form-head-gap, 8px); margin: var(--form-head-margin, 0 0 9px);}
 .suggest-head b {flex: 1; font-size: var(--form-title-size, 16px); font-weight: 650; color: var(--form-title-color, inherit);}
 .suggest-close {border: 0; border-radius: 8px; width: var(--form-close-size, 30px); height: var(--form-close-size, 30px); padding: 0; font: inherit; font-size: var(--form-close-font, 20px); line-height: 1; color: var(--form-muted, var(--panel-muted)); background: transparent; cursor: pointer;}
 .suggest-close:hover {background: var(--form-hover, var(--panel-surface));}
-.suggest-dialog .rec-form {display: flex; flex-direction: column; gap: var(--form-gap, 7px); position: relative;}
+.suggest-dialog .rec-form {display: flex; flex-direction: column; gap: var(--form-gap, 7px); position: relative; max-height: calc(100vh - 4.5rem); overflow: auto;}
 .suggest-dialog .rec-types {display: flex; gap: var(--form-types-gap, 5px); margin: 0; flex-wrap: wrap; align-items: center;}
 .suggest-dialog .rec-type {border: 0; border-radius: 999px; padding: var(--form-chip-pad, 3px 10px); font: inherit; font-size: var(--form-chip-size, 13px); font-weight: 650; color: var(--form-muted, var(--panel-muted)); background: var(--form-chip-bg, var(--panel-soft)); cursor: pointer;}
 .suggest-dialog .rec-type.on {color: #fff; background: var(--accent);}

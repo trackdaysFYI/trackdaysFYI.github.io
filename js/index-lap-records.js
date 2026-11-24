@@ -192,6 +192,7 @@ function syncRecordDialog() {
   let dialog = recordDialog();
   let form = recordForm();
   if (!dialog || !dialog.open || !form) return;
+  fillRecordTracks(form, recordTrackKey(form));
   refillRecordClasses(form, form.elements.vehicleType.value, "refresh", formClasses);
   fillRecordSubtracks(form, recordTrackKey(form), trackSubtracks);
 }

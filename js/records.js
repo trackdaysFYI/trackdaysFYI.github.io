@@ -753,6 +753,15 @@ function fillRecordTracks(form, selectedKey) {
   select.value = keys.includes(selectedKey) ? selectedKey : "";
 }
 
+function refreshOpenRecordTracks() {
+  if (!recordDialog.open) return;
+  let selected = recordForm.elements.track.value || trackKey();
+  fillRecordTracks(recordForm, selected);
+  fillRecordSubtracks(recordForm, recordForm.elements.track.value, subtracksForTrack);
+  refillRecordClasses(recordForm, recordForm.elements.vehicleType.value, "refresh", formClasses);
+  if (recordForm.elements.track.options.length >= 2) setFormMessage(recordMessage, null);
+}
+
 function subtracksForTrack(trackKey) {
   let key = String(trackKey || "").toUpperCase();
   let known = trackSubtracks[key] || trackSubtracks[trackKey] || [];
@@ -778,7 +787,9 @@ function openRecordForm() {
   recordsUi.submitting = false;
   prepareRecordForm(recordForm, preferredTrack, preferredType, formClasses, fillRecordTracks, subtracksForTrack);
   setRecordSubmitting(false);
-  setFormMessage(recordMessage, null);
+  setFormMessage(recordMessage, recordForm.elements.track.options.length < 2
+    ? {text: "Track list is unavailable. Retry loading the page, then open this form again.", kind: "err"}
+    : null);
   if (!recordDialog.open) recordDialog.showModal();
   focusReviewField(recordForm);
 }
@@ -833,6 +844,7 @@ function showLoading() {
   statusEl.hidden = true;
   exportCsvButton.disabled = true;
   printButton.disabled = true;
+  addRecordButton.disabled = true;
   if (typeof clearRecordCharts === "function") clearRecordCharts();
   rowsEl.innerHTML = `<tr><td class="loading-cell" colspan="9"><div class="loading" role="status" aria-live="polite"><span class="loading-bar"></span><p>Loading lap records...</p></div></td></tr>`;
 }
@@ -879,9 +891,10 @@ async function loadPage() {
         });
       }
     } catch (err) {
-      trackNames = {};
-      trackSubtracks = {};
+      // Keep any track list already loaded. A failed refresh must not empty the form.
     }
+    addRecordButton.disabled = false;
+    refreshOpenRecordTracks();
 
     if (!headerParamsApplied) {
       applyParams();
