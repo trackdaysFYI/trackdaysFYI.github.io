@@ -5,6 +5,8 @@ const VEHICLE_LABELS = {C: "Car", M: "Motorcycle"};
 let records = [];
 let allRecordsCache = null;
 let recordsLoadId = 0;
+let recordsAbort = null;
+let trackFilterTimer = null;
 let recordsLoading = false;
 let loadedTrack = "";
 let pageLoading = false;
@@ -454,11 +456,11 @@ function onFilterChange({ refillDependents } = {}) {
   renderRows();
 }
 
-async function fetchLapRecords(track) {
+async function fetchLapRecords(track, signal) {
   let url = track
     ? RECORDS_URL + "?track=" + encodeURIComponent(track)
     : RECORDS_URL;
-  let res = await fetch(url);
+  let res = await fetch(url, signal ? {signal} : undefined);
   if (!res.ok) throw new Error("HTTP " + res.status);
   let data = await res.json();
   if (!Array.isArray(data)) throw new Error("Unable to load lap records.");
@@ -473,21 +475,30 @@ function recordsErrorMessage(err) {
 
 async function loadRecordsForSelection(track) {
   let loadId = ++recordsLoadId;
+  if (recordsAbort) {
+    recordsAbort.abort();
+    recordsAbort = null;
+  }
   if (allRecordsCache) {
     records = track
       ? allRecordsCache.filter(record => String(record.track).toUpperCase() === track)
       : allRecordsCache;
     return {stale: false, fetched: false};
   }
+  let abort = new AbortController();
+  recordsAbort = abort;
   try {
-    let data = await fetchLapRecords(track || "");
+    let data = await fetchLapRecords(track || "", abort.signal);
     if (loadId !== recordsLoadId) return {stale: true, fetched: false};
     if (!track) allRecordsCache = data;
     records = data;
     return {stale: false, fetched: true};
   } catch (err) {
+    if (err && err.name === "AbortError") return {stale: true, fetched: false};
     if (loadId !== recordsLoadId) return {stale: true, fetched: false};
     throw err;
+  } finally {
+    if (recordsAbort === abort) recordsAbort = null;
   }
 }
 
@@ -509,7 +520,12 @@ async function onTrackFilterChange() {
   }
 }
 
-trackSelect.addEventListener("change", () => { onTrackFilterChange(); });
+// Debounce track changes so arrowing through the select does not flood getLapRecords.
+trackSelect.addEventListener("change", () => {
+  clearTimeout(trackFilterTimer);
+  if (!allRecordsCache) showLoading();
+  trackFilterTimer = setTimeout(() => { onTrackFilterChange(); }, 100);
+});
 vehicleSelect.addEventListener("change", () => onFilterChange({ refillDependents: true }));
 classSelect.addEventListener("change", () => onFilterChange());
 subtrackSelect.addEventListener("change", () => onFilterChange());
