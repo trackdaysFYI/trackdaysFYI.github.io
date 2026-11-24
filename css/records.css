@@ -117,6 +117,7 @@ td.time {
   color: var(--time); font-size: 1.02rem;
 }
 td.time .gap {margin-left: 0.45rem; color: var(--muted); font-size: 0.78rem; font-weight: 500;}
+.race-no {margin-left: 0.35rem; color: var(--muted); font-variant-numeric: tabular-nums;}
 td.vehicle {white-space: normal; min-width: 10rem;}
 tbody tr[data-key] {cursor: pointer;}
 tbody tr.ref td {background: rgba(57,115,172,0.16);}

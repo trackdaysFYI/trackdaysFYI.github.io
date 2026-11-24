@@ -654,8 +654,12 @@ function sectionTitle(key) {
 }
 
 function shortHolder(record) {
+  let tag = raceTag(record);
   let name = String(record && record.holder || "Reference").trim() || "Reference";
-  return name.length > 22 ? name.slice(0, 21) + "…" : name;
+  let full = tag ? `${name} ${tag}` : name;
+  if (full.length <= 22) return full;
+  let room = Math.max(1, 21 - (tag ? tag.length + 1 : 0));
+  return `${name.slice(0, room)}…${tag ? " " + tag : ""}`;
 }
 
 function validLapMs(record) {

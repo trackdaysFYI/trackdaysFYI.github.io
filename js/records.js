@@ -132,7 +132,7 @@ function filteredRecords() {
     if (vehicleClass && (record.vehicleClass || "") !== vehicleClass) return false;
     if (subtrack && (record.subtrack || "") !== subtrack) return false;
     if (!terms.length) return true;
-    let name = [record.holder, vehicleLabel(record)].join(" ").toLowerCase();
+    let name = [record.holder, record.raceNumber, raceTag(record), vehicleLabel(record)].join(" ").toLowerCase();
     return terms.some(term => name.includes(term));
   });
 }
@@ -194,6 +194,7 @@ function recordKey(record) {
     String(record.track || "").toUpperCase(),
     record.subtrack || "",
     record.holder || "",
+    record.raceNumber || "",
     record.vehicleType || "",
     record.vehicleClass || "",
     record.vehicleYear || "",
@@ -227,7 +228,7 @@ function csvEscape(value) {
 function exportCsv() {
   let shown = filteredRecords().slice().sort(compareRecords);
   if (!shown.length) return;
-  let headers = ["Time", "Track", "Subtrack", "Holder", "Vehicle", "Type", "Class", "Date", "Evidence"];
+  let headers = ["Time", "Track", "Subtrack", "Holder", "Race #", "Vehicle", "Type", "Class", "Date", "Evidence"];
   let lines = [headers.map(csvEscape).join(",")];
   shown.forEach(record => {
     lines.push([
@@ -235,6 +236,7 @@ function exportCsv() {
       trackLabel(record.track),
       record.subtrack || "",
       record.holder || "",
+      record.raceNumber || "",
       vehicleLabel(record),
       VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "",
       record.vehicleClass || "",
@@ -297,7 +299,7 @@ function recordRow(record, includeClass, includeTrack, includeSubtrack, includeT
     <td class="time">${escapeHtml(record.time || "")}${gap}</td>
     ${trackCell}
     ${subCell}
-    <td>${escapeHtml(record.holder || "")}</td>
+    <td>${escapeHtml(record.holder || "")}${raceTag(record) ? ` <span class="race-no">${escapeHtml(raceTag(record))}</span>` : ""}</td>
     <td class="vehicle">${escapeHtml(vehicleLabel(record))}</td>
     ${classCell}
     <td>${escapeHtml(record.date || "")}</td>
@@ -596,7 +598,7 @@ function fillChangeForm(record) {
   let parts = [
     `<strong>${escapeHtml(trackLabel(record.track))}</strong>`,
     record.subtrack ? escapeHtml(record.subtrack) : "",
-    escapeHtml(record.holder || ""),
+    escapeHtml(formatHolder(record)),
     [type, record.vehicleClass].filter(Boolean).map(escapeHtml).join(" · "),
   ].filter(Boolean);
   changeMeta.innerHTML = parts.join(" · ");

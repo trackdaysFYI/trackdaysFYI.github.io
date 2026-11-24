@@ -206,6 +206,18 @@ function validateRaceNumber(value) {
   return "";
 }
 
+function raceTag(record) {
+  let number = String(record && record.raceNumber || "").trim();
+  return number ? "#" + number : "";
+}
+
+function formatHolder(record) {
+  let name = String(record && record.holder || "").trim();
+  let tag = raceTag(record);
+  if (name && tag) return `${name} ${tag}`;
+  return name || tag;
+}
+
 function createLapRecordPayload(draft) {
   let payload = {
     action: "create",
