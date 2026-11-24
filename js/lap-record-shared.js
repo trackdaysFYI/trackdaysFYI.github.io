@@ -194,9 +194,16 @@ function readCreateDraft(form) {
     holder: String(data.get("holder") || "").trim(),
     date: String(data.get("date") || "").trim(),
     timingDevice: String(data.get("timingDevice") || "").trim(),
+    raceNumber: String(data.get("raceNumber") || "").trim(),
     evidence: String(data.get("evidence") || "").trim(),
     note: String(data.get("note") || "").trim(),
   };
+}
+
+function validateRaceNumber(value) {
+  if (!value) return "";
+  if (!/^[A-Za-z0-9]{1,4}$/.test(value)) return "Race number must be up to 4 letters or numbers.";
+  return "";
 }
 
 function createLapRecordPayload(draft) {
@@ -215,6 +222,7 @@ function createLapRecordPayload(draft) {
   };
   let year = parseOptionalYear(draft.vehicleYear).value;
   if (year != null) payload.vehicleYear = year;
+  if (draft.raceNumber) payload.raceNumber = draft.raceNumber;
   if (draft.evidence) payload.evidence = draft.evidence;
   if (draft.note) payload.note = draft.note;
   return payload;
@@ -238,7 +246,7 @@ function validateCreateDraft(draft, opts) {
   if (knownSubtracks.length && !knownSubtracks.includes(draft.subtrack)) return "Choose a subtrack.";
   if (draft.subtrack.length > 40) return "Subtrack is too long.";
   if (!draft.holder || draft.holder.length > 80) return "Enter the record holder.";
-  return "";
+  return validateRaceNumber(draft.raceNumber);
 }
 
 function fillRecordClassOptions(form, classes, selectedValue) {
@@ -409,7 +417,10 @@ const LAP_RECORD_FORM_HTML = `
     <label class="rec-field"><span>Lap date</span><input name="date" type="date"></label>
   </div>
   <label class="rec-field"><span>Timing device</span><select name="timingDevice"><option value="">Choose</option>${TIMING_DEVICES.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")}</select></label>
-  <label class="rec-field"><span>Holder name</span><input name="holder" maxlength="80"></label>
+  <div class="rec-holder-row">
+    <label class="rec-field"><span>Holder name</span><input name="holder" maxlength="80"></label>
+    <label class="rec-field rec-race-number"><span>Race # (optional)</span><input name="raceNumber" maxlength="4" autocomplete="off" spellcheck="false"></label>
+  </div>
   <label class="rec-field"><span>Evidence (optional)</span><input name="evidence" type="url" placeholder="https://" maxlength="300"></label>
   <label class="rec-field"><span>Note (optional)</span><textarea name="note" maxlength="300" rows="1"></textarea></label>
   <div class="rec-form-actions">
