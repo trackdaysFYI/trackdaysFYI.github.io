@@ -27,7 +27,7 @@ async function loadAllLapRecords() {
   lapRecordsPreloadOk = false;
   if (!PRELOAD_ALL_LAP_RECORDS) return;
   try {
-    let res = await fetch(LAP_RECORDS_URL);
+    let res = await fetch(LAP_RECORDS_URL + "?maxPerClass=3");
     if (!res.ok) {
       let failure = new Error("HTTP " + res.status);
       failure.status = res.status;
