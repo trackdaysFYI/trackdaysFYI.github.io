@@ -390,6 +390,7 @@ function renderRows() {
   statusEl.textContent = `${shown.length} record${shown.length === 1 ? "" : "s"}`;
   exportCsvButton.disabled = !shown.length;
   printButton.disabled = !shown.length;
+  if (typeof renderRecordCharts === "function") renderRecordCharts(shown, refRecord || null);
   if (!shown.length) {
     rowsEl.innerHTML = `<tr><td class="empty" colspan="${colspan}">No records match</td></tr>`;
     return;
@@ -830,6 +831,7 @@ function showLoading() {
   statusEl.hidden = true;
   exportCsvButton.disabled = true;
   printButton.disabled = true;
+  if (typeof clearRecordCharts === "function") clearRecordCharts();
   rowsEl.innerHTML = `<tr><td class="loading-cell" colspan="9"><div class="loading" role="status" aria-live="polite"><span class="loading-bar"></span><p>Loading lap records...</p></div></td></tr>`;
 }
 
@@ -848,6 +850,7 @@ function showRefetchError(message) {
 
 function showFirstLoadError(message) {
   recordsLoading = false;
+  if (typeof clearRecordCharts === "function") clearRecordCharts();
   rowsEl.innerHTML = "";
   statusEl.hidden = false;
   statusEl.className = "status err";
