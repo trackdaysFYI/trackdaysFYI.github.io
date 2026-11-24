@@ -19,7 +19,7 @@ function renderRecordCharts(shown, refRecord) {
   let root = document.getElementById("lap-charts");
   if (!root) return;
   let key = chartDataKey(shown);
-  if (key === plottedKey && (chartInstances.length || root.querySelector(".lap-charts-note"))) {
+  if (key === plottedKey && (chartInstances.length || root.hidden || root.querySelector(".lap-charts-note"))) {
     if (chartInstances.length) applyReference(refRecord);
     return;
   }
@@ -27,16 +27,9 @@ function renderRecordCharts(shown, refRecord) {
   plottedKey = "";
   plottedSections = [];
   disposeRecordCharts();
-  if (!shown || !shown.length) {
+  if (!shown || !shown.length || !singleTrackSelected()) {
     root.innerHTML = "";
     root.hidden = true;
-    plottedKey = key;
-    return;
-  }
-  let tracks = new Set(shown.map(record => String(record.track || "").toUpperCase()));
-  if (tracks.size !== 1) {
-    root.hidden = false;
-    root.innerHTML = `<p class="lap-charts-note">Pick one track to compare lap times.</p>`;
     plottedKey = key;
     return;
   }
@@ -98,8 +91,8 @@ function sectionModel(key, records) {
     classes,
     binning,
     labels: binning ? binning.bins.map(bin => formatChartMs(bin.start, 0)) : [],
-    showHistogram: times.length >= 8,
-    showEcdf: times.length >= 2,
+    showHistogram: times.length >= 5,
+    showEcdf: times.length >= 5,
     showBox: classes.show,
   };
 }
@@ -164,6 +157,10 @@ function mountSection(section, model, refRecord, colors) {
   if (boxEl) mountChart(boxEl, boxOption(model, colors));
 }
 
+function singleTrackSelected() {
+  return typeof trackSelect !== "undefined" && !!trackSelect.value;
+}
+
 function mountChart(el, option) {
   let chart = echarts.init(el, null, { renderer: "canvas" });
   chart.setOption(option);
@@ -172,9 +169,8 @@ function mountChart(el, option) {
 }
 
 function chartDataKey(shown) {
+  if (!singleTrackSelected()) return "all-tracks";
   if (!shown || !shown.length) return "empty";
-  let tracks = new Set(shown.map(record => String(record.track || "").toUpperCase()));
-  if (tracks.size !== 1) return "tracks:" + [...tracks].sort().join(",");
   return shown.map(record => [
     typeof recordKey === "function" ? recordKey(record) : record.recordId || "",
     record.time || "",
@@ -606,7 +602,7 @@ function classBuckets(valid) {
     if (!map.has(key)) map.set(key, { type: item.type, className, items: [] });
     map.get(key).items.push(item);
   });
-  let groups = [...map.values()].filter(group => group.items.length >= 3);
+  let groups = [...map.values()].filter(group => group.items.length >= 5);
   let types = ["C", "M", ""].filter(type => groups.some(group => group.type === type));
   let includeType = types.length > 1;
   groups.sort((a, b) => a.items[0].ms - b.items[0].ms || classLabel(a, includeType).localeCompare(classLabel(b, includeType)));
