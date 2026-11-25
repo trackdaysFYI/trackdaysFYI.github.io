@@ -512,7 +512,7 @@ async function loadRecordsForSelection(track) {
 async function onTrackFilterChange() {
   let requested = trackKey();
   // replace the previous table while a different track is fetched; a cached list is instant
-  if (!allRecordsCache) showLoading();
+  if (!allRecordsCache) showRecordsLoading();
   try {
     let result = await loadRecordsForSelection(requested);
     if (result.stale) return;
@@ -530,7 +530,7 @@ async function onTrackFilterChange() {
 // Debounce track changes so arrowing through the select does not flood getLapRecords.
 trackSelect.addEventListener("change", () => {
   clearTimeout(trackFilterTimer);
-  if (!allRecordsCache) showLoading();
+  if (!allRecordsCache) showRecordsLoading();
   trackFilterTimer = setTimeout(() => { onTrackFilterChange(); }, 100);
 });
 vehicleSelect.addEventListener("change", () => onFilterChange({ refillDependents: true }));
@@ -842,15 +842,19 @@ wireReviewDialog(recordDialog, {
   close: closeRecordForm,
 });
 
-function showLoading() {
+// Table/export loading only. Add-record readiness depends on the track list, not this fetch.
+function showRecordsLoading() {
   recordsLoading = true;
   retryButton.hidden = true;
   statusEl.hidden = true;
   exportCsvButton.disabled = true;
   printButton.disabled = true;
-  addRecordButton.disabled = true;
   if (typeof clearRecordCharts === "function") clearRecordCharts();
   rowsEl.innerHTML = `<tr><td class="loading-cell" colspan="9"><div class="loading" role="status" aria-live="polite"><span class="loading-bar"></span><p>Loading lap records...</p></div></td></tr>`;
+}
+
+function setAddRecordReady(ready) {
+  addRecordButton.disabled = !ready;
 }
 
 function showResults() {
@@ -879,7 +883,7 @@ function showFirstLoadError(message) {
 async function loadPage() {
   if (pageLoading) return;
   pageLoading = true;
-  showLoading();
+  showRecordsLoading();
   try {
     try {
       let tracksResult = await fetch(TRACKS_URL);
@@ -897,7 +901,7 @@ async function loadPage() {
     } catch (err) {
       // Keep any track list already loaded. A failed refresh must not empty the form.
     }
-    addRecordButton.disabled = false;
+    setAddRecordReady(Object.keys(trackNames).length > 0);
     refreshOpenRecordTracks();
 
     if (!headerParamsApplied) {
