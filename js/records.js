@@ -289,7 +289,11 @@ function recordRow(record, includeClass, includeTrack, includeSubtrack, includeT
   let classCell = includeClass ? `<td>${escapeHtml(classLabel)}</td>` : "";
   let trackCell = includeTrack ? `<td>${escapeHtml(trackLabel(record.track))}</td>` : "";
   let subCell = includeSubtrack ? `<td>${escapeHtml(record.subtrack || "")}</td>` : "";
-  let gap = gapMs == null ? "" : ` <span class="gap">${formatGap(gapMs)}</span>`;
+  let gap = isRef
+    ? ` <span class="gap ref-mark" title="Reference">ref</span>`
+    : gapMs == null
+      ? ""
+      : ` <span class="gap ${gapMs < 0 ? "faster" : gapMs > 0 ? "slower" : ""}">${formatGap(gapMs)}</span>`;
   let canChange = !!record.recordId;
   let actionIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
   let actionCell = canChange

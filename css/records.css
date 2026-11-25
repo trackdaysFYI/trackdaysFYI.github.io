@@ -19,6 +19,8 @@
     --input-bg: rgba(255,255,255,0.03);
     --focus: var(--accent);
     --err: #e07a6a;
+    --gap-faster: #6fbf8a;
+    --gap-slower: #e07a6a;
     --switch-bg: rgba(0,0,0,0.28);
     --on-text: white;
     --on-bg: var(--accent);
@@ -118,6 +120,9 @@ td.time {
   color: var(--time); font-size: 1.02rem;
 }
 td.time .gap {margin-left: 0.45rem; color: var(--muted); font-size: 0.78rem; font-weight: 500;}
+td.time .gap.faster {color: var(--gap-faster);}
+td.time .gap.slower {color: var(--gap-slower);}
+td.time .gap.ref-mark {color: var(--accent); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;}
 .race-no {margin-left: 0.35rem; color: var(--muted); font-variant-numeric: tabular-nums;}
 td.vehicle {white-space: normal; min-width: 10rem;}
 tbody tr[data-key] {cursor: pointer;}
@@ -364,5 +369,8 @@ button.rec-change svg {display: block; width: 14px; height: 14px; fill: none; st
   td.time, tr.group td, tbody tr.ref td {color: #111; background: transparent; box-shadow: none;}
   tr.group td {border-bottom: 0; padding-top: 0.85rem; color: #333;}
   tbody tr.ref td {background: #e8eef5;}
+  td.time .gap.ref-mark {color: #2f5580;}
+  td.time .gap.faster {color: #1f7a45;}
+  td.time .gap.slower {color: #b84a3a;}
   a {color: #111; text-decoration: underline;}
 }
