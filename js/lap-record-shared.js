@@ -416,7 +416,7 @@ const LAP_RECORD_FORM_HTML = `
     <label class="rec-field"><span>Vehicle type</span>
       <select name="vehicleType">
         <option value="C">Car</option>
-        <option value="M">Motorcycle</option>
+        <option value="M">Bike</option>
       </select>
     </label>
     <label class="rec-field"><span>Class</span><select name="vehicleClass"></select></label>

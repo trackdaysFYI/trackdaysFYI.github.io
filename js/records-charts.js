@@ -679,7 +679,7 @@ function presentTypes(items) {
 
 function typeName(type) {
   if (type === "C") return VEHICLE_LABELS.C || "Car";
-  if (type === "M") return VEHICLE_LABELS.M || "Motorcycle";
+  if (type === "M") return VEHICLE_LABELS.M || "Bike";
   return "Other";
 }
 

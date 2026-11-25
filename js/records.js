@@ -1,6 +1,6 @@
 const RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
 const TRACKS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays?include=tracks";
-const VEHICLE_LABELS = {C: "Car", M: "Motorcycle"};
+const VEHICLE_LABELS = {C: "Car", M: "Bike"};
 
 let records = [];
 let allRecordsCache = null;
