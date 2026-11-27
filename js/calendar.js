@@ -67,7 +67,9 @@ export function eventRowHtml(td) {
   let priceHtml = price ? `<span class="cal-event-price">${escapeHtml(price)}</span>` : "";
   let distHtml = dist ? `<span class="cal-event-dist">${escapeHtml(dist)}</span>` : "";
   let side = (priceHtml || distHtml) ? `<span class="cal-event-side">${priceHtml}${distHtml}</span>` : "";
-  let inner = `<span class="cal-event-title allowSelect"><span class="cal-event-full">${titleInner(fullTrack, fullHost)}</span><span class="cal-event-short" aria-hidden="true">${titleInner(shortTrack, shortHost)}</span></span>${side}${metaHtml}`;
+  let fullTitleText = showOrg ? `${fullTrack} ${fullHost}` : fullTrack;
+  let titleAttr = fullTitleText !== (showOrg ? `${shortTrack} ${shortHost}` : shortTrack) ? ` title="${escapeHtml(fullTitleText)}"` : "";
+  let inner = `<span class="cal-event-title allowSelect"${titleAttr}><span class="cal-event-full">${titleInner(fullTrack, fullHost)}</span><span class="cal-event-short">${titleInner(shortTrack, shortHost)}</span></span>${side}${metaHtml}`;
   let url = safeHttpUrl(td.url);
   let main = url
     ? `<a class="cal-event-main" href="${escapeHtml(url)}" target="_blank" rel="noopener">${inner}</a>`
@@ -80,55 +82,6 @@ export function saveStarHtml(key, saved, {popupAction = false} = {}) {
   let action = popupAction ? ` data-popup-action="save-event"` : "";
   return `<button type="button" class="event-save-star" title="${label}" aria-label="${label}" aria-pressed="${saved ? "true" : "false"}" data-event-key="${encodeURIComponent(key)}"${action}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.8 7 19l.9-5.6-4-3.9 5.6-.8z"/></svg></button>`;
 }
-
-export function fitCalendarTitles() {
-  // Full names stay when they fit. Otherwise use nicknames, then drop price and distance if the name still does not fit.
-  document.querySelectorAll("#calendar .cal-month-detail .cal-event-title").forEach((title) => {
-    let full = title.querySelector(".cal-event-full");
-    let short = title.querySelector(".cal-event-short");
-    let main = title.closest(".cal-event-main");
-    if (!full || !short || !main || title.clientWidth === 0) return;
-    let side = main.querySelector(".cal-event-side");
-    let overflows = () => title.scrollWidth > title.clientWidth + 1;
-    let canNick = full.textContent !== short.textContent;
-    title.classList.remove("is-nick");
-    main.classList.remove("is-hide-side");
-    if (overflows() && canNick) title.classList.add("is-nick");
-    if (overflows() && side) {
-      main.classList.add("is-hide-side");
-      if (canNick) {
-        title.classList.remove("is-nick");
-        if (overflows()) title.classList.add("is-nick");
-      }
-    }
-    let nick = title.classList.contains("is-nick");
-    if (nick) {
-      full.setAttribute("aria-hidden", "true");
-      short.removeAttribute("aria-hidden");
-      title.title = full.textContent;
-    } else {
-      full.removeAttribute("aria-hidden");
-      short.setAttribute("aria-hidden", "true");
-      title.removeAttribute("title");
-    }
-    if (side) side.toggleAttribute("aria-hidden", main.classList.contains("is-hide-side"));
-  });
-}
-
-let calendarFitFrame = 0;
-export function scheduleFitCalendarTitles() {
-  if (calendarFitFrame) return;
-  calendarFitFrame = requestAnimationFrame(() => {
-    calendarFitFrame = 0;
-    fitCalendarTitles();
-  });
-}
-
-let calendarRoot = document.getElementById("calendar");
-if (calendarRoot && typeof ResizeObserver !== "undefined") {
-  new ResizeObserver(scheduleFitCalendarTitles).observe(calendarRoot);
-}
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleFitCalendarTitles);
 
 export function formatMiles(dist) {
   if (typeof dist !== "number" || !isFinite(dist)) return "";

@@ -20,7 +20,6 @@ import {
   selectableDateBounds,
   dateRangeButtonLabel,
   eventRowHtml,
-  fitCalendarTitles,
 } from "./calendar.js";
 
 // Scrollable multi-month calendar with hidden scrollbar.
@@ -368,7 +367,6 @@ function paintDaySelection(view, range) {
 function paintMonthFocus(view, range) {
   paintDaySelection(view, range);
   view.detail.innerHTML = eventsPanelHtml(view.byDay, calendarActiveMonth, keysForRange(range));
-  fitCalendarTitles();
 }
 
 function bindActiveMonth(view) {
