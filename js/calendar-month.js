@@ -13,6 +13,7 @@ import {
   todayIso,
 } from "./dates.js";
 import {escapeHtml} from "./lap-record-shared.js";
+import {getEventKey, hiddenEventNote, setCalendarRange, state} from "./filters.js";
 import {
   calendarHeatByDay,
   activeCalendarRange,
@@ -189,7 +190,6 @@ function monthDayButtons(month, byDay, maxCount, bounds, range) {
   let last = monthEnd > bounds.max ? bounds.max : monthEnd;
   if (first > last) return `<div class="cal-grid"></div>`;
   let today = todayIso();
-  let savedEventsSet = monthCtx.getSavedEventsSet();
   let cells = [];
   for (let i = 0; i < dayOfWeek(first); i++) cells.push(`<span class="cal-day is-outside" aria-hidden="true"></span>`);
   for (let key = first; key <= last; key = addDays(key, 1)) {
@@ -202,7 +202,7 @@ function monthDayButtons(month, byDay, maxCount, bounds, range) {
     if (selected && key === range.end) classes.push("is-range-end");
     if (range && !selected) classes.push("is-outside-range");
     if (items.length) classes.push("has-events");
-    if (items.some((td) => savedEventsSet.has(monthCtx.getEventKey(td)))) classes.push("is-saved");
+    if (items.some((td) => state.savedEventsSet.has(getEventKey(td)))) classes.push("is-saved");
     let heat = items.length ? ` style="--heat:${(items.length / maxCount).toFixed(3)}"` : "";
     let countLabel = items.length ? `, ${items.length} ${items.length === 1 ? "event" : "events"}` : ", no events";
     cells.push(`<button type="button" class="${classes.join(" ")}" data-cal-day="${key}" aria-pressed="${selected ? "true" : "false"}" aria-label="${escapeHtml(formatMonthDayYear(key, {longMonth: true}))}${countLabel}"${heat}><span class="cal-day-num">${dayOfMonth(key)}</span></button>`);
@@ -226,8 +226,7 @@ function emptyMonthMessage(month) {
 }
 
 function rangeEmptyHtml() {
-  let {start, end} = monthCtx.getSelectedCalendarRange();
-  let copy = start === end
+  let copy = state.selectedCalendarStart === state.selectedCalendarEnd
     ? "No matching events on selected date"
     : "No matching events in selected date range";
   return `<div class="cal-list"><p class="cal-month-empty">${copy}</p></div>`;
@@ -239,10 +238,9 @@ function rangeHeaderHtml(keys) {
 }
 
 function filteredNoteHtml(startKey, endKey) {
-  let trackdays = monthCtx.getTrackdays();
-  let hidden = trackdays.filter((td) => !td.visibilityMap && td.dateKey >= startKey && td.dateKey <= endKey);
+  let hidden = state.trackdays.filter((td) => !td.visibilityMap && td.dateKey >= startKey && td.dateKey <= endKey);
   if (!hidden.length) return "";
-  return `<p class="cal-month-note">${escapeHtml(monthCtx.hiddenEventNote(hidden))}</p>`;
+  return `<p class="cal-month-note">${escapeHtml(hiddenEventNote(hidden))}</p>`;
 }
 
 function eventsPanelHtml(byDay, month, keys) {
@@ -286,9 +284,9 @@ function monthDayAt(grid, event) {
 }
 
 function commitCalendarSelection(range) {
-  if (range) monthCtx.setCalendarRange(range.start, range.end);
-  else monthCtx.setCalendarRange(null, null);
-  if (!monthCtx.getTrackdays()) {
+  if (range) setCalendarRange(range.start, range.end);
+  else setCalendarRange(null, null);
+  if (!state.trackdays) {
     monthCtx.updateCalendar();
     return;
   }
@@ -296,8 +294,7 @@ function commitCalendarSelection(range) {
 }
 
 function toggleDaySelection(key) {
-  let {start, end} = monthCtx.getSelectedCalendarRange();
-  let same = start === key && end === key;
+  let same = state.selectedCalendarStart === key && state.selectedCalendarEnd === key;
   commitCalendarSelection(same ? null : {start: key, end: key});
 }
 

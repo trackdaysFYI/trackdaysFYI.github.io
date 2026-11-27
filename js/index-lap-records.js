@@ -9,6 +9,7 @@ import {
   fillTrackSelectOptions,
   createLapRecordDialog,
 } from "./lap-record-shared.js";
+import {state} from "./filters.js";
 
 let lapRecords = {tracks: {}};
 let recordLoads = {};
@@ -18,7 +19,7 @@ export let recordsUi = {open: false, submitting: false, submitId: 0};
 // Also stop awaiting loadAllLapRecords() from visualizeData when flipping to false.
 const PRELOAD_ALL_LAP_RECORDS = true;
 let lapRecordsPreloadOk = false;
-let ctx = null;
+let onPopupUpdate = null;
 let recordDialogCtrl = null;
 
 function trackRecords(trackKey) {
@@ -53,9 +54,8 @@ export async function loadAllLapRecords() {
 }
 
 export function finishLapRecordsPreload() {
-  let tracks = ctx?.getTracks();
-  if (!PRELOAD_ALL_LAP_RECORDS || !lapRecordsPreloadOk || !tracks) return;
-  Object.keys(tracks).forEach((key) => {
+  if (!PRELOAD_ALL_LAP_RECORDS || !lapRecordsPreloadOk || !state.tracks) return;
+  Object.keys(state.tracks).forEach((key) => {
     if (lapRecords.tracks[key]) return;
     lapRecords.tracks[key] = {records: [], loading: false, loaded: true, error: ""};
   });
@@ -63,19 +63,19 @@ export function finishLapRecordsPreload() {
 
 export async function loadTrackRecords(trackKey) {
   if (!trackKey) {
-    ctx.updateTrackPopup();
+    onPopupUpdate?.();
     return;
   }
   let entry = lapRecords.tracks[trackKey];
   if (entry && (entry.loaded || entry.loading)) {
-    ctx.updateTrackPopup();
+    onPopupUpdate?.();
     return;
   }
   // Per-track path (also fallback if PRELOAD_ALL_LAP_RECORDS failed or is false).
   let token = {};
   recordLoads[trackKey] = token;
   lapRecords.tracks[trackKey] = {records: [], loading: true, loaded: false, error: ""};
-  if (ctx.getLastOpenedTrack() === trackKey) ctx.updateTrackPopup();
+  if (state.lastOpenedTrack === trackKey) onPopupUpdate?.();
   try {
     let records = await fetchJson(LAP_RECORDS_URL + "?track=" + encodeURIComponent(trackKey) + "&maxPerClass=3");
     if (recordLoads[trackKey] !== token) return;
@@ -90,23 +90,22 @@ export async function loadTrackRecords(trackKey) {
       error: err && err.status ? "HTTP " + err.status : "Unable to load lap records.",
     };
   }
-  if (ctx.getLastOpenedTrack() === trackKey && recordsUi.open) ctx.updateTrackPopup();
+  if (state.lastOpenedTrack === trackKey && recordsUi.open) onPopupUpdate?.();
   if (recordDialogCtrl && recordDialogCtrl.currentTrack() === trackKey) recordDialogCtrl.sync();
 }
 
 function preferredRecordType() {
   let types = ["C", "M"].filter(code => suggestedClasses(code).length);
-  let selectedVehicleTypes = ctx.getSelectedVehicleTypes();
-  let preferred = ["C", "M", "S"].find(code => selectedVehicleTypes.has(code) && types.includes(code));
+  let preferred = ["C", "M", "S"].find(code => state.selectedVehicleTypes.has(code) && types.includes(code));
   return preferred || types[0] || "C";
 }
 
 export function setRecordsOpen(open) {
   recordsUi.open = open;
   if (open) {
-    loadTrackRecords(ctx.getLastOpenedTrack());
+    loadTrackRecords(state.lastOpenedTrack);
   } else {
-    ctx.updateTrackPopup();
+    onPopupUpdate?.();
   }
 }
 
@@ -117,9 +116,8 @@ function trackOptionLabel(track, key) {
 }
 
 function trackEntries() {
-  let tracks = ctx?.getTracks();
-  if (!tracks) return [];
-  return Object.keys(tracks).map(key => ({key, label: trackOptionLabel(tracks[key], key)}));
+  if (!state.tracks) return [];
+  return Object.keys(state.tracks).map(key => ({key, label: trackOptionLabel(state.tracks[key], key)}));
 }
 
 export function fillTrackSelect(select, selectedKey, placeholder) {
@@ -127,8 +125,7 @@ export function fillTrackSelect(select, selectedKey, placeholder) {
 }
 
 function trackSubtracks(trackKey) {
-  let tracks = ctx?.getTracks();
-  let track = tracks ? tracks[trackKey] : null;
+  let track = state.tracks ? state.tracks[trackKey] : null;
   if (!track || !Array.isArray(track.subtracks)) return [];
   return track.subtracks.map(name => String(name).trim()).filter(Boolean);
 }
@@ -141,17 +138,16 @@ export function openRecordForm() {
   recordDialogCtrl?.open();
 }
 
-export function recordsListHtml(trackKey) {
-  let selectedVehicleTypes = ctx.getSelectedVehicleTypes();
+export function recordsListHtml(trackKey, wrapList) {
   let add = `<button type="button" class="rec-add" data-popup-action="add-record">Add a Lap Record</button>`;
   let entry = lapRecords.tracks && lapRecords.tracks[trackKey];
   let records = trackRecords(trackKey);
   let allRecords = records.length ? `<a class="rec-all" href="records.html?track=${encodeURIComponent(trackKey)}" target="_blank" rel="noopener">All records</a>` : "";
   let footer = `<div class="rec-footer">${allRecords}${add}</div>`;
-  let body = (inner) => ctx.popupList(inner, footer);
+  let body = (inner) => wrapList(inner, footer);
   if (entry && entry.loading && !records.length) return body(`<div class="empty">Loading lap records...</div>`);
   if (entry && entry.error && !records.length) return body(`<div class="empty">${escapeHtml(entry.error)}</div>`);
-  let shown = records.filter(r => selectedVehicleTypes.has(r.vehicleType));
+  let shown = records.filter(r => state.selectedVehicleTypes.has(r.vehicleType));
   let emptyMessage = records.length ? "No lap records for the selected vehicles" : "No Lap Records";
   if (!shown.length) return body(`<div class="empty">${emptyMessage}</div>`);
   function groupsHtml(typeRows) {
@@ -210,15 +206,15 @@ export function recordsListHtml(trackKey) {
   return body(groups);
 }
 
-export function initIndexLapRecords(context) {
-  ctx = context;
+export function initIndexLapRecords({updateTrackPopup}) {
+  onPopupUpdate = updateTrackPopup;
   recordDialogCtrl = createLapRecordDialog({
     dialog: document.getElementById("recordDialog"),
     state: recordsUi,
     getTrackEntries: trackEntries,
     getSubtracks: trackSubtracks,
     getRecordsForTrack: trackRecords,
-    getDefaultTrack: () => ctx.getLastOpenedTrack(),
+    getDefaultTrack: () => state.lastOpenedTrack,
     getDefaultVehicleType: preferredRecordType,
     onTrackChange: (trackKey) => { if (trackKey) loadTrackRecords(trackKey); },
   });

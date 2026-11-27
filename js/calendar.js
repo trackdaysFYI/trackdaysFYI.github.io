@@ -1,24 +1,17 @@
 import {eventFullLabel, vehicleShortLabel} from "./config.js";
 import {addYears, dayOfMonth, formatMonthDay, formatMonthDayYear, todayIso} from "./dates.js";
 import {escapeHtml, safeHttpUrl} from "./lap-record-shared.js";
-
-let calCtx = null;
-
-export function initCalendar(context) {
-  calCtx = context;
-}
+import {getEventKey, passesFilters, selectedWeekdays, state} from "./filters.js";
 
 // Heat tint ignores the selected date range so other days keep their event color.
 export function calendarHeatByDay(bounds) {
   let byDay = new Map();
-  let trackdays = calCtx?.getTrackdays();
-  if (!trackdays) return byDay;
-  let savedEventsSet = calCtx.getSavedEventsSet();
-  let selectedDays = calCtx.selectedWeekdays();
-  trackdays.forEach((td) => {
+  if (!state.trackdays) return byDay;
+  let selectedDays = selectedWeekdays();
+  state.trackdays.forEach((td) => {
     if (td.dateKey < bounds.min || td.dateKey > bounds.max) return;
-    let saved = savedEventsSet.has(calCtx.getEventKey(td));
-    let passes = calCtx.passesFilters(td, {radius: true, day: true, org: true, vehicle: true, event: true, selectedDays});
+    let saved = state.savedEventsSet.has(getEventKey(td));
+    let passes = passesFilters(td, {radius: true, day: true, org: true, vehicle: true, event: true, selectedDays});
     if (!saved && !passes) return;
     if (!byDay.has(td.dateKey)) byDay.set(td.dateKey, []);
     byDay.get(td.dateKey).push(td);
@@ -27,9 +20,8 @@ export function calendarHeatByDay(bounds) {
 }
 
 export function activeCalendarRange() {
-  let {start, end} = calCtx.getSelectedCalendarRange();
-  if (!start || !end) return null;
-  return {start, end};
+  if (!state.selectedCalendarStart || !state.selectedCalendarEnd) return null;
+  return {start: state.selectedCalendarStart, end: state.selectedCalendarEnd};
 }
 
 export function selectableDateBounds() {
@@ -38,7 +30,8 @@ export function selectableDateBounds() {
 }
 
 export function dateRangeButtonLabel(monthFmt = "MMM") {
-  let {start: startKey, end: endKey} = calCtx.getSelectedCalendarRange();
+  let startKey = state.selectedCalendarStart;
+  let endKey = state.selectedCalendarEnd;
   if (!startKey || !endKey) return "";
   let longMonth = monthFmt === "MMMM";
   if (startKey === endKey) return formatMonthDay(startKey, {longMonth});
@@ -52,19 +45,14 @@ export function dateRangeButtonLabel(monthFmt = "MMM") {
 }
 
 export function eventRowHtml(td) {
-  let tracks = calCtx.getTracks();
-  let orgs = calCtx.getOrgs();
-  let savedEventsSet = calCtx.getSavedEventsSet();
-  let selectedVehicleTypes = calCtx.getSelectedVehicleTypes();
-  let selectedEventTypes = calCtx.getSelectedEventTypes();
-  let track = tracks[td.track];
-  let eventKey = calCtx.getEventKey(td);
-  let saved = savedEventsSet.has(eventKey);
-  let org = orgs[td.org];
+  let track = state.tracks[td.track];
+  let eventKey = getEventKey(td);
+  let saved = state.savedEventsSet.has(eventKey);
+  let org = state.orgs[td.org];
   let showOrg = track.nickname !== td.org;
   let price = td.price >= 0 ? "$" + td.price : "";
-  let vehicle = selectedVehicleTypes.size > 1 ? [...td.vehicleType].map(vehicleShortLabel).filter(Boolean).join("/") : "";
-  let event = selectedEventTypes.size > 1 ? [...td.eventType].map(eventFullLabel).filter(Boolean).join("/") : "";
+  let vehicle = state.selectedVehicleTypes.size > 1 ? [...td.vehicleType].map(vehicleShortLabel).filter(Boolean).join("/") : "";
+  let event = state.selectedEventTypes.size > 1 ? [...td.eventType].map(eventFullLabel).filter(Boolean).join("/") : "";
   let meta = [vehicle, event, td.subtrack, td.note].filter(Boolean).join(" · ");
   let dist = formatMiles(track.dist);
   let fullTrack = track.showNickname && track.nickname ? `${track.name} (${track.nickname})` : track.name;

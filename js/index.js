@@ -1,125 +1,93 @@
+import {EVENT_TYPES, TRACKDAYS_URL, VEHICLE_TYPES, fetchJson} from "./config.js";
 import {
-  TRACKDAYS_URL,
-  VEHICLE_TYPES,
-  EVENT_TYPES,
-  vehicleShortLabel,
-  eventShortLabel,
-  eventFullLabel,
-  fetchJson,
-  downloadBlob,
-} from "./config.js";
-import {
-  addDays,
-  compactIso,
   formatIsoUtcDate,
-  formatMonthDay,
   formatRelativeTime,
   parseIsoDate,
   parseUtcTimestamp,
   todayIso,
-  utcIcsTimestamp,
   weekdayShort,
 } from "./dates.js";
 import {MultiselectDropdown} from "./multiselect-dropdown.js";
 import {escapeHtml, safeHttpUrl} from "./lap-record-shared.js";
 import {
-  initIndexLapRecords,
-  recordsUi,
-  loadAllLapRecords,
+  STORAGE_KEYS,
+  clearSavedEvents,
+  clearStoredFilters,
+  ensureDefaultToggleCodes,
+  isHeaderAdClosed,
+  loadShowEmptyTracks,
+  markHeaderAdClosed,
+  persistSavedEvents,
+  persistShowEmptyTracks,
+  readStoredList,
+  readToggleCodes,
+  writeStoredList,
+  writeToggleCodes,
+} from "./storage.js";
+import {
+  getEventKey,
+  selectedWeekdays,
+  setCalendarRange,
+  state,
+  updatePillCounts,
+  updateTrackdaysVisibilityProperty,
+} from "./filters.js";
+import {downloadSavedEventsICS} from "./ics.js";
+import {
+  createTrackMarkers,
+  getGPSLocation,
+  resetHome,
+  setHomeIcon,
+  showAllTrackMarkers,
+  unlockHome,
+  updateTrackIcons,
+  wireHomeAndRadius,
+} from "./map.js";
+import {syncOpenPopup, updateTrackPopup, wirePopupActions} from "./popup.js";
+import {
   finishLapRecordsPreload,
+  initIndexLapRecords,
+  loadAllLapRecords,
   loadTrackRecords,
-  setRecordsOpen,
-  resetRecordForm,
   openRecordForm,
-  recordsListHtml,
+  resetRecordForm,
+  setRecordsOpen,
 } from "./index-lap-records.js";
 import {initIndexSuggest, reportMissingEvent} from "./index-suggest.js";
-import {initCalendar, dateRangeButtonLabel, saveStarHtml} from "./calendar.js";
+import {dateRangeButtonLabel} from "./calendar.js";
 import {
+  calendarClearDatesHtml,
   initCalendarMonth,
   renderCalendarView,
-  calendarClearDatesHtml,
   resetCalendarMonth,
 } from "./calendar-month.js";
 
-const STORAGE_KEY_USER_SAVED_EVENTS = "trackdaysFYI:userSavedEvents";
-const STORAGE_KEY_USER_VEHICLE_TYPES = "trackdaysFYI:userVehicleTypes";
-const STORAGE_KEY_USER_EVENT_TYPES = "trackdaysFYI:userEventTypes";
-const STORAGE_KEY_EMPTY_TRACKS = "trackdaysFYI:showEmptyTracks";
-const STORAGE_KEY_WEEKDAYS = "trackdaysFYI:userWeekdays";
-const STORAGE_KEY_HOSTS = "trackdaysFYI:userHosts";
-const STORAGE_KEY_TRAVEL_RADIUS = "trackdaysFYI:travelRadius";
-const STORAGE_KEY_HOME_LOCATION = "trackdaysFYI:homeLocation";
-let savedEventsSet = (function () {
-  try {
-    let raw = localStorage.getItem(STORAGE_KEY_USER_SAVED_EVENTS);
-    if (!raw) {return new Set();}
-    let arr = JSON.parse(raw);
-    return new Set(Array.isArray(arr) ? arr : []);
-  } catch (e) {
-    return new Set();
-  }
-})();
+const showCarEventsButton = document.getElementById("showCarEvents");
+const showMotoEventsButton = document.getElementById("showMotoEvents");
+const showSumoEventsButton = document.getElementById("showSumoEvents");
+const orgSelectElement = document.getElementById("orgSelect");
+const daySelectElement = document.getElementById("daySelect");
+const showTracksWithoutEventsToggleElement = document.getElementById("showTracksWithoutEvents");
+const showTrackdaysToggleElement = document.getElementById("showTrackdays");
+const showSchoolsToggleElement = document.getElementById("showSchools");
+const showRacesToggleElement = document.getElementById("showRaces");
+const exportSavedEventsElement = document.getElementById("exportSavedEvents");
+const resetElement = document.getElementById("resetFilters");
 
-function persistSavedEvents() {
-  localStorage.setItem(STORAGE_KEY_USER_SAVED_EVENTS, JSON.stringify([...savedEventsSet]));
-}
-
-function readStoredList(key) {
-  try {
-    let raw = localStorage.getItem(key);
-    if (raw === null) return null;
-    let arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : null;
-  } catch (e) {
-    return null;
-  }
-}
+orgSelectElement.style.display = "block";
+MultiselectDropdown();
 
 function persistWeekdays() {
-  localStorage.setItem(STORAGE_KEY_WEEKDAYS, JSON.stringify([...selectedWeekdays()]));
+  writeStoredList(STORAGE_KEYS.weekdays, selectedWeekdays());
 }
 
 function persistHosts() {
-  let selected = Object.values(orgs).filter((org) => org.dropdownSelected).map((org) => org.orgNickname);
-  localStorage.setItem(STORAGE_KEY_HOSTS, JSON.stringify(selected));
-}
-
-function persistRadius() {
-  localStorage.setItem(STORAGE_KEY_TRAVEL_RADIUS, String(searchRadius));
-}
-
-function storedRadiusIndex() {
-  let raw = localStorage.getItem(STORAGE_KEY_TRAVEL_RADIUS);
-  if (raw === null) return null;
-  let index = radiusValues.indexOf(Number(raw));
-  return index === -1 ? null : index;
-}
-
-function storedHomeLocation() {
-  let stored = readStoredList(STORAGE_KEY_HOME_LOCATION);
-  if (!stored || stored.length !== 2) return null;
-  let lat = Number(stored[0]);
-  let lng = Number(stored[1]);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-  return [lat, lng];
-}
-
-function persistHomeLocation(latlng) {
-  localStorage.setItem(STORAGE_KEY_HOME_LOCATION, JSON.stringify([latlng.lat, latlng.lng]));
-}
-
-function clearStoredFilters() {
-  localStorage.removeItem(STORAGE_KEY_EMPTY_TRACKS);
-  localStorage.removeItem(STORAGE_KEY_WEEKDAYS);
-  localStorage.removeItem(STORAGE_KEY_HOSTS);
-  localStorage.removeItem(STORAGE_KEY_TRAVEL_RADIUS);
-  localStorage.removeItem(STORAGE_KEY_HOME_LOCATION);
+  let selected = Object.values(state.orgs).filter((org) => org.dropdownSelected).map((org) => org.orgNickname);
+  writeStoredList(STORAGE_KEYS.hosts, selected);
 }
 
 function applyStoredWeekdays() {
-  let stored = readStoredList(STORAGE_KEY_WEEKDAYS);
+  let stored = readStoredList(STORAGE_KEYS.weekdays);
   if (!stored) return;
   let selected = new Set(stored);
   Array.from(daySelectElement.options).forEach((opt) => {
@@ -129,453 +97,12 @@ function applyStoredWeekdays() {
 }
 
 function applyStoredHosts() {
-  let stored = readStoredList(STORAGE_KEY_HOSTS);
+  let stored = readStoredList(STORAGE_KEYS.hosts);
   if (!stored) return;
   let selected = new Set(stored);
-  Object.values(orgs).forEach((org) => {
+  Object.values(state.orgs).forEach((org) => {
     org.dropdownSelected = selected.has(org.orgNickname);
   });
-}
-
-function removePastSavedEvents() {
-  let todayStr = todayIso();
-  let hasChanges = false;
-  [...savedEventsSet].forEach((key) => {
-    let [eventDate] = key.split("|");
-    if (eventDate && eventDate < todayStr) {
-      console.log(`Removing past saved event: ${key}`);
-      savedEventsSet.delete(key);
-      hasChanges = true;
-    }
-  });
-  if (hasChanges) persistSavedEvents();
-}
-removePastSavedEvents();
-
-let locationDefault = [39.50, -98.35];  // Central US or GPS location
-let isGPSLocation = false;
-let homeLocked = false;  // user moved the home pin or the travel radius
-let searchRadius;
-let lastOpenedTrack, selectedCalendarStart = null, selectedCalendarEnd = null;
-let tracks;
-const infiniteRadius = 0;
-const radiusValues = [];
-for (let miles = 50; miles <= 950; miles += 50) radiusValues.push(miles);
-radiusValues.push(infiniteRadius);
-const homeImgMoto = `<svg xmlns="http://www.w3.org/2000/svg" fill="#ff0000" viewBox="0 0 64 64"><path d="M53 44a9 9 0 0 0-7 3l-1-1h1v-1l13-6a4 4 0 0 0-1-2c2-2 2-5 2-5v-2h-2l-6 1-3 1-1-3s-6-6-12-8c2-1 2-3 2-7 0-6-5-12-12-12a12 12 0 0 0-13 14c-1 0 1 6 3 6 2 5 4 6 6 6l4-1v4l-2 1-1-2h-1c-5 0-9 2-12 6l-2 4 1 2 2 1a10 10 0 0 0-6 2h1a9 9 0 0 0 5 17c4 0 8-3 9-6a3 3 0 0 0 3 3l19-3h1v-2a9 9 0 0 0 0-1 15 15 0 0 1 0-1 9 9 0 0 0 0 1c0 5 4 9 10 9s9-4 9-9-4-9-9-9m-8-5c4-3 1-5 8-7h5s0 4-3 5c-7 4-12 4-12 4l2-2m-7 5a4 4 0 0 1 1 2l-2 2 1-4M25 25l-3 1c-2 0-3-2-4-4l10-6 2-2-2-2-2 1-11 2a8 8 0 0 1 0-1c0-5 5-10 11-10s10 5 10 10 0 5-7 9a255 255 0 0 0-4 2m-1 12 1-1 6-2a2 2 0 0 0 0-2v-2l4 4h-1l-4 1-2 1-2 2v1a70 70 0 0 0-2-1v-1m10-1-1 4h-2a45 45 0 0 0-3-1v-1l1-1 5-1m-14-3a1 1 0 0 1 2 0v2c1 2 1 2-2 3h-1l-1-1c-1-2 0-3 1-3l1-1m-4 20h2a6 6 0 0 1-1 3l-1-1a5 5 0 0 1-1 1h2a7 7 0 0 1-2 2l-1-2a5 5 0 0 1-1 1l1 2a7 7 0 0 1-2 0v-2h-1v2a7 7 0 0 1-2 0l1-2a5 5 0 0 1-1-1l-1 2a7 7 0 0 1-2-2h2a5 5 0 0 1-1-1l-2 1a6 6 0 0 1 0-3h2v-1H5a6 6 0 0 1 0-2l2 1 1-1-2-1a7 7 0 0 1 2-2l1 2a5 5 0 0 1 1 0l-1-2a7 7 0 0 1 2-1v2h1v-2a7 7 0 0 1 2 1l-2 3a3 3 0 0 0-1 0c-1 0-2 1-2 3s1 3 2 3c2 0 3-2 3-3l-1-2 2-3 2 1-2 1 1 1 1-1 1 2h-2v1m25 1v1l-18 2-1-1-1-8-3-2-8-6 1-3a12 12 0 0 1 7-5v1l-2 2-1 1c0 1-2 2 0 2l2 1a3 3 0 0 0 2 1l2-1a56 56 0 0 1 11 3l-1 6h-1a4 4 0 0 0-1 0l-1-1-6-4h-1l1 1 4 3 2 1-2 2 8 2c1 1 2 0 2-1v-1c3 0 2-2 4-2h2l-1 6m0-9-1-1 4-1a25 25 0 0 0 3-1l-2 1-4 2m8 2v1h-1l1-1m8 6h2a6 6 0 0 1 0 3l-2-1a5 5 0 0 1-1 1h2a7 7 0 0 1-2 2l-1-2-1 1 2 2a7 7 0 0 1-3 0v-2h-1v2a7 7 0 0 1-2 0l1-2a5 5 0 0 1-1-1l-1 2a7 7 0 0 1-2-2h2a5 5 0 0 1-1-1l-1 1a6 6 0 0 1-1-3h1l4 2a3 3 0 0 0 2 1l2-3c0-2-1-3-2-3l-3-1h1l-1-2a7 7 0 0 1 2-1v2h1c1 0 0 0 0 0v-2a7 7 0 0 1 2 1l-1 2h1l1-2a7 7 0 0 1 2 2l-2 1 1 1 2-1v2h-2v1"/></svg>`
-const homeImgCar = `<svg xmlns="http://www.w3.org/2000/svg" fill="#ff0000" viewBox="0 0 64 64"><path d="M62 45.3 60 41l-5 3-.2-.2 4.8-2.9c1.6-1.2 1.6-4.3-.2-7-1.7-2.7-4.5-3.9-6.1-2.7L48.9 34l-.4.2c-.7.6-.9 1.9-.7 3.2l-.1-.1v-3.8l-4.4-7-2.6-1.6.5-.3c2-1.4 1.8-5-.2-8-2-3.2-5.2-4.6-7-3.2l-9 5.3.2 1.1-.7.4L19 18v-1.2l7.7-4-4-3.7L2 16.8l6.1 5.6 6.9-3.6v1.8l3.6 2.7-1.7 1-2.4-.6-3.6 2.1v.6l-5.4 3.2-.5.3c-2 1.4-1 6.5.7 9 1.7 2.6 3.9 4.2 5.8 4.2a3 3 0 0 0 1.8-.6l5.7-3.3a3 3 0 0 0 .4-.3 3.3 3.3 0 0 0 .9-1l5 3.8 6.5 1.5-.3.1c-1.8 1.3-.8 5.8.6 8 1.5 2.3 3.4 3.7 5.1 3.7a3 3 0 0 0 1.6-.5l4.7-2.8L49 54l13-8.7m-3.4-3 1.7 3.6-1 .8-2-3.7 1.3-.7M21.1 10l3.5 3.4-1.4.6-3.8-3.4 1.7-.6M10.9 20.5 5.2 16l2.4-.9 5 4.5-1.7.9M49.1 35a1.5 1.5 0 0 1 1-.3c1 0 2.5.8 3.8 2.7 1.5 2.3 1.4 4.8.4 5.6l-.3.2-1.5-1.4a1.2 1.2 0 0 0 .9-.2c.9-.7.8-2.3-.1-3.8-1-1.4-2.4-2-3.3-1.4-.6.5-.6 1.4-.2 2.4l1.4-.8c1-.5 2.1.8 1.5 1.7l-1.5.9-2.1-2c-.5-1.6-.5-3.2 0-3.6M49 47.7l-4 2.4c.6-1.2.6-2.8 0-4.5l3.9 2.1m-4-3.5-.3.2a10.4 10.4 0 0 0-.7-1.2 10.7 10.7 0 0 0-.5-.7c1-.5 2.1.7 1.5 1.7m-16.6-27 14.3 9.5 4.4 7-1.2.7-4.4-7-14.3-9.5 1.2-.7m9 13.6.4-.2c-.5 1.7-1.6 2.6-3.8 2.6-2.8 0-6.4-1.5-6.4-4.5s2.3-5.4 5.2-5.4a5 5 0 0 1 5 4.3c0-.2-.2-.2-.3-.2-2.9.2-6.7.1-6.8 1.2-.1 1.1 2.2 2.5 6.8 2.2M16 19.8v-1.6l2-1v1.4l11.5 4.5-3.4 1.6-10-4.8m-1.7 6c-.7-.3-1.5-.3-2.2-.2l1.1-.6 1.1.8m-3 16.2c-1.5 0-3.4-1.4-5-3.7-1.4-2.3-2.2-6.7-1-7.7.5-.2 1-.4 1.4-.4 1.8 0 3.9 1.5 5.3 3.7 2 3 2.2 6.5.5 7.7a2 2 0 0 1-1.2.4m13.7-6.3-4.7-3.3a11.5 11.5 0 0 0-2.6-4.3l9.6 6.4 11 4.4-1.7 1-11.6-4.2m12 18.2c-1.3 0-3-1.3-4.2-3.3-1.5-2.1-2-5.8-1-6.6l1.2-.3c1.5 0 3.3 1.3 4.5 3.2 1.7 2.6 2 5.6.5 6.7-.3.2-.6.3-1 .3m10-4.8 4.1 2.8-1 .8-4.4-2.8 1.4-.8"/><path d="M7 32.9c-1.2.8-.7 3 .5 4.8 1.2 1.9 2.7 2.7 3.8 1.9 1.2-.8 1.1-3 0-4.9C10 33 8 32 6.8 33m26.4 13c-1 .7-.6 2.6.5 4.2 1 1.7 2.4 2.4 3.4 1.7s1-2.7-.1-4.3c-1.1-1.6-2.8-2.4-3.8-1.7"/></svg>`
-const homeIconMoto = new L.DivIcon({html: homeImgMoto, className: "", iconSize: [36, 36], iconAnchor: [18, 18]});
-const homeIconCar = new L.DivIcon({html: homeImgCar, className: "", iconSize: [50, 50], iconAnchor: [25, 25]});
-
-function getGPSLocation() {
-  function setGPSLocation(position) {
-    locationDefault = [position.coords.latitude, position.coords.longitude];
-    isGPSLocation = true;
-    // Re-home map/radius when the pin was not moved; keep the viewed calendar month.
-    if (tracks && !homeLocked) resetHome();
-  }
-  // timeout starts after the permission prompt, so a hung lookup cannot arrive much later
-  navigator.geolocation?.getCurrentPosition(setGPSLocation, () => {}, {timeout: 10000});
-}
-
-function resetHome() {
-  let savedHome = storedHomeLocation();
-  let home = savedHome || locationDefault;
-  homeMarker.setLatLng(home);
-  searchCircle.setLatLng(home);
-  map.setView(home, savedHome || isGPSLocation ? 6 : 3);
-  radiusSliderElement.max = String(radiusValues.length - 1);
-  let radiusIndex = storedRadiusIndex();
-  if (radiusIndex === null) radiusIndex = isGPSLocation ? radiusValues.indexOf(200) : radiusValues.length - 1;
-  radiusSliderElement.value = String(radiusIndex);
-  new L.Popup(home, {"content": "<b>Drag Me</b>", "className": "dragMe", "autoPan": false, "closeButton": false, "offset": [0, 50]}).openOn(map);
-
-  updateTrackDistances();
-  updateSearchRadius(radiusValues[radiusSliderElement.value]);
-  // Keep the viewed month — GPS can arrive after the user has already scrolled/swiped.
-  refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
-}
-
-function milesBetween(lat1, lon1, lat2, lon2) {
-  function deg2rad(deg) {return deg * (Math.PI/180);}
-  let r = 6371;  // earth radius km
-  lat1 = deg2rad(lat1);
-  lat2 = deg2rad(lat2);
-  let deltaLat = lat2 - lat1;
-  let deltaLon = deg2rad(lon2 - lon1);
-  let a = Math.pow(Math.sin(deltaLat / 2), 2) + Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin(deltaLon / 2), 2);
-  let d = 2 * r * Math.asin(Math.sqrt(a));
-  return d * 0.621371;
-}
-
-function updateTrackDistances() {
-  let {lat, lng} = homeMarker.getLatLng();
-  Object.keys(tracks).forEach((track) => {
-    tracks[track]["dist"] = milesBetween(lat, lng, tracks[track].lat, tracks[track].lon);
-  });
-  trackdays.sort((a, b) => tracks[a.track].dist - tracks[b.track].dist);  // keep sorted for calendar order
-}
-
-function updateTrackIcons(updateTrackVisibility) {
-  let allTracks = Object.keys(tracks);
-  let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityMap).map(td => td.track));
-
-  if (updateTrackVisibility) {
-    // visibilityMap already includes saved events. Empty Tracks also shows a matching vehicle with nothing listed.
-    let showEmpty = showTracksWithoutEventsToggleElement.classList.contains("on");
-    allTracks.forEach(track => {
-      let matchingVehicleType = [...tracks[track].vehicleType].some(t => selectedVehicleTypes.has(t));
-      let show = tracksWithEvents.has(track) || (showEmpty && matchingVehicleType);
-      show ? mapMarkers[track].addTo(map) : mapMarkers[track].remove();
-    });
-  }
-
-  let tracksWithSavedEvents = new Set();
-  if (savedEventsSet.size) {
-    trackdays.forEach((td) => {
-      if (savedEventsSet.has(getEventKey(td))) tracksWithSavedEvents.add(td.track);
-    });
-  }
-  allTracks.forEach((track) => {
-    let withinRadius = (searchRadius === infiniteRadius || tracks[track].dist <= searchRadius);
-    let containsSavedEvent = tracksWithSavedEvents.has(track);
-    let opacityMultiplier = tracksWithEvents.has(track) ? 1.0 : 0.35;
-    let inside = withinRadius || containsSavedEvent;
-    let icon = inside ? trackIconCheckered : trackIconRed;
-    let opacity = (inside ? 0.8 : 0.6) * opacityMultiplier;
-    let marker = mapMarkers[track];
-    if (marker.options.icon !== icon) marker.setIcon(icon);
-    if (marker.options.opacity !== opacity) marker.setOpacity(opacity);
-  });
-}
-
-function updateSearchRadius(radiusMiles) {
-  searchRadius = radiusMiles;
-  searchCircle.setRadius(searchRadius * 1609.34);
-  document.getElementById("displayedRadius").innerText = (searchRadius === infiniteRadius ? `∞` : `${searchRadius}`);
-}
-
-function dateInRange(dateKey) {
-  if (!selectedCalendarStart || !selectedCalendarEnd) return true;
-  return dateKey >= selectedCalendarStart && dateKey <= selectedCalendarEnd;
-}
-
-function selectedWeekdays() {
-  return new Set(Array.from(daySelectElement.options).filter(option => option.selected).map(option => option.value));
-}
-
-function trackWithinRadius(trackKey) {
-  return searchRadius === infiniteRadius || tracks[trackKey].dist <= searchRadius;
-}
-
-// opts toggles which checks apply: radius, date, day, org, vehicle, event
-function passesFilters(td, opts = {}) {
-  if (opts.radius && !trackWithinRadius(td.track)) return false;
-  if (opts.date && !dateInRange(td.dateKey)) return false;
-  if (opts.day) {
-    let days = opts.selectedDays || selectedWeekdays();
-    if (!days.has(td.weekday)) return false;
-  }
-  if (opts.org && !orgs[td.org].dropdownSelected) return false;
-  if (opts.vehicle && ![...td.vehicleType].some(t => selectedVehicleTypes.has(t))) return false;
-  if (opts.event && ![...td.eventType].some(t => selectedEventTypes.has(t))) return false;
-  return true;
-}
-
-function updateTrackdaysVisibilityProperty() {
-  let selectedDays = selectedWeekdays();
-  trackdays.forEach((td) => {
-    let withinRadius = trackWithinRadius(td.track);
-    let core = passesFilters(td, {date: true, day: true, org: true, vehicle: true, event: true, selectedDays});
-    let isSaved = savedEventsSet.has(getEventKey(td));
-    // Saved events skip most filters, but still respect the selected date range.
-    let savedVisible = isSaved && dateInRange(td.dateKey);
-    td.visibilityDropdown = passesFilters(td, {radius: true, vehicle: true, event: true});
-    td.visibilityMap = savedVisible || core;
-    td.visibilityCalendar = savedVisible || (core && withinRadius);
-  });
-}
-
-function getEventKey(td) {  // string identifying a specific event
-  return [td.dateKey, td.org, td.track, td.subtrack, td.eventType, td.vehicleType].join("|");
-}
-
-function onEventSaveToggle(btn) {
-  let key = decodeURIComponent(btn.getAttribute("data-event-key"));
-  let nowSaved = !savedEventsSet.has(key);
-  if (nowSaved) {
-    savedEventsSet.add(key);
-  } else {
-    savedEventsSet.delete(key);
-  }
-  persistSavedEvents();
-  btn.setAttribute("aria-pressed", nowSaved ? "true" : "false");
-  btn.title = nowSaved ? "Unsave Event" : "Save Event";
-  btn.setAttribute("aria-label", nowSaved ? "Unsave Event" : "Save Event");
-  let item = btn.closest(".event-item");
-  if (item) item.classList.toggle("is-saved", nowSaved);
-  if (typeof trackdays !== "undefined") {
-    // do not refresh the open popup, so an accidental unsave can be checked again
-    refresh({trackVisibility: true, calendar: true});
-  }
-}
-
-function alertOnMissingSavedEvents() {
-  if (typeof trackdays === "undefined") {return;}
-  let currentEventKeys = new Set(trackdays.map(td => getEventKey(td)));
-  let unmatchedSavedEvents = [...savedEventsSet].filter(key => !currentEventKeys.has(key));
-  if (unmatchedSavedEvents.length === 0) {return;}
-  let eventList = unmatchedSavedEvents
-    .map((key) => {
-      let [date, org, track] = key.split("|");
-      return `${date} | ${track} | ${org}`;
-    })
-    .join("\n");
-  alert(`Previously saved events have been cancelled or modified:\n${eventList}`);
-  unmatchedSavedEvents.forEach((key) => {savedEventsSet.delete(key);});
-  persistSavedEvents();
-}
-
-function escapeICSValue(value) {
-  return String(value || "")
-    .replace(/\\/g, "\\\\")  // escape backslash
-    .replace(/\r?\n/g, "\\n")  // escape newline
-    .replace(/,/g, "\\,")  // escape commas
-    .replace(/;/g, "\\;");  // escape semicolon
-}
-
-function foldICSLine(line) {
-  // RFC 5545: fold at 75 octets. A continuation line starts with one space.
-  const maxOctets = 75;
-  const encoder = new TextEncoder();
-  if (encoder.encode(line).length <= maxOctets) return line;
-  let folded = "";
-  let budget = maxOctets;
-  for (const char of line) {
-    const size = encoder.encode(char).length;
-    if (size > budget) {
-      folded += "\r\n ";
-      budget = maxOctets - 1;
-    }
-    folded += char;
-    budget -= size;
-  }
-  return folded;
-}
-
-function downloadSavedEventsICS() {
-  if (typeof trackdays === "undefined") return;
-  let savedEvents = trackdays
-    .filter(td => savedEventsSet.has(getEventKey(td)))
-    .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
-  if (savedEvents.length === 0) {
-    alert("No saved events to export.\nStar events to save them.");
-    return;
-  }
-
-  let nowStamp = utcIcsTimestamp();
-  let lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Trackdays.fyi//Saved Events//EN",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH"
-  ];
-
-  savedEvents.forEach((td) => {
-    let startDate = compactIso(td.dateKey);
-    let endDate = compactIso(addDays(td.dateKey, 1));
-    let track = tracks[td.track];
-    let summary = `${track.nickname} - ${td.org}`;
-    let eventType = [...td.eventType].map(eventShortLabel).join("/");
-    let vehicleType = [...td.vehicleType].map(vehicleShortLabel).join("/");
-    let descriptionParts = [
-      `Track: ${track.name}`,
-      td.subtrack ? `Circuit: ${td.subtrack}` : "",
-      eventType ? `Type: ${eventType}` : "",
-      vehicleType ? `Vehicle: ${vehicleType}` : "",
-      td.price >= 0 ? `Price: $${td.price}` : "",
-      td.note ? `Note: ${td.note}` : "",
-      `Link: ${td.url}`,
-      `[Generated by https://trackdays.fyi]`
-    ].filter(Boolean);
-
-    lines.push(
-      "BEGIN:VEVENT",
-      `UID:${escapeICSValue(getEventKey(td))}@trackdays.fyi`,
-      `DTSTAMP:${nowStamp}`,
-      `DTSTART;VALUE=DATE:${startDate}`,
-      `DTEND;VALUE=DATE:${endDate}`,
-      `SUMMARY:${escapeICSValue(summary)}`,
-      `LOCATION:${escapeICSValue(track.name)}`,
-      `DESCRIPTION:${escapeICSValue(descriptionParts.join("\n"))}`,
-      `URL:${escapeICSValue(td.url)}`,
-      "END:VEVENT"
-    );
-  });
-  lines.push("END:VCALENDAR");
-
-  let icsBlob = new Blob([lines.map(foldICSLine).join("\r\n")], {type: "text/calendar;charset=utf-8"});
-  let fileName = `trackdaysFYI-saved-events-${compactIso(todayIso())}.ics`;
-  downloadBlob(icsBlob, fileName);
-}
-
-function hiddenEventNote(hidden) {
-  // Only name a filter when it is off and one of these events is actually that kind.
-  // Two reasons still read clearly. More than that collapses back to a generic line.
-  let days = selectedWeekdays();
-  let reasons = new Set();
-  let addVehicle = (td, code, label) => {
-    let types = [...td.vehicleType];
-    if (types.some(t => selectedVehicleTypes.has(t))) return;
-    if (types.includes(code) && !selectedVehicleTypes.has(code)) reasons.add(label);
-  };
-  let addEvent = (td, code, label) => {
-    let types = [...td.eventType];
-    if (types.some(t => selectedEventTypes.has(t))) return;
-    if (types.includes(code) && !selectedEventTypes.has(code)) reasons.add(label);
-  };
-  hidden.forEach((td) => {
-    for (let [code, info] of Object.entries(VEHICLE_TYPES)) addVehicle(td, code, info.filterNote);
-    for (let [code, info] of Object.entries(EVENT_TYPES)) addEvent(td, code, info.filterNote);
-    if (!dateInRange(td.dateKey)) reasons.add("date");
-    if (!days.has(td.weekday)) reasons.add("weekday");
-    if (orgs[td.org] && !orgs[td.org].dropdownSelected) reasons.add("host");
-  });
-  let n = hidden.length;
-  let noun = n === 1 ? "event" : "events";
-  let ordered = [
-    ...Object.values(VEHICLE_TYPES).map(info => info.filterNote),
-    ...Object.values(EVENT_TYPES).map(info => info.filterNote),
-    "date",
-    "weekday",
-    "host",
-  ].filter(label => reasons.has(label));
-  if (ordered.length === 1) return `${n} ${ordered[0]} ${noun} filtered`;
-  if (ordered.length === 2) return `${n} ${ordered[0]} and ${ordered[1]} ${noun} filtered`;
-  return `${n} ${noun} filtered`;
-}
-
-function syncPopupFade(scroll) {
-  let fade = scroll.parentElement && scroll.parentElement.querySelector(".tl-fade");
-  if (!fade) return;
-  let overflow = scroll.scrollHeight - scroll.clientHeight > 1;
-  let atEnd = scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 1;
-  fade.hidden = !overflow || atEnd;
-}
-
-function bindPopupFade(popup) {
-  let root = popup.getElement();
-  if (!root || root._fadeBound) return;
-  root._fadeBound = true;
-  // Scroll events do not bubble, and Leaflet rebuilds the popup body on update.
-  root.addEventListener("scroll", (ev) => {
-    if (ev.target && ev.target.classList && ev.target.classList.contains("tl-scroll")) syncPopupFade(ev.target);
-  }, true);
-}
-
-function fitPopupToMap(popup) {
-  // Keep the panel inside the map, with room for the tip and margins.
-  let width = Math.max(160, map.getSize().x - 32);
-  popup.options.maxWidth = Math.min(420, width);
-  popup.options.minWidth = Math.min(240, popup.options.maxWidth);
-}
-
-// Prefer a full host name: drop meta, then price, then weekday, and put back anything that still fits.
-function fitPopupHosts(popup) {
-  let root = popup.getElement();
-  if (!root) return;
-  root.querySelectorAll(".popup-timeline .tl-copy").forEach((copy) => {
-    let host = copy.querySelector(".tl-host");
-    if (!host) return;
-    let extras = [copy.querySelector(".tl-meta"), copy.querySelector(".tl-price"), copy.querySelector(".tl-dow")].filter(Boolean);
-    let cramped = () => copy.scrollWidth > copy.clientWidth + 1 || host.scrollWidth > host.clientWidth + 1;
-    extras.forEach((el) => { el.hidden = false; });
-    for (let el of extras) {
-      if (!cramped()) break;
-      el.hidden = true;
-    }
-    for (let i = extras.length - 1; i >= 0; i--) {
-      if (!extras[i].hidden) continue;
-      extras[i].hidden = false;
-      if (cramped()) extras[i].hidden = true;
-    }
-  });
-}
-
-function syncOpenPopup(popup) {
-  if (!popup || !popup.isOpen()) return;
-  fitPopupToMap(popup);
-  popup.update();
-  fitPopupHosts(popup);
-  bindPopupFade(popup);
-  let scroll = popup.getElement()?.querySelector(".popup-timeline .tl-scroll");
-  if (scroll) syncPopupFade(scroll);
-}
-
-function popupList(inner, foot) {
-  return `<div class="tl-scroll-wrap"><div class="tl-scroll">${inner}</div><div class="tl-fade" hidden></div></div><div class="tl-foot">${foot}</div>`;
-}
-
-function updateTrackPopup() {
-  if (lastOpenedTrack === undefined) {return;}
-  let track = tracks[lastOpenedTrack];
-  let trackdaysAtTrack = trackdays.filter(td => td.track === lastOpenedTrack);
-  let trackdaysFiltered = trackdaysAtTrack.filter(td => td.visibilityMap);
-  let hiddenTrackdays = trackdaysAtTrack.filter(td => !td.visibilityMap);
-  let multipleVehicleTypes = (selectedVehicleTypes.size > 1);
-  let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") && (selectedEventTypes.size > 1);
-  function rowMain(td, meta, price, mark) {
-    let copy = `<span class="tl-copy"><span class="tl-dow">${td.weekday}</span><span class="tl-host allowSelect">${escapeHtml(td.org)}</span>${meta ? `<span class="tl-meta">${meta}</span>` : ""}${price ? `<span class="tl-price">${price}</span>` : ""}</span>`;
-    let eventUrl = safeHttpUrl(td.url);
-    if (eventUrl) return `<a class="tl-row-link" href="${escapeHtml(eventUrl)}" target="_blank" rel="noopener">${mark}${copy}</a>`;
-    return `<div class="tl-row-link">${mark}${copy}</div>`;
-  }
-  function money(td) {
-    return td.price >= 0 ? "$" + escapeHtml(td.price) : "";
-  }
-  function detailText(td) {
-    let bits = [];
-    if (multipleVehicleTypes) bits.push([...td.vehicleType].map(vehicleShortLabel).join("/"));
-    if (multipleEventTypes) bits.push([...td.eventType].map(eventFullLabel).join("/"));
-    if (td.subtrack) bits.push(td.subtrack);
-    if (td.note) bits.push(td.note);
-    return bits.map(bit => escapeHtml(bit)).join(" · ");
-  }
-  let directionsUrl = "https://www.google.com/maps?q=" + encodeURIComponent("directions " + track.name);
-  let weatherUrl = "https://www.google.com/search?q=" + encodeURIComponent("weather " + track.name);
-  let nickname = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
-  let dateHidden = hiddenTrackdays.filter(td => !dateInRange(td.dateKey));
-  let otherHidden = hiddenTrackdays.filter(td => dateInRange(td.dateKey));
-  let dateNote = dateHidden.length
-    ? `<span class="hidden-note date-hidden-note">${dateHidden.length} ${dateHidden.length === 1 ? "event" : "events"} outside selected dates <button type="button" class="popup-clear-dates" data-popup-action="clear-date-range">Clear</button></span>`
-    : "";
-  let otherNote = otherHidden.length ? `<span class="hidden-note">${hiddenEventNote(otherHidden)}</span>` : "";
-  let head = `<div class="popup-head"><b class="allowSelect">${escapeHtml(track.name)}${nickname}</b><div class="popup-links"><a href="${escapeHtml(directionsUrl)}" target="_blank" rel="noopener" title="Directions">${directionImg}</a><a href="${escapeHtml(weatherUrl)}" target="_blank" rel="noopener" title="Weather">${weatherImg}</a></div></div>`;
-  let lastDate = "";
-  let rows = trackdaysFiltered.map((td) => {
-    let eventKey = getEventKey(td);
-    let isSaved = savedEventsSet.has(eventKey);
-    let saved = isSaved ? " is-saved" : "";
-    let dateKey = td.dateKey;
-    let showDate = dateKey !== lastDate;
-    lastDate = dateKey;
-    let meta = detailText(td);
-    let price = money(td);
-    let mark = `<span class="tl-mark"><span class="tl-date">${showDate ? escapeHtml(formatMonthDay(td.dateKey)) : ""}</span><span class="tl-dot"></span></span>`;
-    return `<div class="event-item tl-item${saved}">${rowMain(td, meta, price, mark)}${saveStarHtml(eventKey, isSaved, {popupAction: true})}</div>`;
-  }).join("");
-  let emptyMsg = trackdaysAtTrack.length === 0 ? "No upcoming events" : "No matching events";
-  let list = trackdaysFiltered.length === 0
-    ? `<div class="empty">${emptyMsg}</div>`
-    : `<div class="tl">${rows}</div>`;
-  let report = `<button type="button" class="missing-event-link" data-popup-action="missing-event">Missing an event?</button>`;
-  let eventsBody = popupList(list, dateNote + otherNote + report);
-  let tabs = `<div class="rec-tabs"><button type="button" class="${recordsUi.open ? "" : "on"}" data-popup-action="records-tab" data-open="0">Events</button><button type="button" class="${recordsUi.open ? "on" : ""}" data-popup-action="records-tab" data-open="1">Records</button></div>`;
-  let body = recordsUi.open ? recordsListHtml(lastOpenedTrack) : eventsBody;
-  let popup = mapMarkers[lastOpenedTrack].getPopup();
-  popup.setContent(`<div class="popup popup-timeline">${head}${tabs}${body}</div>`);
-  if (popup.isOpen()) syncOpenPopup(popup);
 }
 
 function updateCalendar() {
@@ -584,31 +111,11 @@ function updateCalendar() {
   updatePillCounts();
 }
 
-function updatePillCounts() {
-  if (typeof trackdays === "undefined" || typeof tracks === "undefined") return;
-  let selectedDays = selectedWeekdays();
-  let shared = trackdays.filter(td => passesFilters(td, {radius: true, date: true, day: true, org: true, selectedDays}));
-  let hasVehicle = (td, code) => [...td.vehicleType].includes(code);
-  let hasEvent = (td, code) => [...td.eventType].includes(code);
-  let vehicleMatch = (td) => [...td.vehicleType].some(t => selectedVehicleTypes.has(t));
-  let eventMatch = (td) => [...td.eventType].some(t => selectedEventTypes.has(t));
-  document.getElementById("countCar").textContent = shared.filter(td => hasVehicle(td, "C") && eventMatch(td)).length;
-  document.getElementById("countMoto").textContent = shared.filter(td => hasVehicle(td, "M") && eventMatch(td)).length;
-  document.getElementById("countSumo").textContent = shared.filter(td => hasVehicle(td, "S") && eventMatch(td)).length;
-  document.getElementById("countTrackdays").textContent = shared.filter(td => hasEvent(td, "T") && vehicleMatch(td)).length;
-  document.getElementById("countSchools").textContent = shared.filter(td => hasEvent(td, "S") && vehicleMatch(td)).length;
-  document.getElementById("countRaces").textContent = shared.filter(td => hasEvent(td, "R") && vehicleMatch(td)).length;
-  let tracksWithEvents = new Set(trackdays.filter(td => td.visibilityCalendar).map(td => td.track));
-  document.getElementById("countEmpty").textContent = Object.keys(tracks).filter((track) => {
-    return trackWithinRadius(track) && !tracksWithEvents.has(track);
-  }).length;
-}
-
 function updateDropdown() {
-  let visibleOrgs = new Set(trackdays.filter(td => td.visibilityDropdown).map(td => td.org));
+  let visibleOrgs = new Set(state.trackdays.filter(td => td.visibilityDropdown).map(td => td.org));
   // delete and recreate options so orgs are alphabetical
   orgSelectElement.options.length = 0;
-  Object.values(orgs).filter(org => org.numEvents > 0).forEach((org) => {
+  Object.values(state.orgs).filter(org => org.numEvents > 0).forEach((org) => {
     if (visibleOrgs.has(org.orgNickname)) {
       org.dropdownOption.selected = org.dropdownSelected;
       orgSelectElement.add(org.dropdownOption);
@@ -617,19 +124,10 @@ function updateDropdown() {
   orgSelectElement.loadOptions();
 }
 
-function refresh({trackVisibility = false, popup = false, calendar = false, dropdown = false} = {}) {
-  updateTrackdaysVisibilityProperty();
-  updateTrackIcons(trackVisibility);
-  if (popup) updateTrackPopup();
-  if (calendar) updateCalendar();
-  if (dropdown) updateDropdown();
-  updateDateFilterBar();
-}
-
 function updateDateFilterBar() {
   let bar = document.getElementById("dateFilterBar");
   if (!bar) return;
-  let ranged = !!(selectedCalendarStart && selectedCalendarEnd);
+  let ranged = !!(state.selectedCalendarStart && state.selectedCalendarEnd);
   if (!ranged) {
     bar.classList.add("is-idle");
     bar.classList.remove("is-chip");
@@ -650,246 +148,126 @@ function updateDateFilterBar() {
   bar.innerHTML = `<span class="date-filter-bar-text">${escapeHtml(label)}</span>${calendarClearDatesHtml()}`;
 }
 
-let showSyncInfo = false;
-function toggleSyncInfo() {
-  if (showSyncInfo) {
-    document.getElementById("syncInfo").innerHTML = "";
-    showSyncInfo = false;
-  } else {
-    let tbody = Object.values(orgs).map(org => {
-      let orgUrl = safeHttpUrl(org.url);
-      let name = escapeHtml(org.org);
-      let nameCell = orgUrl ? `<a href="${escapeHtml(orgUrl)}" target="_blank" rel="noopener">${name}</a>` : name;
-      return `
-      <tr>
-        <td>${nameCell}</td>
-        <td>${org.numEvents}</td>
-        <td>${formatRelativeTime(org.syncTimeUTC)}</td>
-      </tr>
-    `}).join("");
-    let tbl = `
-      <div class="sync-columns">
-        <table class="center gray sync-table">
-          <thead><tr>
-            <th>Host</th>
-            <th>Events</th>
-            <th>Last Sync</th>
-          </tr></thead>
-          <tbody>${tbody}</tbody>
-        </table>
-      </div>`;
-    document.getElementById("syncInfo").innerHTML = "<hr>" + tbl;
-    showSyncInfo = true;
-  }
+function refresh({trackVisibility = false, popup = false, calendar = false, dropdown = false} = {}) {
+  updateTrackdaysVisibilityProperty();
+  updateTrackIcons(trackVisibility);
+  if (popup) updateTrackPopup();
+  if (calendar) updateCalendar();
+  if (dropdown) updateDropdown();
+  updateDateFilterBar();
 }
-
-function wirePopupActions() {
-  // capture: Leaflet stopPropagation on popups blocks bubble to document
-  document.addEventListener("click", (event) => {
-    let el = event.target.closest("[data-popup-action]");
-    if (!el || !el.closest(".leaflet-popup")) return;
-    let action = el.dataset.popupAction;
-    if (action === "save-event") onEventSaveToggle(el);
-    else if (action === "missing-event") reportMissingEvent();
-    else if (action === "records-tab") setRecordsOpen(el.dataset.open === "1");
-    else if (action === "add-record") openRecordForm();
-    else if (action === "clear-date-range") clearCalendarDateFilter();
-  }, true);
-}
-wirePopupActions();
-document.getElementById("lastSyncMessage").addEventListener("click", (event) => {
-  event.preventDefault();
-  toggleSyncInfo();
-});
-
-document.getElementById("calendar").addEventListener("click", (event) => {
-  if (event.target.closest("[data-cal-clear-range]")) {
-    clearCalendarDateFilter();
-    return;
-  }
-  let star = event.target.closest(".event-save-star");
-  if (!star) return;
-  event.preventDefault();
-  onEventSaveToggle(star);
-}, true);
-
-document.getElementById("dateFilterBar").addEventListener("click", (event) => {
-  let bar = event.currentTarget;
-  if (event.target.closest("[data-cal-clear-range]")) {
-    clearCalendarDateFilter();
-    return;
-  }
-  if (!bar.classList.contains("is-idle")) return;
-  document.getElementById("calendar")?.scrollIntoView({behavior: "smooth", block: "start"});
-});
-document.getElementById("dateFilterBar").addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" && event.key !== " ") return;
-  let bar = event.currentTarget;
-  if (!bar.classList.contains("is-idle")) return;
-  event.preventDefault();
-  document.getElementById("calendar")?.scrollIntoView({behavior: "smooth", block: "start"});
-});
 
 function clearCalendarDateFilter() {
   setCalendarRange(null, null);
   refresh({trackVisibility: true, popup: true, calendar: true});
 }
 
-function setCalendarRange(start, end) {
-  if (!start || !end) {
-    selectedCalendarStart = null;
-    selectedCalendarEnd = null;
-  } else if (start <= end) {
-    selectedCalendarStart = start;
-    selectedCalendarEnd = end;
-  } else {
-    selectedCalendarStart = end;
-    selectedCalendarEnd = start;
+function onEventSaveToggle(btn) {
+  let key = decodeURIComponent(btn.getAttribute("data-event-key"));
+  let nowSaved = !state.savedEventsSet.has(key);
+  if (nowSaved) state.savedEventsSet.add(key);
+  else state.savedEventsSet.delete(key);
+  persistSavedEvents(state.savedEventsSet);
+  btn.setAttribute("aria-pressed", nowSaved ? "true" : "false");
+  btn.title = nowSaved ? "Unsave Event" : "Save Event";
+  btn.setAttribute("aria-label", nowSaved ? "Unsave Event" : "Save Event");
+  let item = btn.closest(".event-item");
+  if (item) item.classList.toggle("is-saved", nowSaved);
+  if (state.trackdays) {
+    // do not refresh the open popup, so an accidental unsave can be checked again
+    refresh({trackVisibility: true, calendar: true});
   }
 }
 
-const headerAd = document.getElementById("fotosort-ad");
-if (localStorage.getItem("headerAdClosed")) {
-  headerAd.hidden = true;
+function alertOnMissingSavedEvents() {
+  if (!state.trackdays) return;
+  let currentEventKeys = new Set(state.trackdays.map(td => getEventKey(td)));
+  let unmatchedSavedEvents = [...state.savedEventsSet].filter(key => !currentEventKeys.has(key));
+  if (unmatchedSavedEvents.length === 0) return;
+  let eventList = unmatchedSavedEvents
+    .map((key) => {
+      let [date, org, track] = key.split("|");
+      return `${date} | ${track} | ${org}`;
+    })
+    .join("\n");
+  alert(`Previously saved events have been cancelled or modified:\n${eventList}`);
+  unmatchedSavedEvents.forEach((key) => {state.savedEventsSet.delete(key);});
+  persistSavedEvents(state.savedEventsSet);
 }
-document.getElementById("close-ad").addEventListener("click", function () {
-  headerAd.hidden = true;
-  localStorage.setItem("headerAdClosed", "true");
-});
 
-let map = new L.Map("map", {doubleClickZoom: false, boxZoom: false, minZoom: 3, maxZoom: 15, worldCopyJump: true});
-let tiles = new L.TileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", 
-  {attribution: `<a class="map-attribution" href="http://www.openstreetmap.org/copyright">&copy; OpenStreetMap</a>`}
-).addTo(map);
-map.attributionControl.setPrefix("");
-
-let homeMarker = new L.Marker(locationDefault, {title: "Home", icon: homeIconMoto, opacity: 0.9, draggable: true, autoPan: true, autoPanSpeed: 1, zIndexOffset: 1000}).addTo(map);
-let searchCircle = new L.Circle(locationDefault, {stroke: true, color: "#ff0000", opacity: 0.4, dashArray: "4", fill: false, interactive: false, radius: infiniteRadius}).addTo(map);
-
-let showCarEventsButton = document.getElementById("showCarEvents");
-let showMotoEventsButton = document.getElementById("showMotoEvents");
-let showSumoEventsButton = document.getElementById("showSumoEvents");
-let orgSelectElement = document.getElementById("orgSelect");
-let radiusSliderElement = document.getElementById("radiusSlider");
-let daySelectElement = document.getElementById("daySelect");
-let showTracksWithoutEventsToggleElement = document.getElementById("showTracksWithoutEvents");
-let showTrackdaysToggleElement = document.getElementById("showTrackdays");
-let showSchoolsToggleElement = document.getElementById("showSchools");
-let showRacesToggleElement = document.getElementById("showRaces");
-let exportSavedEventsElement = document.getElementById("exportSavedEvents");
-let resetElement = document.getElementById("resetFilters");
-
-orgSelectElement.style.display = "block";
-MultiselectDropdown();
-
-const checkeredFlagImg = `<svg xmlns="http://www.w3.org/2000/svg" fill="#000000" viewBox="0 0 24 24"><path d="M4 2v18H3v2h4v-2H6v-5h13a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H6V2H4zm4 3v2h2V5h2v2h2V5h2v2h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H8v-2H6V9h2V7H6V5h2z"/><path d="M8 9h2v2H8zm4 0h2v2h-2zm-2-2h2v2h-2zm4 0h2v2h-2z"/></svg>`;
-const directionImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m2.3 12.7 9 9c.4.4 1 .4 1.4 0l9-9a1 1 0 0 0 0-1.4l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4zM9 10h5V8l3 3-3 3v-2h-3v4H9v-6z"/></svg>`;
-const weatherImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="M7 12a5 5 0 1 0 10 0 5 5 0 0 0-10 0zm4 7h2v3h-2zm0-17h2v3h-2zm-9 9h3v2H2zm17 0h3v2h-3zM5.6 19.8l-1.4-1.4 2.1-2.2 1.5 1.5zM16.2 6.3l2.2-2 1.4 1.3-2.1 2.2zM6.3 7.8l-2-2.2 1.3-1.4 2.2 2.1zm13.5 10.6-1.4 1.4-2.2-2.1 1.5-1.5z"/></svg>`;
-
-const trackIconCheckered = new L.DivIcon({html: checkeredFlagImg, className: "", iconSize: [32, 32], iconAnchor: [6, 24], popupAnchor: [10, -20]});
-const trackIconRed = new L.DivIcon({html: checkeredFlagImg.replace("#000000", "#ff0000"), className: "", iconSize: [32, 32], iconAnchor: [6, 24], popupAnchor: [10, -20]});
-
-let orgs, trackdays;
-let selectedVehicleTypes = new Set();
-let selectedEventTypes = new Set();
-let mapMarkers = new Object();
+let showSyncInfo = false;
+function toggleSyncInfo() {
+  if (showSyncInfo) {
+    document.getElementById("syncInfo").innerHTML = "";
+    showSyncInfo = false;
+    return;
+  }
+  let tbody = Object.values(state.orgs).map(org => {
+    let orgUrl = safeHttpUrl(org.url);
+    let name = escapeHtml(org.org);
+    let nameCell = orgUrl ? `<a href="${escapeHtml(orgUrl)}" target="_blank" rel="noopener">${name}</a>` : name;
+    return `
+      <tr>
+        <td>${nameCell}</td>
+        <td>${org.numEvents}</td>
+        <td>${formatRelativeTime(org.syncTimeUTC)}</td>
+      </tr>
+    `;
+  }).join("");
+  let tbl = `
+    <div class="sync-columns">
+      <table class="center gray sync-table">
+        <thead><tr>
+          <th>Host</th>
+          <th>Events</th>
+          <th>Last Sync</th>
+        </tr></thead>
+        <tbody>${tbody}</tbody>
+      </table>
+    </div>`;
+  document.getElementById("syncInfo").innerHTML = "<hr>" + tbl;
+  showSyncInfo = true;
+}
 
 async function fetchAndNormalizeTrackdays() {
   const data = await fetchJson(TRACKDAYS_URL);
-  orgs = data["orgs"];
-  tracks = data["tracks"];
+  let rawOrgs = data.orgs;
+  let rawTracks = data.tracks;
 
   document.getElementById("eventInfoText").hidden = false;
   document.getElementById("eventInfoSpinner").hidden = true;
 
-  tracks = tracks.reduce((obj, v) => {obj[v["nickname"].toUpperCase()] = v; return obj;}, {})  // reformat tracks to be object
-  orgs = orgs.map(org => ({...org,
+  state.tracks = rawTracks.reduce((obj, v) => {obj[v.nickname.toUpperCase()] = v; return obj;}, {});
+  let orgList = rawOrgs.map(org => ({
+    ...org,
     numEvents: org.events.length,
-    events: org.events.map(e => ({...e, org: org.orgNickname, url: e.url || org.url}))}));  // add org key and default url
-  trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
+    events: org.events.map(e => ({...e, org: org.orgNickname, url: e.url || org.url})),
+  }));
   let todayKey = todayIso();
-  trackdays = trackdays.map(td => {
+  state.trackdays = orgList.flatMap(({events}) => events).map(td => {
     let parsed = parseIsoDate(td.date);
     let dateKey = parsed ? formatIsoUtcDate(parsed) : String(td.date || "");
     return {...td, dateKey, weekday: weekdayShort(dateKey)};
-  }).filter((td) => td.dateKey >= todayKey);  // drop events before today
-  trackdays.sort((a, b) => a.dateKey.localeCompare(b.dateKey));  // sort by date
+  }).filter((td) => td.dateKey >= todayKey);
+  state.trackdays.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
 
-  orgs = orgs.map(({events, ...item}) => item);  // drop events key
-  orgs = orgs.map(org => ({...org,
-    syncTimeUTC: parseUtcTimestamp(org.syncTimeUTC),
-    dropdownOption: new Option(org.org, org.orgNickname),
-    dropdownSelected: (org.numEvents > 0),
+  orgList = orgList.map(({events, ...item}) => ({
+    ...item,
+    syncTimeUTC: parseUtcTimestamp(item.syncTimeUTC),
+    dropdownOption: new Option(item.org, item.orgNickname),
+    dropdownSelected: (item.numEvents > 0),
   }));
-  orgs.sort((a, b) => a.org.localeCompare(b.org));  // sort by name
+  orgList.sort((a, b) => a.org.localeCompare(b.org));
 
-  let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC > curr.syncTimeUTC ? prev : curr).syncTimeUTC;
+  let lastSync = orgList.reduce((prev, curr) => prev.syncTimeUTC > curr.syncTimeUTC ? prev : curr).syncTimeUTC;
   document.getElementById("lastSyncMessage").innerText = formatRelativeTime(lastSync);
-  document.getElementById("numTrackdays").innerText = trackdays.reduce((sum, td) => sum + [...td.eventType].filter(t => EVENT_TYPES[t]).length, 0);  // an event tagged with 2 types counts twice
-  document.getElementById("numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
+  document.getElementById("numTrackdays").innerText = state.trackdays.reduce((sum, td) => sum + [...td.eventType].filter(t => EVENT_TYPES[t]).length, 0);
+  document.getElementById("numOrgs").innerText = new Set(state.trackdays.map(a => a.org)).size;
 
-  orgs = orgs.reduce((result, org) => {  // map org nickname -> org
+  state.orgs = orgList.reduce((result, org) => {
     result[org.orgNickname] = org;
     return result;
   }, {});
-}
-
-function createTrackMarkers() {
-  Object.keys(tracks).forEach((trackName) => {
-    let track = tracks[trackName];
-    mapMarkers[trackName] = new L.Marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
-    mapMarkers[trackName].bindPopup("", {maxHeight: 300, minWidth: 240, maxWidth: 420, closeButton: false});  // popup content updated on click
-    mapMarkers[trackName].on("pointerdown", (e) => {
-      let trackKey = e.target.options.title.toUpperCase();
-      if (trackKey !== lastOpenedTrack) resetRecordForm();
-      lastOpenedTrack = trackKey;
-      // Cache hit when PRELOAD_ALL_LAP_RECORDS; otherwise fetches this track (see index-lap-records.js).
-      loadTrackRecords(trackKey);
-    });
-    // leaflet measures popup width before flex/scroll layout settles; remeasure after paint so text isn't truncated on first open
-    mapMarkers[trackName].on("popupopen", (e) => {
-      // redrawing the popup on click detaches the button, so Leaflet no longer sees the click as inside the popup and closes it
-      let popupEl = e.popup.getElement();
-      if (popupEl && !popupEl.dataset.keepOpen) {
-        popupEl.dataset.keepOpen = "1";
-        popupEl.addEventListener("click", (ev) => ev.stopPropagation());
-      }
-      requestAnimationFrame(() => {
-        if (e.popup.isOpen()) syncOpenPopup(e.popup);
-      });
-    });
-  });
-}
-
-function wireHomeAndRadius() {
-  homeMarker.on("dragstart", () => {
-    homeLocked = true;
-    map.closePopup();  // close "Drag Me" popup
-  });
-  homeMarker.on("drag", () => {
-    searchCircle.setLatLng(homeMarker.getLatLng());
-  });
-  homeMarker.on("dragend", () => {
-    let latlng = homeMarker.getLatLng();
-    searchCircle.setLatLng(latlng);
-    persistHomeLocation(latlng);
-    updateTrackDistances();
-    refresh({calendar: true, dropdown: true});
-  });
-
-  radiusSliderElement.addEventListener("input", () => {
-    homeLocked = true;
-    updateSearchRadius(radiusValues[radiusSliderElement.value]);
-  });
-
-  radiusSliderElement.addEventListener("change", () => {
-    persistRadius();
-    refresh({calendar: true, dropdown: true});
-  });
-
-  map.on("pointerdown", () => {
-    map.closePopup();
-  });
 }
 
 function setFilterToggle(buttonElement, enabled) {
@@ -898,7 +276,7 @@ function setFilterToggle(buttonElement, enabled) {
 }
 
 function bindToggleGroup(pairs, {selectedSet, storageKey, onChange}) {
-  let stored = localStorage.getItem(storageKey) || "";
+  let stored = readToggleCodes(storageKey);
   for (const [buttonElement, code] of pairs) {
     let enabled = stored.includes(code);
     setFilterToggle(buttonElement, enabled);
@@ -908,7 +286,7 @@ function bindToggleGroup(pairs, {selectedSet, storageKey, onChange}) {
       if (nowEnabled) selectedSet.add(code);
       else selectedSet.delete(code);
       setFilterToggle(buttonElement, nowEnabled);
-      localStorage.setItem(storageKey, [...selectedSet].join(""));
+      writeToggleCodes(storageKey, selectedSet);
       if (onChange) onChange(nowEnabled, code);
     });
   }
@@ -918,7 +296,7 @@ function enableAllToggles(pairs, selectedSet, storageKey, allCodes) {
   for (const [buttonElement] of pairs) setFilterToggle(buttonElement, true);
   selectedSet.clear();
   allCodes.forEach(code => selectedSet.add(code));
-  localStorage.setItem(storageKey, allCodes.join(""));
+  writeToggleCodes(storageKey, allCodes);
 }
 
 function wireFilterControls() {
@@ -928,36 +306,32 @@ function wireFilterControls() {
   applyStoredHosts();
   orgSelectElement.addEventListener("change", () => {
     Array.from(orgSelectElement.options).forEach((opt) => {
-      orgs[opt.value].dropdownSelected = opt.selected;
+      state.orgs[opt.value].dropdownSelected = opt.selected;
     });
     persistHosts();
     refresh({trackVisibility: true, popup: true, calendar: true});
   });
 
-  if (!localStorage.getItem(STORAGE_KEY_USER_VEHICLE_TYPES)) {  // new user or all vehicle types unselected
-    localStorage.setItem(STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(VEHICLE_TYPES).join(""));
-  }
-  if (!localStorage.getItem(STORAGE_KEY_USER_EVENT_TYPES)) {  // new user or all event types unselected
-    localStorage.setItem(STORAGE_KEY_USER_EVENT_TYPES, Object.keys(EVENT_TYPES).join(""));
-  }
+  ensureDefaultToggleCodes(STORAGE_KEYS.vehicleTypes, Object.keys(VEHICLE_TYPES));
+  ensureDefaultToggleCodes(STORAGE_KEYS.eventTypes, Object.keys(EVENT_TYPES));
 
   bindToggleGroup(vehiclePairs, {
-    selectedSet: selectedVehicleTypes,
-    storageKey: STORAGE_KEY_USER_VEHICLE_TYPES,
+    selectedSet: state.selectedVehicleTypes,
+    storageKey: STORAGE_KEYS.vehicleTypes,
     onChange() {
-      if (selectedVehicleTypes.size > 0) {
-        homeMarker.setIcon(selectedVehicleTypes.has("C") ? homeIconCar : homeIconMoto);
+      if (state.selectedVehicleTypes.size > 0) {
+        setHomeIcon(state.selectedVehicleTypes.has("C"));
       }
       refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
     },
   });
-  if (selectedVehicleTypes.size === 0 || selectedVehicleTypes.has("C")) {
-    homeMarker.setIcon(homeIconCar);
+  if (state.selectedVehicleTypes.size === 0 || state.selectedVehicleTypes.has("C")) {
+    setHomeIcon(true);
   }
 
   bindToggleGroup(eventPairs, {
-    selectedSet: selectedEventTypes,
-    storageKey: STORAGE_KEY_USER_EVENT_TYPES,
+    selectedSet: state.selectedEventTypes,
+    storageKey: STORAGE_KEYS.eventTypes,
     onChange() {
       refresh({trackVisibility: true, popup: true, calendar: true, dropdown: true});
     },
@@ -972,19 +346,18 @@ function wireFilterControls() {
   showTracksWithoutEventsToggleElement.addEventListener("click", () => {
     let nowEnabled = !showTracksWithoutEventsToggleElement.classList.contains("on");
     setFilterToggle(showTracksWithoutEventsToggleElement, nowEnabled);
-    localStorage.setItem(STORAGE_KEY_EMPTY_TRACKS, nowEnabled ? "1" : "0");
+    persistShowEmptyTracks(nowEnabled);
     refresh({trackVisibility: true});
   });
-  let storedEmptyTracks = localStorage.getItem(STORAGE_KEY_EMPTY_TRACKS);
-  let emptyTracksOn = storedEmptyTracks === null ? showTracksWithoutEventsToggleElement.classList.contains("on") : storedEmptyTracks === "1";
-  setFilterToggle(showTracksWithoutEventsToggleElement, emptyTracksOn);
+  setFilterToggle(
+    showTracksWithoutEventsToggleElement,
+    loadShowEmptyTracks(showTracksWithoutEventsToggleElement.classList.contains("on"))
+  );
 
-  exportSavedEventsElement.addEventListener("click", () => {
-    downloadSavedEventsICS();
-  });
+  exportSavedEventsElement.addEventListener("click", downloadSavedEventsICS);
 
   resetElement.addEventListener("click", () => {
-    let savedEventsPrompt = [...savedEventsSet].sort((a, b) => {
+    let savedEventsPrompt = [...state.savedEventsSet].sort((a, b) => {
       let [dateA] = a.split("|");
       let [dateB] = b.split("|");
       return dateA.localeCompare(dateB) || a.localeCompare(b);
@@ -992,20 +365,20 @@ function wireFilterControls() {
       let [date, org, track] = eventKey.split("|");
       return `${date} | ${track} | ${org}`;
     }).join("\n");
-    if (savedEventsSet.size > 0 && confirm(`Also clear all saved events?\n\n${savedEventsPrompt}`)) {
-      savedEventsSet.clear();
-      localStorage.removeItem(STORAGE_KEY_USER_SAVED_EVENTS);
+    if (state.savedEventsSet.size > 0 && confirm(`Also clear all saved events?\n\n${savedEventsPrompt}`)) {
+      state.savedEventsSet.clear();
+      clearSavedEvents();
     }
 
     clearStoredFilters();
 
-    enableAllToggles(vehiclePairs, selectedVehicleTypes, STORAGE_KEY_USER_VEHICLE_TYPES, Object.keys(VEHICLE_TYPES));
-    enableAllToggles(eventPairs, selectedEventTypes, STORAGE_KEY_USER_EVENT_TYPES, Object.keys(EVENT_TYPES));
-    homeMarker.setIcon(homeIconCar);
+    enableAllToggles(vehiclePairs, state.selectedVehicleTypes, STORAGE_KEYS.vehicleTypes, Object.keys(VEHICLE_TYPES));
+    enableAllToggles(eventPairs, state.selectedEventTypes, STORAGE_KEYS.eventTypes, Object.keys(EVENT_TYPES));
+    setHomeIcon(true);
 
-    Object.values(orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
+    Object.values(state.orgs).forEach(org => org.dropdownSelected = (org.numEvents > 0));
     setFilterToggle(showTracksWithoutEventsToggleElement, true);
-    Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
+    showAllTrackMarkers();
 
     setCalendarRange(null, null);
     resetCalendarMonth();  // updateCalendar returns to the current month
@@ -1013,8 +386,57 @@ function wireFilterControls() {
       opt.selected = true;
     });
     daySelectElement.loadOptions();
-    homeLocked = false;
-    resetHome();
+    unlockHome();
+    resetHome(refresh);
+  });
+}
+
+function wireStaticListeners() {
+  wirePopupActions({
+    onSaveEvent: onEventSaveToggle,
+    onMissingEvent: reportMissingEvent,
+    onRecordsTab: setRecordsOpen,
+    onAddRecord: openRecordForm,
+    onClearDateRange: clearCalendarDateFilter,
+  });
+
+  document.getElementById("lastSyncMessage").addEventListener("click", (event) => {
+    event.preventDefault();
+    toggleSyncInfo();
+  });
+
+  document.getElementById("calendar").addEventListener("click", (event) => {
+    if (event.target.closest("[data-cal-clear-range]")) {
+      clearCalendarDateFilter();
+      return;
+    }
+    let star = event.target.closest(".event-save-star");
+    if (!star) return;
+    event.preventDefault();
+    onEventSaveToggle(star);
+  }, true);
+
+  let dateFilterBar = document.getElementById("dateFilterBar");
+  dateFilterBar.addEventListener("click", (event) => {
+    if (event.target.closest("[data-cal-clear-range]")) {
+      clearCalendarDateFilter();
+      return;
+    }
+    if (!dateFilterBar.classList.contains("is-idle")) return;
+    document.getElementById("calendar")?.scrollIntoView({behavior: "smooth", block: "start"});
+  });
+  dateFilterBar.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    if (!dateFilterBar.classList.contains("is-idle")) return;
+    event.preventDefault();
+    document.getElementById("calendar")?.scrollIntoView({behavior: "smooth", block: "start"});
+  });
+
+  const headerAd = document.getElementById("fotosort-ad");
+  if (isHeaderAdClosed()) headerAd.hidden = true;
+  document.getElementById("close-ad").addEventListener("click", () => {
+    headerAd.hidden = true;
+    markHeaderAdClosed();
   });
 }
 
@@ -1024,11 +446,19 @@ async function visualizeData() {
     // Promise.all (and set that flag false) to switch back to per-track loading on popup open.
     await Promise.all([fetchAndNormalizeTrackdays(), loadAllLapRecords()]);
     finishLapRecordsPreload();
-    createTrackMarkers();
-    wireHomeAndRadius();
+    createTrackMarkers({
+      onTrackOpen(trackKey) {
+        if (trackKey !== state.lastOpenedTrack) resetRecordForm();
+        state.lastOpenedTrack = trackKey;
+        // Cache hit when PRELOAD_ALL_LAP_RECORDS; otherwise fetches this track (see index-lap-records.js).
+        loadTrackRecords(trackKey);
+      },
+      onPopupOpen: syncOpenPopup,
+    });
+    wireHomeAndRadius(refresh);
     wireFilterControls();
     alertOnMissingSavedEvents();
-    resetHome();
+    resetHome(refresh);
   } catch (error) {
     document.getElementById("eventInfoText").hidden = true;
     const spinner = document.getElementById("eventInfoSpinner");
@@ -1039,40 +469,10 @@ async function visualizeData() {
     alert("Error: unable to retrieve data");
   }
 }
-initIndexLapRecords({
-  getTracks: () => tracks,
-  getLastOpenedTrack: () => lastOpenedTrack,
-  getSelectedVehicleTypes: () => selectedVehicleTypes,
-  updateTrackPopup,
-  popupList,
-});
-initIndexSuggest({
-  getTracks: () => tracks,
-  getOrgs: () => orgs,
-  getLastOpenedTrack: () => lastOpenedTrack,
-});
-initCalendar({
-  getTrackdays: () => trackdays,
-  getTracks: () => tracks,
-  getOrgs: () => orgs,
-  getSavedEventsSet: () => savedEventsSet,
-  getSelectedVehicleTypes: () => selectedVehicleTypes,
-  getSelectedEventTypes: () => selectedEventTypes,
-  getSelectedCalendarRange: () => ({start: selectedCalendarStart, end: selectedCalendarEnd}),
-  selectedWeekdays,
-  getEventKey,
-  passesFilters,
-});
-initCalendarMonth({
-  getTrackdays: () => trackdays,
-  getSavedEventsSet: () => savedEventsSet,
-  getSelectedCalendarRange: () => ({start: selectedCalendarStart, end: selectedCalendarEnd}),
-  getEventKey,
-  hiddenEventNote,
-  setCalendarRange,
-  updateCalendar,
-  refresh,
-});
 
-getGPSLocation();
+initIndexLapRecords({updateTrackPopup});
+initIndexSuggest();
+initCalendarMonth({updateCalendar, refresh});
+wireStaticListeners();
+getGPSLocation(refresh);
 visualizeData();

@@ -10,10 +10,10 @@ import {
   postJson,
   submitReview,
 } from "./lap-record-shared.js";
+import {state} from "./filters.js";
 import {fillTrackSelect} from "./index-lap-records.js";
 
 let suggestUi = {kind: "track", submitting: false, submitId: 0, eventType: "T"};
-let ctx = null;
 
 function optionalField(value, maxLen, tooLongMsg) {
   let text = String(value || "").trim();
@@ -44,7 +44,7 @@ function suggestVehicleTypes() {
 }
 
 function suggestHosts(input) {
-  suggestField(input, ctx?.getOrgs() || null, "org");
+  suggestField(input, state.orgs || null, "org");
 }
 
 function suggestField(input, items, key) {
@@ -123,9 +123,8 @@ function toggleSuggestVehicle(button) {
 
 function suggestTrackLabel(trackKey) {
   if (!trackKey) return "";
-  let tracks = ctx?.getTracks();
-  if (!tracks || !tracks[trackKey]) return trackKey;
-  return tracks[trackKey].name || tracks[trackKey].nickname || trackKey;
+  if (!state.tracks || !state.tracks[trackKey]) return trackKey;
+  return state.tracks[trackKey].name || state.tracks[trackKey].nickname || trackKey;
 }
 
 function resetSuggestForm(form, options) {
@@ -170,10 +169,8 @@ function openSuggestDialog(kind, trackKey) {
 }
 
 export function reportMissingEvent() {
-  let tracks = ctx?.getTracks();
-  let lastOpenedTrack = ctx?.getLastOpenedTrack();
-  if (!tracks || !tracks[lastOpenedTrack]) return;
-  openSuggestDialog("missing_event", lastOpenedTrack);
+  if (!state.tracks || !state.tracks[state.lastOpenedTrack]) return;
+  openSuggestDialog("missing_event", state.lastOpenedTrack);
 }
 
 function closeSuggestDialog() {
@@ -256,8 +253,7 @@ async function submitSuggestForm(event) {
   });
 }
 
-export function initIndexSuggest(context) {
-  ctx = context;
+export function initIndexSuggest() {
   let dialog = document.getElementById("suggestDialog");
   let form = dialog.querySelector("form");
   wireReviewDialog(dialog, {
