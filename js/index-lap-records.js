@@ -1,26 +1,13 @@
 import {LAP_RECORDS_URL, fetchJson, vehicleFullLabel} from "./config.js";
 import {
-  CUSTOM_CLASS_VALUE,
   escapeHtml,
   safeHttpUrl,
   timeToMs,
   formatLapTime,
-  rankFormClasses,
-  showRecordCustomClass,
   suggestedClasses,
-  readCreateDraft,
   raceTag,
-  createLapRecordPayload,
-  validateCreateDraft,
-  refillRecordClasses,
-  fillRecordSubtracks,
-  prepareRecordForm,
-  setFormMessage,
-  setFormSubmitting,
-  closeReviewDialog,
-  wireReviewDialog,
-  focusReviewField,
-  submitReview,
+  fillTrackSelectOptions,
+  createLapRecordDialog,
 } from "./lap-record-shared.js";
 
 let lapRecords = {tracks: {}};
@@ -32,6 +19,7 @@ export let recordsUi = {open: false, submitting: false, submitId: 0};
 const PRELOAD_ALL_LAP_RECORDS = true;
 let lapRecordsPreloadOk = false;
 let ctx = null;
+let recordDialogCtrl = null;
 
 function trackRecords(trackKey) {
   let entry = lapRecords.tracks && lapRecords.tracks[trackKey];
@@ -103,14 +91,14 @@ export async function loadTrackRecords(trackKey) {
     };
   }
   if (ctx.getLastOpenedTrack() === trackKey && recordsUi.open) ctx.updateTrackPopup();
-  let recordFormEl = recordForm();
-  if (recordFormEl && recordTrackKey(recordFormEl) === trackKey) syncRecordDialog();
+  if (recordDialogCtrl && recordDialogCtrl.currentTrack() === trackKey) recordDialogCtrl.sync();
 }
 
-function preferredRecordType(types) {
+function preferredRecordType() {
+  let types = ["C", "M"].filter(code => suggestedClasses(code).length);
   let selectedVehicleTypes = ctx.getSelectedVehicleTypes();
-  let preferred = ["C", "M", "S"].find(code => selectedVehicleTypes.has(code) && (!types || types.includes(code)));
-  return preferred || (types && types[0]) || "C";
+  let preferred = ["C", "M", "S"].find(code => selectedVehicleTypes.has(code) && types.includes(code));
+  return preferred || types[0] || "C";
 }
 
 export function setRecordsOpen(open) {
@@ -122,67 +110,20 @@ export function setRecordsOpen(open) {
   }
 }
 
-// hardcoded suggestions stay available - classes already on this track are ordered by their fastest lap; suggestions with no time yet follow in their original order
-function formClasses(code, trackKey) {
-  let bestMs = new Map();
-  trackRecords(trackKey).forEach(record => {
-    if (record.vehicleType !== code) return;
-    let name = recordClassName(record);
-    if (!name) return;
-    let ms = timeToMs(record.time);
-    if (!bestMs.has(name) || ms < bestMs.get(name)) bestMs.set(name, ms);
-  });
-  return rankFormClasses(suggestedClasses(code), bestMs);
-}
-
-function recordDialog() {
-  return document.getElementById("recordDialog");
-}
-
-function recordForm() {
-  return document.getElementById("lap-record-form");
-}
-
-function recordTrackKey(form) {
-  let selected = form && form.elements.track && form.elements.track.value;
-  return selected || ctx.getLastOpenedTrack() || "";
-}
-
 function trackOptionLabel(track, key) {
   let name = (track && (track.name || track.nickname)) || key;
   if (track && track.showNickname && track.nickname && track.nickname !== track.name) name += ` (${track.nickname})`;
   return name;
 }
 
-export function fillTrackSelect(select, selectedKey, placeholder) {
-  if (!select) return;
+function trackEntries() {
   let tracks = ctx?.getTracks();
-  let entries = [];
-  if (tracks) {
-    Object.keys(tracks).forEach(key => entries.push({key, label: trackOptionLabel(tracks[key], key)}));
-  }
-  if (selectedKey && !entries.some(entry => entry.key === selectedKey)) entries.push({key: selectedKey, label: selectedKey});
-  entries.sort((a, b) => a.label.localeCompare(b.label));
-  select.replaceChildren();
-  if (placeholder) {
-    let blank = document.createElement("option");
-    blank.value = "";
-    blank.textContent = placeholder;
-    select.appendChild(blank);
-  }
-  entries.forEach(entry => {
-    let option = document.createElement("option");
-    option.value = entry.key;
-    option.textContent = entry.label;
-    select.appendChild(option);
-  });
-  if (selectedKey && [...select.options].some(option => option.value === selectedKey)) select.value = selectedKey;
-  else if (placeholder) select.value = "";
-  else if (select.options.length) select.selectedIndex = 0;
+  if (!tracks) return [];
+  return Object.keys(tracks).map(key => ({key, label: trackOptionLabel(tracks[key], key)}));
 }
 
-function fillRecordTracks(form, selectedKey) {
-  fillTrackSelect(form.elements.track, selectedKey);
+export function fillTrackSelect(select, selectedKey, placeholder) {
+  fillTrackSelectOptions(select, trackEntries(), selectedKey, placeholder);
 }
 
 function trackSubtracks(trackKey) {
@@ -192,58 +133,12 @@ function trackSubtracks(trackKey) {
   return track.subtracks.map(name => String(name).trim()).filter(Boolean);
 }
 
-function syncRecordDialog() {
-  let dialog = recordDialog();
-  let form = recordForm();
-  if (!dialog || !dialog.open || !form) return;
-  fillRecordTracks(form, recordTrackKey(form));
-  refillRecordClasses(form, form.elements.vehicleType.value, "refresh", formClasses);
-  fillRecordSubtracks(form, recordTrackKey(form), trackSubtracks);
-}
-
 export function resetRecordForm() {
-  recordsUi.submitting = false;
-  recordsUi.submitId += 1;
-  let dialog = recordDialog();
-  if (dialog && dialog.open) dialog.close();
+  recordDialogCtrl?.reset();
 }
 
 export function openRecordForm() {
-  let dialog = recordDialog();
-  let form = recordForm();
-  if (!dialog || !form) return;
-  let types = ["C", "M"].filter(code => suggestedClasses(code).length);
-  let type = preferredRecordType(types);
-  recordsUi.submitting = false;
-  prepareRecordForm(form, ctx.getLastOpenedTrack(), type, formClasses, fillRecordTracks, trackSubtracks);
-  setFormSubmitting(recordsUi, form, false);
-  setFormMessage(form.querySelector(".rec-form-msg"), null);
-  if (!dialog.open) dialog.showModal();
-  focusReviewField(form);
-}
-
-function closeRecordForm() {
-  closeReviewDialog(recordsUi, "recordDialog");
-}
-
-async function submitLapRecord(event) {
-  let form = event.target;
-  let draft = readCreateDraft(form);
-  let trackKey = draft.track;
-  let type = draft.vehicleType;
-  await submitReview(event, {
-    state: recordsUi,
-    messageEl: form.querySelector(".rec-form-msg"),
-    setSubmitting: (submitting) => setFormSubmitting(recordsUi, form, submitting),
-    validate: () => validateCreateDraft(draft, {
-      allowedClasses: formClasses(draft.vehicleType, draft.track),
-      knownSubtracks: trackSubtracks(draft.track),
-    }),
-    payload: () => createLapRecordPayload(draft),
-    onSuccess() {
-      prepareRecordForm(form, trackKey, type, formClasses, fillRecordTracks, trackSubtracks);
-    },
-  });
+  recordDialogCtrl?.open();
 }
 
 export function recordsListHtml(trackKey) {
@@ -317,30 +212,14 @@ export function recordsListHtml(trackKey) {
 
 export function initIndexLapRecords(context) {
   ctx = context;
-  let form = recordForm();
-  form.addEventListener("submit", submitLapRecord);
-  form.elements.track.addEventListener("change", () => {
-    let trackKey = form.elements.track.value;
-    if (form.elements.subtrack) form.elements.subtrack.value = "";
-    fillRecordSubtracks(form, trackKey, trackSubtracks);
-    refillRecordClasses(form, form.elements.vehicleType.value, "reset", formClasses);
-    if (trackKey) loadTrackRecords(trackKey);
-  });
-  form.elements.vehicleType.addEventListener("change", () => {
-    let code = form.elements.vehicleType.value;
-    if (!suggestedClasses(code).length) return;
-    refillRecordClasses(form, code, "named", formClasses);
-    setFormMessage(form.querySelector(".rec-form-msg"), null);
-  });
-  form.elements.vehicleClass.addEventListener("change", () => {
-    let show = form.elements.vehicleClass.value === CUSTOM_CLASS_VALUE;
-    showRecordCustomClass(form, show);
-    if (show && form.elements.customClass) form.elements.customClass.focus();
-  });
-  wireReviewDialog(document.getElementById("recordDialog"), {
+  recordDialogCtrl = createLapRecordDialog({
+    dialog: document.getElementById("recordDialog"),
     state: recordsUi,
-    form,
-    messageEl: document.getElementById("recordMessage"),
-    close: closeRecordForm,
+    getTrackEntries: trackEntries,
+    getSubtracks: trackSubtracks,
+    getRecordsForTrack: trackRecords,
+    getDefaultTrack: () => ctx.getLastOpenedTrack(),
+    getDefaultVehicleType: preferredRecordType,
+    onTrackChange: (trackKey) => { if (trackKey) loadTrackRecords(trackKey); },
   });
 }

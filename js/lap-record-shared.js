@@ -465,6 +465,150 @@ function mountLapRecordForm(dialog) {
   }
 }
 
+function fillTrackSelectOptions(select, entries, selectedKey, placeholder) {
+  if (!select) return;
+  let list = entries.slice();
+  if (selectedKey && !list.some(entry => entry.key === selectedKey)) {
+    list.push({key: selectedKey, label: selectedKey});
+  }
+  list.sort((a, b) => a.label.localeCompare(b.label) || a.key.localeCompare(b.key));
+  select.replaceChildren();
+  if (placeholder) {
+    let blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = placeholder;
+    select.appendChild(blank);
+  }
+  list.forEach(entry => {
+    let option = document.createElement("option");
+    option.value = entry.key;
+    option.textContent = entry.label;
+    select.appendChild(option);
+  });
+  if (selectedKey && [...select.options].some(option => option.value === selectedKey)) select.value = selectedKey;
+  else if (placeholder) select.value = "";
+  else if (select.options.length) select.selectedIndex = 0;
+}
+
+function createLapRecordDialog(opts) {
+  let dialog = opts.dialog;
+  mountLapRecordForm(dialog);
+  let form = dialog && dialog.querySelector("#lap-record-form");
+  let messageEl = form && form.querySelector(".rec-form-msg");
+  let state = opts.state || {submitting: false, submitId: 0};
+
+  function formClasses(code, trackKey) {
+    let bestMs = new Map();
+    (opts.getRecordsForTrack(trackKey) || []).forEach(record => {
+      if (record.vehicleType !== code) return;
+      let name = record.vehicleClass || "";
+      if (!name) return;
+      let ms = timeToMs(record.time);
+      if (!bestMs.has(name) || ms < bestMs.get(name)) bestMs.set(name, ms);
+    });
+    return rankFormClasses(suggestedClasses(code), bestMs);
+  }
+
+  function fillTracks(targetForm, selectedKey) {
+    fillTrackSelectOptions(targetForm.elements.track, opts.getTrackEntries(), selectedKey, opts.trackPlaceholder);
+  }
+
+  function setSubmitting(submitting) {
+    setFormSubmitting(state, form, submitting, [
+      form.elements.track,
+      form.elements.vehicleType,
+      form.elements.vehicleClass,
+    ]);
+  }
+
+  function currentTrack() {
+    let selected = form && form.elements.track && form.elements.track.value;
+    return selected || (opts.getDefaultTrack ? opts.getDefaultTrack() : "") || "";
+  }
+
+  function hasTracks() {
+    let minOptions = opts.trackPlaceholder ? 2 : 1;
+    return form.elements.track.options.length >= minOptions;
+  }
+
+  function open() {
+    if (!dialog || !form) return;
+    let type = opts.getDefaultVehicleType ? opts.getDefaultVehicleType() : "C";
+    if (!suggestedClasses(type).length) type = "C";
+    state.submitting = false;
+    prepareRecordForm(form, opts.getDefaultTrack ? opts.getDefaultTrack() : "", type, formClasses, fillTracks, opts.getSubtracks);
+    setSubmitting(false);
+    let emptyMsg = opts.emptyTracksMessage && !hasTracks()
+      ? {text: opts.emptyTracksMessage, kind: "err"}
+      : null;
+    setFormMessage(messageEl, emptyMsg);
+    if (!dialog.open) dialog.showModal();
+    focusReviewField(form);
+  }
+
+  function close() {
+    closeReviewDialog(state, dialog);
+  }
+
+  function reset() {
+    state.submitting = false;
+    state.submitId += 1;
+    if (dialog && dialog.open) dialog.close();
+  }
+
+  function sync() {
+    if (!dialog || !dialog.open || !form) return;
+    let selected = currentTrack();
+    fillTracks(form, selected);
+    let activeTrack = form.elements.track.value || selected;
+    fillRecordSubtracks(form, activeTrack, opts.getSubtracks);
+    refillRecordClasses(form, form.elements.vehicleType.value, "refresh", formClasses);
+    if (opts.emptyTracksMessage && hasTracks()) setFormMessage(messageEl, null);
+  }
+
+  async function onSubmit(event) {
+    let draft = readCreateDraft(form);
+    await submitReview(event, {
+      state,
+      messageEl,
+      setSubmitting,
+      validate: () => validateCreateDraft(draft, {
+        allowedClasses: formClasses(draft.vehicleType, draft.track),
+        knownSubtracks: opts.getSubtracks(draft.track),
+      }),
+      payload: () => createLapRecordPayload(draft),
+      onSuccess() {
+        prepareRecordForm(form, draft.track, draft.vehicleType, formClasses, fillTracks, opts.getSubtracks);
+      },
+    });
+  }
+
+  if (dialog && form) {
+    form.addEventListener("submit", onSubmit);
+    form.elements.track.addEventListener("change", () => {
+      let trackKey = form.elements.track.value;
+      if (form.elements.subtrack) form.elements.subtrack.value = "";
+      fillRecordSubtracks(form, trackKey, opts.getSubtracks);
+      refillRecordClasses(form, form.elements.vehicleType.value, "reset", formClasses);
+      if (opts.onTrackChange) opts.onTrackChange(trackKey);
+    });
+    form.elements.vehicleType.addEventListener("change", () => {
+      let code = form.elements.vehicleType.value;
+      if (!suggestedClasses(code).length) return;
+      refillRecordClasses(form, code, "named", formClasses);
+      setFormMessage(messageEl, null);
+    });
+    form.elements.vehicleClass.addEventListener("change", () => {
+      let show = form.elements.vehicleClass.value === CUSTOM_CLASS_VALUE;
+      showRecordCustomClass(form, show);
+      if (show && form.elements.customClass) form.elements.customClass.focus();
+    });
+    wireReviewDialog(dialog, {state, form, messageEl, close});
+  }
+
+  return {open, close, reset, sync, currentTrack};
+}
+
 mountLapRecordForm(document.getElementById("recordDialog"));
 
 export {
@@ -481,6 +625,7 @@ export {
   formatMs,
   fillSelectOptions,
   fillSelectWithOther,
+  fillTrackSelectOptions,
   rankFormClasses,
   showRecordCustomClass,
   suggestedClasses,
@@ -512,4 +657,5 @@ export {
   postLapRecord,
   submitReview,
   mountLapRecordForm,
+  createLapRecordDialog,
 };
