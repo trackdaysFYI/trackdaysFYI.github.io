@@ -1,6 +1,26 @@
-const RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
-const TRACKS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays?include=tracks";
-const VEHICLE_LABELS = {C: "Car", M: "Bike"};
+import {LAP_RECORDS_URL, TRACKS_URL, downloadBlob, fetchJson, vehicleShortLabel} from "./config.js";
+import {
+  TIMING_DEVICES,
+  escapeHtml,
+  safeHttpUrl,
+  timeToMs,
+  formatLapTime,
+  formatMs,
+  fillSelectOptions,
+  todayIso,
+  parseOptionalYear,
+  validateNote,
+  validateSharedEditFields,
+  raceTag,
+  formatHolder,
+  setFormMessage,
+  setFormSubmitting,
+  closeReviewDialog,
+  wireReviewDialog,
+  submitReview,
+  createLapRecordDialog,
+} from "./lap-record-shared.js";
+import {clearRecordCharts, renderRecordCharts} from "./records-charts.js";
 
 let records = [];
 let allRecordsCache = null;
@@ -17,7 +37,6 @@ let paramsApplied = false;
 let headerParamsApplied = false;
 let referenceKey = null;
 let changeUi = {submitting: false, submitId: 0, action: "edit", record: null};
-let recordsUi = {submitting: false, submitId: 0};
 const trackSelect = document.getElementById("track");
 const nameInput = document.getElementById("name");
 const vehicleSelect = document.getElementById("vehicle");
@@ -41,8 +60,6 @@ const changeMeta = document.getElementById("change-meta");
 const changeNoteLabel = document.getElementById("change-note-label");
 const changeMessage = document.getElementById("changeMessage");
 const recordDialog = document.getElementById("recordDialog");
-const recordForm = document.getElementById("lap-record-form");
-const recordMessage = document.getElementById("recordMessage");
 const addRecordButton = document.getElementById("add-record");
 
 function trackKey() {
@@ -176,17 +193,6 @@ function compareRecords(a, b) {
   return trackLabel(a.track).localeCompare(trackLabel(b.track)) || String(a.vehicleClass).localeCompare(String(b.vehicleClass));
 }
 
-function formatGap(ms) {
-  ms = Math.round(ms);
-  let sign = ms > 0 ? "+" : ms < 0 ? "\u2212" : "";
-  ms = Math.abs(ms);
-  let minutes = Math.floor(ms / 60000);
-  let seconds = ((ms % 60000) / 1000).toFixed(3);
-  if (!minutes) return `${sign}${seconds}`;
-  let [whole, frac] = seconds.split(".");
-  return `${sign}${minutes}:${whole.padStart(2, "0")}.${frac}`;
-}
-
 function recordKey(record) {
   if (record.recordId) return "id:" + record.recordId;
   return [
@@ -238,7 +244,7 @@ function exportCsv() {
       record.holder || "",
       record.raceNumber || "",
       vehicleLabel(record),
-      VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "",
+      vehicleShortLabel(record.vehicleType),
       record.vehicleClass || "",
       record.date || "",
       record.evidence || "",
@@ -248,23 +254,12 @@ function exportCsv() {
   downloadBlob(blob, "lap-records.csv");
 }
 
-function downloadBlob(blob, fileName) {
-  let url = URL.createObjectURL(blob);
-  let link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 function activeFilterSummary() {
   let parts = [];
   let track = trackKey();
   if (track) parts.push(`Track: ${trackLabel(track)}`);
   if (vehicleSelect.value) {
-    parts.push(`Vehicle: ${VEHICLE_LABELS[vehicleSelect.value] || vehicleSelect.value}`);
+    parts.push(`Vehicle: ${vehicleShortLabel(vehicleSelect.value)}`);
   }
   if (classSelect.value) parts.push(`Class: ${classSelect.value}`);
   if (subtrackSelect.value && !subtrackFilter.hidden) parts.push(`Subtrack: ${subtrackSelect.value}`);
@@ -282,7 +277,7 @@ function printRecords() {
 function recordRow(record, includeClass, includeTrack, includeSubtrack, includeType, gapMs) {
   let key = recordKey(record);
   let isRef = key === referenceKey;
-  let type = includeType ? (VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "") : "";
+  let type = includeType ? vehicleShortLabel(record.vehicleType) : "";
   let classLabel = [type, record.vehicleClass || ""].filter(Boolean).join(" · ");
   let evidence = safeHttpUrl(record.evidence);
   let evidenceCell = evidence ? `<a href="${escapeHtml(evidence)}" target="_blank" rel="noopener">View</a>` : "";
@@ -293,7 +288,7 @@ function recordRow(record, includeClass, includeTrack, includeSubtrack, includeT
     ? ` <span class="gap ref-mark" title="Reference">ref</span>`
     : gapMs == null
       ? ""
-      : ` <span class="gap ${gapMs < 0 ? "faster" : gapMs > 0 ? "slower" : ""}">${formatGap(gapMs)}</span>`;
+      : ` <span class="gap ${gapMs < 0 ? "faster" : gapMs > 0 ? "slower" : ""}">${formatMs(gapMs, {signed: true})}</span>`;
   let canChange = !!record.recordId;
   let actionIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
   let actionCell = canChange
@@ -345,7 +340,7 @@ function subtrackGroups(shown) {
 
 function groupLabel(key, flags) {
   let [track, subtrack, typeCode, className] = key.split("\0");
-  let type = VEHICLE_LABELS[typeCode] || typeCode || "";
+  let type = vehicleShortLabel(typeCode);
   let parts = [];
   if (flags.subtrack && subtrack) parts.push(subtrack);
   if (flags.track) parts.push(trackLabel(track));
@@ -396,7 +391,12 @@ function renderRows() {
   statusEl.textContent = `${shown.length} record${shown.length === 1 ? "" : "s"}`;
   exportCsvButton.disabled = !shown.length;
   printButton.disabled = !shown.length;
-  if (typeof renderRecordCharts === "function") renderRecordCharts(shown, refRecord || null);
+  renderRecordCharts(shown, refRecord || null, {
+    isSingleTrack: Boolean(trackKey()),
+    subtrackGroups,
+    recordKey,
+    trackLabel,
+  });
   if (!shown.length) {
     rowsEl.innerHTML = `<tr><td class="empty" colspan="${colspan}">No records match</td></tr>`;
     return;
@@ -465,11 +465,9 @@ function onFilterChange({ refillDependents } = {}) {
 
 async function fetchLapRecords(track, signal) {
   let url = track
-    ? RECORDS_URL + "?track=" + encodeURIComponent(track)
-    : RECORDS_URL;
-  let res = await fetch(url, signal ? {signal} : undefined);
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  let data = await res.json();
+    ? LAP_RECORDS_URL + "?track=" + encodeURIComponent(track)
+    : LAP_RECORDS_URL;
+  let data = await fetchJson(url, signal ? {signal} : undefined);
   if (!Array.isArray(data)) throw new Error("Unable to load lap records.");
   return data;
 }
@@ -584,21 +582,10 @@ function setChangeAction(action) {
   setFormMessage(changeMessage, null);
 }
 
-function fillTimingDeviceSelect(select, selected) {
-  select.replaceChildren();
-  TIMING_DEVICES.forEach(name => {
-    let option = document.createElement("option");
-    option.value = name;
-    option.textContent = name;
-    select.appendChild(option);
-  });
-  select.value = selected;
-}
-
 function fillChangeForm(record) {
   changeUi.record = record;
   changeForm.reset();
-  let type = VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "";
+  let type = vehicleShortLabel(record.vehicleType);
   let parts = [
     `<strong>${escapeHtml(trackLabel(record.track))}</strong>`,
     record.subtrack ? escapeHtml(record.subtrack) : "",
@@ -612,7 +599,7 @@ function fillChangeForm(record) {
   changeForm.elements.time.value = record.time || "";
   changeForm.elements.date.value = record.date || "";
   changeForm.elements.date.max = todayIso();
-  fillTimingDeviceSelect(changeForm.elements.timingDevice, record.timingDevice || "");
+  fillSelectOptions(changeForm.elements.timingDevice, TIMING_DEVICES, record.timingDevice || "", {defaultFirst: false});
   changeForm.elements.evidence.value = record.evidence || "";
   changeForm.elements.note.value = "";
   setChangeAction("edit");
@@ -722,50 +709,6 @@ wireReviewDialog(changeDialog, {
   close: closeChangeDialog,
 });
 
-function formClasses(code, trackKey) {
-  let bestMs = new Map();
-  records.forEach(record => {
-    if (String(record.track || "").toUpperCase() !== String(trackKey || "").toUpperCase()) return;
-    if (record.vehicleType !== code) return;
-    let name = record.vehicleClass || "";
-    if (!name) return;
-    let ms = timeToMs(record.time);
-    if (!bestMs.has(name) || ms < bestMs.get(name)) bestMs.set(name, ms);
-  });
-  return rankFormClasses(suggestedClasses(code), bestMs);
-}
-
-function fillRecordTracks(form, selectedKey) {
-  let select = form.elements.track;
-  let keys = [...new Set([
-    ...Object.keys(trackNames),
-    ...records.map(record => String(record.track).toUpperCase()),
-  ])];
-  if (selectedKey && !keys.includes(selectedKey)) keys.push(selectedKey);
-  keys.sort((a, b) => trackLabel(a).localeCompare(trackLabel(b)) || a.localeCompare(b));
-  select.replaceChildren();
-  let blank = document.createElement("option");
-  blank.value = "";
-  blank.textContent = "Select a track";
-  select.appendChild(blank);
-  keys.forEach(key => {
-    let option = document.createElement("option");
-    option.value = key;
-    option.textContent = trackLabel(key);
-    select.appendChild(option);
-  });
-  select.value = keys.includes(selectedKey) ? selectedKey : "";
-}
-
-function refreshOpenRecordTracks() {
-  if (!recordDialog.open) return;
-  let selected = recordForm.elements.track.value || trackKey();
-  fillRecordTracks(recordForm, selected);
-  fillRecordSubtracks(recordForm, recordForm.elements.track.value, subtracksForTrack);
-  refillRecordClasses(recordForm, recordForm.elements.vehicleType.value, "refresh", formClasses);
-  if (recordForm.elements.track.options.length >= 2) setFormMessage(recordMessage, null);
-}
-
 function subtracksForTrack(trackKey) {
   let key = String(trackKey || "").toUpperCase();
   let known = trackSubtracks[key] || trackSubtracks[trackKey] || [];
@@ -776,71 +719,27 @@ function subtracksForTrack(trackKey) {
   return [...new Set([...known, ...fromRecords])].sort((a, b) => a.localeCompare(b));
 }
 
-function setRecordSubmitting(submitting) {
-  setFormSubmitting(recordsUi, recordForm, submitting, [
-    recordForm.elements.track,
-    recordForm.elements.vehicleType,
-    recordForm.elements.vehicleClass,
-  ]);
-}
-
-function openRecordForm() {
-  let preferredTrack = trackKey();
-  let preferredType = vehicleSelect.value === "M" ? "M" : "C";
-  if (!suggestedClasses(preferredType).length) preferredType = "C";
-  recordsUi.submitting = false;
-  prepareRecordForm(recordForm, preferredTrack, preferredType, formClasses, fillRecordTracks, subtracksForTrack);
-  setRecordSubmitting(false);
-  setFormMessage(recordMessage, recordForm.elements.track.options.length < 2
-    ? {text: "Track list is unavailable. Retry loading the page, then open this form again.", kind: "err"}
-    : null);
-  if (!recordDialog.open) recordDialog.showModal();
-  focusReviewField(recordForm);
-}
-
-function closeRecordForm() {
-  closeReviewDialog(recordsUi, recordDialog);
-}
-
-async function submitCreateForm(event) {
-  let draft = readCreateDraft(recordForm);
-  await submitReview(event, {
-    state: recordsUi,
-    messageEl: recordMessage,
-    setSubmitting: setRecordSubmitting,
-    validate: () => validateCreateDraft(draft, {
-      allowedClasses: formClasses(draft.vehicleType, draft.track),
-      knownSubtracks: subtracksForTrack(draft.track),
-    }),
-    payload: () => createLapRecordPayload(draft),
-    onSuccess() {
-      prepareRecordForm(recordForm, draft.track, draft.vehicleType, formClasses, fillRecordTracks, subtracksForTrack);
-    },
-  });
-}
-
-addRecordButton.addEventListener("click", openRecordForm);
-recordForm.addEventListener("submit", submitCreateForm);
-recordForm.elements.track.addEventListener("change", () => {
-  recordForm.elements.subtrack.value = "";
-  fillRecordSubtracks(recordForm, recordForm.elements.track.value, subtracksForTrack);
-  refillRecordClasses(recordForm, recordForm.elements.vehicleType.value, "reset", formClasses);
+const recordDialogCtrl = createLapRecordDialog({
+  dialog: recordDialog,
+  trackPlaceholder: "Select a track",
+  emptyTracksMessage: "Track list is unavailable. Retry loading the page, then open this form again.",
+  getTrackEntries: () => {
+    let keys = [...new Set([
+      ...Object.keys(trackNames),
+      ...records.map(record => String(record.track).toUpperCase()),
+    ])];
+    return keys.map(key => ({key, label: trackLabel(key)}));
+  },
+  getSubtracks: subtracksForTrack,
+  getRecordsForTrack: (key) => {
+    let upper = String(key || "").toUpperCase();
+    return records.filter(record => String(record.track || "").toUpperCase() === upper);
+  },
+  getDefaultTrack: () => trackKey(),
+  getDefaultVehicleType: () => (vehicleSelect.value === "M" ? "M" : "C"),
 });
-recordForm.elements.vehicleType.addEventListener("change", () => {
-  refillRecordClasses(recordForm, recordForm.elements.vehicleType.value, "named", formClasses);
-  setFormMessage(recordMessage, null);
-});
-recordForm.elements.vehicleClass.addEventListener("change", () => {
-  let show = recordForm.elements.vehicleClass.value === CUSTOM_CLASS_VALUE;
-  showRecordCustomClass(recordForm, show);
-  if (show) recordForm.elements.customClass.focus();
-});
-wireReviewDialog(recordDialog, {
-  state: recordsUi,
-  form: recordForm,
-  messageEl: recordMessage,
-  close: closeRecordForm,
-});
+
+addRecordButton.addEventListener("click", recordDialogCtrl.open);
 
 // Table/export loading only. Add-record readiness depends on the track list, not this fetch.
 function showRecordsLoading() {
@@ -849,7 +748,7 @@ function showRecordsLoading() {
   statusEl.hidden = true;
   exportCsvButton.disabled = true;
   printButton.disabled = true;
-  if (typeof clearRecordCharts === "function") clearRecordCharts();
+  clearRecordCharts();
   rowsEl.innerHTML = `<tr><td class="loading-cell" colspan="9"><div class="loading" role="status" aria-live="polite"><span class="loading-bar"></span><p>Loading lap records...</p></div></td></tr>`;
 }
 
@@ -872,7 +771,7 @@ function showRefetchError(message) {
 
 function showFirstLoadError(message) {
   recordsLoading = false;
-  if (typeof clearRecordCharts === "function") clearRecordCharts();
+  clearRecordCharts();
   rowsEl.innerHTML = "";
   statusEl.hidden = false;
   statusEl.className = "status err";
@@ -886,23 +785,20 @@ async function loadPage() {
   showRecordsLoading();
   try {
     try {
-      let tracksResult = await fetch(TRACKS_URL);
-      if (tracksResult.ok) {
-        let data = await tracksResult.json();
-        (data.tracks || []).forEach(track => {
-          if (!track.nickname) return;
-          let key = String(track.nickname).toUpperCase();
-          trackNames[key] = track.name || track.nickname;
-          trackSubtracks[key] = Array.isArray(track.subtracks)
-            ? track.subtracks.map(name => String(name || "").trim()).filter(Boolean)
-            : [];
-        });
-      }
+      let data = await fetchJson(TRACKS_URL);
+      (data.tracks || []).forEach(track => {
+        if (!track.nickname) return;
+        let key = String(track.nickname).toUpperCase();
+        trackNames[key] = track.name || track.nickname;
+        trackSubtracks[key] = Array.isArray(track.subtracks)
+          ? track.subtracks.map(name => String(name || "").trim()).filter(Boolean)
+          : [];
+      });
     } catch (err) {
       // Keep any track list already loaded. A failed refresh must not empty the form.
     }
     setAddRecordReady(Object.keys(trackNames).length > 0);
-    refreshOpenRecordTracks();
+    recordDialogCtrl.sync();
 
     if (!headerParamsApplied) {
       applyParams();

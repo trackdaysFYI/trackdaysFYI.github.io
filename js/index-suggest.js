@@ -1,4 +1,18 @@
-const SUGGESTION_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/submitSuggestion";
+import {SUGGESTION_URL} from "./config.js";
+import {addDays, addMonths, parseIsoDate, todayUtcIso} from "./dates.js";
+import {
+  safeHttpUrl,
+  setFormMessage,
+  setFormSubmitting,
+  closeReviewDialog,
+  wireReviewDialog,
+  focusReviewField,
+  postJson,
+  submitReview,
+} from "./lap-record-shared.js";
+import {state} from "./filters.js";
+import {fillTrackSelect} from "./index-lap-records.js";
+
 let suggestUi = {kind: "track", submitting: false, submitId: 0, eventType: "T"};
 
 function optionalField(value, maxLen, tooLongMsg) {
@@ -12,16 +26,14 @@ function assignOptional(payload, key, value) {
 }
 
 function suggestEventDateBounds() {
-  let today = dayjs.utc().startOf("day");
-  return {min: today.subtract(1, "day"), max: today.add(18, "month")};
+  let today = todayUtcIso();
+  return {min: addDays(today, -1), max: addMonths(today, 18)};
 }
 
 function missingEventDateError(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "Enter the event date";
-  let parsed = dayjs.utc(value, "YYYY-MM-DD", true);
-  if (!parsed.isValid() || parsed.format("YYYY-MM-DD") !== value) return "Enter the event date";
+  if (!parseIsoDate(value)) return "Enter the event date";
   let bounds = suggestEventDateBounds();
-  if (parsed.isBefore(bounds.min) || parsed.isAfter(bounds.max)) return "Enter the event date";
+  if (value < bounds.min || value > bounds.max) return "Enter the event date";
   return "";
 }
 
@@ -32,7 +44,7 @@ function suggestVehicleTypes() {
 }
 
 function suggestHosts(input) {
-  suggestField(input, typeof orgs === "undefined" ? null : orgs, "org");
+  suggestField(input, state.orgs || null, "org");
 }
 
 function suggestField(input, items, key) {
@@ -93,8 +105,8 @@ function setSuggestKind(kind) {
     let date = dialog.querySelector("input[name=eventDate]");
     if (date) {
       let bounds = suggestEventDateBounds();
-      date.min = bounds.min.format("YYYY-MM-DD");
-      date.max = bounds.max.format("YYYY-MM-DD");
+      date.min = bounds.min;
+      date.max = bounds.max;
     }
   }
 }
@@ -111,8 +123,8 @@ function toggleSuggestVehicle(button) {
 
 function suggestTrackLabel(trackKey) {
   if (!trackKey) return "";
-  if (typeof tracks === "undefined" || !tracks || !tracks[trackKey]) return trackKey;
-  return tracks[trackKey].name || tracks[trackKey].nickname || trackKey;
+  if (!state.tracks || !state.tracks[trackKey]) return trackKey;
+  return state.tracks[trackKey].name || state.tracks[trackKey].nickname || trackKey;
 }
 
 function resetSuggestForm(form, options) {
@@ -156,9 +168,9 @@ function openSuggestDialog(kind, trackKey) {
   focusReviewField(dialog);
 }
 
-function reportMissingEvent() {
-  if (typeof tracks === "undefined" || !tracks || !tracks[lastOpenedTrack]) return;
-  openSuggestDialog("missing_event", lastOpenedTrack);
+export function reportMissingEvent() {
+  if (!state.tracks || !state.tracks[state.lastOpenedTrack]) return;
+  openSuggestDialog("missing_event", state.lastOpenedTrack);
 }
 
 function closeSuggestDialog() {
@@ -241,28 +253,24 @@ async function submitSuggestForm(event) {
   });
 }
 
-wireReviewDialog(document.getElementById("suggestDialog"), {
-  state: suggestUi,
-  form: document.getElementById("suggestDialog").querySelector("form"),
-  messageEl: document.querySelector("#suggestDialog .rec-form-msg"),
-  close: closeSuggestDialog,
-});
-
-document.getElementById("suggestDialog").addEventListener("close", () => {
-  let dialog = document.getElementById("suggestDialog");
-  unpinSuggestDialog(dialog);
-  dialog.querySelectorAll(".suggest-matches").forEach(box => { box.hidden = true; });
-});
-window.addEventListener("resize", () => {
-  let dialog = document.getElementById("suggestDialog");
-  if (!dialog.open) return;
-  unpinSuggestDialog(dialog);
-  pinSuggestDialog(dialog);
-});
-
-function wireSuggestControls() {
+export function initIndexSuggest() {
   let dialog = document.getElementById("suggestDialog");
   let form = dialog.querySelector("form");
+  wireReviewDialog(dialog, {
+    state: suggestUi,
+    form,
+    messageEl: dialog.querySelector(".rec-form-msg"),
+    close: closeSuggestDialog,
+  });
+  dialog.addEventListener("close", () => {
+    unpinSuggestDialog(dialog);
+    dialog.querySelectorAll(".suggest-matches").forEach(box => { box.hidden = true; });
+  });
+  window.addEventListener("resize", () => {
+    if (!dialog.open) return;
+    unpinSuggestDialog(dialog);
+    pinSuggestDialog(dialog);
+  });
   form.addEventListener("submit", submitSuggestForm);
   dialog.querySelectorAll("[data-kind]").forEach((btn) => {
     btn.addEventListener("click", () => setSuggestKind(btn.dataset.kind));
@@ -288,5 +296,3 @@ function wireSuggestControls() {
     });
   });
 }
-
-wireSuggestControls();

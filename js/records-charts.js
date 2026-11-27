@@ -1,10 +1,14 @@
+import {vehicleShortLabel} from "./config.js";
+import {escapeHtml, formatMs, raceTag, timeToMs} from "./lap-record-shared.js";
+
 let chartInstances = [];
 let chartDrawId = 0;
 let chartResizeObserver = null;
 let plottedKey = "";
 let plottedSections = [];
+let chartCtx = null;
 
-function clearRecordCharts() {
+export function clearRecordCharts() {
   chartDrawId++;
   plottedKey = "";
   plottedSections = [];
@@ -15,7 +19,8 @@ function clearRecordCharts() {
   root.hidden = true;
 }
 
-function renderRecordCharts(shown, refRecord) {
+export function renderRecordCharts(shown, refRecord, ctx) {
+  if (ctx) chartCtx = ctx;
   let root = document.getElementById("lap-charts");
   if (!root) return;
   let key = chartDataKey(shown);
@@ -40,7 +45,7 @@ function renderRecordCharts(shown, refRecord) {
     return;
   }
   let colors = chartColors();
-  let models = subtrackGroups(shown).map(([key, records]) => sectionModel(key, records));
+  let models = chartCtx.subtrackGroups(shown).map(([key, records]) => sectionModel(key, records));
   let showHeading = models.length > 1;
   root.hidden = false;
   root.innerHTML = models.map((model, index) => sectionHtml(model, showHeading, index, colors)).join("");
@@ -158,7 +163,7 @@ function mountSection(section, model, refRecord, colors) {
 }
 
 function singleTrackSelected() {
-  return typeof trackSelect !== "undefined" && !!trackSelect.value;
+  return !!(chartCtx && chartCtx.isSingleTrack);
 }
 
 function mountChart(el, option) {
@@ -172,7 +177,7 @@ function chartDataKey(shown) {
   if (!singleTrackSelected()) return "all-tracks";
   if (!shown || !shown.length) return "empty";
   return shown.map(record => [
-    typeof recordKey === "function" ? recordKey(record) : record.recordId || "",
+    chartCtx && chartCtx.recordKey ? chartCtx.recordKey(record) : record.recordId || "",
     record.time || "",
     record.vehicleType || "",
     record.vehicleClass || "",
@@ -650,7 +655,7 @@ function sectionTitle(key) {
   let track = splitAt === -1 ? key : key.slice(0, splitAt);
   let subtrack = splitAt === -1 ? "" : key.slice(splitAt + 1);
   if (subtrack) return subtrack;
-  return trackLabel(track);
+  return chartCtx && chartCtx.trackLabel ? chartCtx.trackLabel(track) : track;
 }
 
 function shortHolder(record) {
@@ -678,9 +683,7 @@ function presentTypes(items) {
 }
 
 function typeName(type) {
-  if (type === "C") return VEHICLE_LABELS.C || "Car";
-  if (type === "M") return VEHICLE_LABELS.M || "Bike";
-  return "Other";
+  return type ? vehicleShortLabel(type) : "Other";
 }
 
 function typeColor(colors, type) {
@@ -706,18 +709,7 @@ function tickDigits(span) {
 }
 
 function formatChartMs(ms, digits) {
-  ms = Math.round(Number(ms) || 0);
-  let minutes = Math.floor(ms / 60000);
-  let seconds = (ms % 60000) / 1000;
-  let sec = seconds.toFixed(digits);
-  if (Number(sec) >= 60) {
-    minutes += 1;
-    sec = (0).toFixed(digits);
-  }
-  if (!minutes) return sec;
-  let parts = sec.split(".");
-  let whole = parts[0].padStart(2, "0");
-  return parts.length > 1 ? `${minutes}:${whole}.${parts[1]}` : `${minutes}:${whole}`;
+  return formatMs(ms, {digits});
 }
 
 function chartColors() {

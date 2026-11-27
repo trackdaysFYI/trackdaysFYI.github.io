@@ -1,0 +1,9 @@
+:root {
+  --accent: rgb(57, 115, 172);
+  --accent-soft: rgb(from var(--accent) r g b / 0.5);
+  --accent-glow: rgb(from var(--accent) r g b / 0.28);
+  --muted: rgb(176, 176, 176);
+  --line: rgb(100, 100, 100);
+  --soft: rgb(220, 220, 220);
+  --bg: rgb(34, 38, 42);
+}
