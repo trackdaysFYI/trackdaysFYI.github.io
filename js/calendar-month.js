@@ -1,3 +1,17 @@
+import {
+  addDays,
+  dayOfMonth,
+  dayOfWeek,
+  endOfMonth,
+  formatDayHeading,
+  formatMonthDayYear,
+  formatMonthYear,
+  monthKeyOf,
+  nextMonthKey,
+  parseIsoDate,
+  startOfMonth,
+  todayIso,
+} from "./dates.js";
 import {escapeHtml} from "./lap-record-shared.js";
 import {
   calendarHeatByDay,
@@ -63,21 +77,19 @@ function syncMonthCarousel(scroll) {
     return;
   }
   let sections = [...scroll.querySelectorAll("[data-cal-month]")];
-  let key = calendarActiveMonth.format("YYYY-MM");
-  let index = sections.findIndex((section) => section.dataset.calMonth === key);
+  let index = sections.findIndex((section) => section.dataset.calMonth === calendarActiveMonth);
   if (index < 0) index = 0;
   scroll.style.transform = `translate3d(${-index * 100}%, 0, 0)`;
 }
 
 function stepMonthCarousel(root, byDay, scroll, dir) {
   let sections = [...scroll.querySelectorAll("[data-cal-month]")];
-  let key = calendarActiveMonth.format("YYYY-MM");
-  let index = sections.findIndex((section) => section.dataset.calMonth === key);
+  let index = sections.findIndex((section) => section.dataset.calMonth === calendarActiveMonth);
   if (index < 0) index = 0;
   index = Math.max(0, Math.min(sections.length - 1, index + dir));
   let nextKey = sections[index].dataset.calMonth;
-  if (nextKey === calendarActiveMonth.format("YYYY-MM")) return;
-  calendarActiveMonth = dayjs(`${nextKey}-01`).startOf("month");
+  if (nextKey === calendarActiveMonth) return;
+  calendarActiveMonth = nextKey;
   syncMonthCarousel(scroll);
   paintMonthFocus(root, byDay, activeCalendarRange());
 }
@@ -86,7 +98,7 @@ export function renderCalendarView() {
   let root = document.getElementById("calendar");
   let bounds = selectableDateBounds();
   let range = activeCalendarRange();
-  if (!calendarActiveMonth) calendarActiveMonth = dayjs().startOf("month");
+  if (!calendarActiveMonth) calendarActiveMonth = monthKeyOf(todayIso());
   let byDay = calendarHeatByDay(bounds);
   let maxCount = 1;
   byDay.forEach((items) => {
@@ -102,9 +114,9 @@ export function renderCalendarView() {
     if (!calendarScrollTop) {
       // Prefer today's month when idle; otherwise keep the active month on screen
       // (e.g. after rotating across the stacked breakpoint).
-      let todayMonth = dayjs().format("YYYY-MM");
+      let todayMonth = monthKeyOf(todayIso());
       let section = (!range && scroll.querySelector(`[data-cal-month="${todayMonth}"]`))
-        || scroll.querySelector(`[data-cal-month="${calendarActiveMonth.format("YYYY-MM")}"]`);
+        || scroll.querySelector(`[data-cal-month="${calendarActiveMonth}"]`);
       // Scroll only inside .cal-month-scroll - scrollIntoView also moves the page.
       scrollChildToStart(scroll, section);
       calendarScrollTop = scroll.scrollTop;
@@ -128,9 +140,8 @@ function monthNearestScroll(scroll) {
   let sections = [...scroll.querySelectorAll("[data-cal-month]")];
   if (!sections.length) return null;
   let viewTop = scroll.getBoundingClientRect().top;
-  let currentKey = calendarActiveMonth ? calendarActiveMonth.format("YYYY-MM") : null;
-  let curIdx = currentKey
-    ? sections.findIndex((section) => section.dataset.calMonth === currentKey)
+  let curIdx = calendarActiveMonth
+    ? sections.findIndex((section) => section.dataset.calMonth === calendarActiveMonth)
     : -1;
 
   // Buffer into the viewport so a single wheel notch near a boundary does not flip months.
@@ -152,7 +163,7 @@ function monthNearestScroll(scroll) {
     }
   }
 
-  return dayjs(`${sections[index].dataset.calMonth}-01`, "YYYY-MM-DD", true).startOf("month");
+  return sections[index].dataset.calMonth;
 }
 
 export function calendarClearDatesHtml() {
@@ -161,9 +172,10 @@ export function calendarClearDatesHtml() {
 
 function calendarMonthsHtml(bounds, byDay, maxCount, range) {
   let months = [];
-  for (let month = bounds.min.startOf("month"); !month.isAfter(bounds.max, "month"); month = month.add(1, "month")) {
-    months.push(`<section class="cal-month-section" data-cal-month="${month.format("YYYY-MM")}">
-      <h3 class="cal-month-label"><button type="button" class="cal-month-nav" data-cal-month-dir="-1" aria-label="Previous month"></button><span>${escapeHtml(month.format("MMMM YYYY"))}</span><button type="button" class="cal-month-nav" data-cal-month-dir="1" aria-label="Next month"></button></h3>
+  let maxMonth = monthKeyOf(bounds.max);
+  for (let month = monthKeyOf(bounds.min); month <= maxMonth; month = nextMonthKey(month)) {
+    months.push(`<section class="cal-month-section" data-cal-month="${month}">
+      <h3 class="cal-month-label"><button type="button" class="cal-month-nav" data-cal-month-dir="-1" aria-label="Previous month"></button><span>${escapeHtml(formatMonthYear(month))}</span><button type="button" class="cal-month-nav" data-cal-month-dir="1" aria-label="Next month"></button></h3>
       ${monthDayButtons(month, byDay, maxCount, bounds, range)}
     </section>`);
   }
@@ -171,20 +183,19 @@ function calendarMonthsHtml(bounds, byDay, maxCount, range) {
 }
 
 function monthDayButtons(month, byDay, maxCount, bounds, range) {
-  let monthStart = month.startOf("month");
-  let monthEnd = month.endOf("month");
-  let first = monthStart.isBefore(bounds.min, "day") ? bounds.min : monthStart;
-  let last = monthEnd.isAfter(bounds.max, "day") ? bounds.max : monthEnd;
-  if (first.isAfter(last, "day")) return `<div class="cal-grid"></div>`;
-  let today = dayjs().startOf("day");
+  let monthStart = startOfMonth(month);
+  let monthEnd = endOfMonth(month);
+  let first = monthStart < bounds.min ? bounds.min : monthStart;
+  let last = monthEnd > bounds.max ? bounds.max : monthEnd;
+  if (first > last) return `<div class="cal-grid"></div>`;
+  let today = todayIso();
   let savedEventsSet = monthCtx.getSavedEventsSet();
   let cells = [];
-  for (let i = 0; i < first.day(); i++) cells.push(`<span class="cal-day is-outside" aria-hidden="true"></span>`);
-  for (let cursor = first; !cursor.isAfter(last, "day"); cursor = cursor.add(1, "day")) {
-    let key = cursor.format("YYYY-MM-DD");
+  for (let i = 0; i < dayOfWeek(first); i++) cells.push(`<span class="cal-day is-outside" aria-hidden="true"></span>`);
+  for (let key = first; key <= last; key = addDays(key, 1)) {
     let items = byDay.get(key) || [];
     let classes = ["cal-day"];
-    if (cursor.isSame(today, "day")) classes.push("is-today");
+    if (key === today) classes.push("is-today");
     let selected = range && key >= range.start && key <= range.end;
     if (selected) classes.push("is-selected");
     if (selected && key === range.start) classes.push("is-range-start");
@@ -194,7 +205,7 @@ function monthDayButtons(month, byDay, maxCount, bounds, range) {
     if (items.some((td) => savedEventsSet.has(monthCtx.getEventKey(td)))) classes.push("is-saved");
     let heat = items.length ? ` style="--heat:${(items.length / maxCount).toFixed(3)}"` : "";
     let countLabel = items.length ? `, ${items.length} ${items.length === 1 ? "event" : "events"}` : ", no events";
-    cells.push(`<button type="button" class="${classes.join(" ")}" data-cal-day="${key}" aria-pressed="${selected ? "true" : "false"}" aria-label="${escapeHtml(cursor.format("MMMM D, YYYY"))}${countLabel}"${heat}><span class="cal-day-num">${cursor.date()}</span></button>`);
+    cells.push(`<button type="button" class="${classes.join(" ")}" data-cal-day="${key}" aria-pressed="${selected ? "true" : "false"}" aria-label="${escapeHtml(formatMonthDayYear(key, {longMonth: true}))}${countLabel}"${heat}><span class="cal-day-num">${dayOfMonth(key)}</span></button>`);
   }
   return `<div class="cal-grid">${cells.join("")}</div>`;
 }
@@ -204,17 +215,14 @@ function selectionRange(a, b) {
 }
 
 function keysForRange(range) {
-  if (!range) return null;
+  if (!range || !parseIsoDate(range.start) || !parseIsoDate(range.end)) return null;
   let keys = [];
-  let cursor = dayjs(range.start, "YYYY-MM-DD", true);
-  let last = dayjs(range.end, "YYYY-MM-DD", true);
-  if (!cursor.isValid() || !last.isValid()) return null;
-  for (; !cursor.isAfter(last, "day"); cursor = cursor.add(1, "day")) keys.push(cursor.format("YYYY-MM-DD"));
+  for (let key = range.start; key <= range.end; key = addDays(key, 1)) keys.push(key);
   return keys;
 }
 
 function emptyMonthMessage(month) {
-  return `No matching events in ${month.format("MMMM YYYY")}`;
+  return `No matching events in ${formatMonthYear(month)}`;
 }
 
 function rangeEmptyHtml() {
@@ -230,18 +238,16 @@ function rangeHeaderHtml(keys) {
   return `<div class="cal-range-header"><span class="cal-range-header-text">${escapeHtml(dateRangeButtonLabel("MMMM"))}</span>${calendarClearDatesHtml()}</div>`;
 }
 
-function filteredNoteHtml(start, end) {
+function filteredNoteHtml(startKey, endKey) {
   let trackdays = monthCtx.getTrackdays();
-  let startKey = start.format("YYYY-MM-DD");
-  let endKey = end.format("YYYY-MM-DD");
   let hidden = trackdays.filter((td) => !td.visibilityMap && td.dateKey >= startKey && td.dateKey <= endKey);
   if (!hidden.length) return "";
   return `<p class="cal-month-note">${escapeHtml(monthCtx.hiddenEventNote(hidden))}</p>`;
 }
 
 function eventsPanelHtml(byDay, month, keys) {
-  let noteStart = keys ? dayjs(keys[0], "YYYY-MM-DD", true) : month.startOf("month");
-  let noteEnd = keys ? dayjs(keys[keys.length - 1], "YYYY-MM-DD", true) : month.endOf("month");
+  let noteStart = keys ? keys[0] : startOfMonth(month);
+  let noteEnd = keys ? keys[keys.length - 1] : endOfMonth(month);
   let note = filteredNoteHtml(noteStart, noteEnd);
   let header = rangeHeaderHtml(keys);
   if (keys && keys.length === 1) {
@@ -252,8 +258,7 @@ function eventsPanelHtml(byDay, month, keys) {
   let shown;
   if (keys) shown = keys.filter((key) => byDay.has(key));
   else {
-    let start = month.format("YYYY-MM");
-    shown = [...byDay.keys()].filter((key) => key.startsWith(start)).sort();
+    shown = [...byDay.keys()].filter((key) => key.startsWith(month)).sort();
   }
   let body = shown.length
     ? `<div class="cal-month-groups">${shown.map((dayKey) => `<section class="cal-month-group">${dayPanelHtml(dayKey, byDay)}</section>`).join("")}</div>`
@@ -264,9 +269,8 @@ function eventsPanelHtml(byDay, month, keys) {
 }
 
 function dayPanelHtml(key, byDay) {
-  let day = dayjs(key, "YYYY-MM-DD", true);
   let items = byDay.get(key) || [];
-  let heading = `<div class="cal-month-heading">${escapeHtml(day.format("ddd, MMMM D"))}</div>`;
+  let heading = `<div class="cal-month-heading">${escapeHtml(formatDayHeading(key))}</div>`;
   if (!items.length) return heading + `<div class="cal-list"><p class="cal-month-empty">No events</p></div>`;
   return heading + `<div class="cal-list">${items.map((td) => eventRowHtml(td)).join("")}</div>`;
 }
@@ -310,9 +314,8 @@ function paintDaySelection(root, range) {
     day.setAttribute("aria-pressed", on ? "true" : "false");
   });
   // No range: fade other months so the active month (detail list) reads clearly.
-  let activeKey = calendarActiveMonth ? calendarActiveMonth.format("YYYY-MM") : null;
   root.querySelectorAll("[data-cal-month]").forEach((section) => {
-    section.classList.toggle("is-inactive", !range && !!activeKey && section.dataset.calMonth !== activeKey);
+    section.classList.toggle("is-inactive", !range && !!calendarActiveMonth && section.dataset.calMonth !== calendarActiveMonth);
   });
 }
 
@@ -329,7 +332,7 @@ function bindActiveMonth(root, byDay, scroll) {
     calendarScrollTop = scroll.scrollTop;
     if (calendarDragSelecting || activeCalendarRange()) return;
     let next = monthNearestScroll(scroll);
-    if (!next || calendarActiveMonth.format("YYYY-MM") === next.format("YYYY-MM")) return;
+    if (!next || calendarActiveMonth === next) return;
     calendarActiveMonth = next;
     paintMonthFocus(root, byDay, null);
   }, {passive: true});

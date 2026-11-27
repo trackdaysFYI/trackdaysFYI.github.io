@@ -1,4 +1,5 @@
 import {eventFullLabel, vehicleShortLabel} from "./config.js";
+import {addYears, dayOfMonth, formatMonthDay, formatMonthDayYear, todayIso} from "./dates.js";
 import {escapeHtml, safeHttpUrl} from "./lap-record-shared.js";
 
 let calCtx = null;
@@ -14,10 +15,8 @@ export function calendarHeatByDay(bounds) {
   if (!trackdays) return byDay;
   let savedEventsSet = calCtx.getSavedEventsSet();
   let selectedDays = calCtx.selectedWeekdays();
-  let minKey = bounds.min.format("YYYY-MM-DD");
-  let maxKey = bounds.max.format("YYYY-MM-DD");
   trackdays.forEach((td) => {
-    if (td.dateKey < minKey || td.dateKey > maxKey) return;
+    if (td.dateKey < bounds.min || td.dateKey > bounds.max) return;
     let saved = savedEventsSet.has(calCtx.getEventKey(td));
     let passes = calCtx.passesFilters(td, {radius: true, day: true, org: true, vehicle: true, event: true, selectedDays});
     if (!saved && !passes) return;
@@ -34,21 +33,22 @@ export function activeCalendarRange() {
 }
 
 export function selectableDateBounds() {
-  return {
-    min: dayjs().startOf("day"),
-    max: dayjs().startOf("day").add(1, "year"),
-  };
+  let min = todayIso();
+  return {min, max: addYears(min, 1)};
 }
 
 export function dateRangeButtonLabel(monthFmt = "MMM") {
   let {start: startKey, end: endKey} = calCtx.getSelectedCalendarRange();
   if (!startKey || !endKey) return "";
-  let start = dayjs(startKey, "YYYY-MM-DD", true);
-  let end = dayjs(endKey, "YYYY-MM-DD", true);
-  if (startKey === endKey) return start.format(`${monthFmt} D`);
-  if (!start.isSame(end, "year")) return `${start.format(`${monthFmt} D, YYYY`)} - ${end.format(`${monthFmt} D, YYYY`)}`;
-  if (start.isSame(end, "month")) return `${start.format(`${monthFmt} D`)} - ${end.format("D")}`;
-  return `${start.format(`${monthFmt} D`)} - ${end.format(`${monthFmt} D`)}`;
+  let longMonth = monthFmt === "MMMM";
+  if (startKey === endKey) return formatMonthDay(startKey, {longMonth});
+  if (startKey.slice(0, 4) !== endKey.slice(0, 4)) {
+    return `${formatMonthDayYear(startKey, {longMonth})} - ${formatMonthDayYear(endKey, {longMonth})}`;
+  }
+  if (startKey.slice(0, 7) === endKey.slice(0, 7)) {
+    return `${formatMonthDay(startKey, {longMonth})} - ${dayOfMonth(endKey)}`;
+  }
+  return `${formatMonthDay(startKey, {longMonth})} - ${formatMonthDay(endKey, {longMonth})}`;
 }
 
 export function eventRowHtml(td) {

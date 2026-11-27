@@ -8,6 +8,18 @@ import {
   fetchJson,
   downloadBlob,
 } from "./config.js";
+import {
+  addDays,
+  compactIso,
+  formatIsoUtcDate,
+  formatMonthDay,
+  formatRelativeTime,
+  parseIsoDate,
+  parseUtcTimestamp,
+  todayIso,
+  utcIcsTimestamp,
+  weekdayShort,
+} from "./dates.js";
 import {MultiselectDropdown} from "./multiselect-dropdown.js";
 import {escapeHtml, safeHttpUrl} from "./lap-record-shared.js";
 import {
@@ -29,10 +41,6 @@ import {
   calendarClearDatesHtml,
   resetCalendarMonth,
 } from "./calendar-month.js";
-
-dayjs.extend(window.dayjs_plugin_relativeTime);
-dayjs.extend(window.dayjs_plugin_utc);
-dayjs.extend(window.dayjs_plugin_customParseFormat);
 
 const STORAGE_KEY_USER_SAVED_EVENTS = "trackdaysFYI:userSavedEvents";
 const STORAGE_KEY_USER_VEHICLE_TYPES = "trackdaysFYI:userVehicleTypes";
@@ -130,7 +138,7 @@ function applyStoredHosts() {
 }
 
 function removePastSavedEvents() {
-  let todayStr = dayjs().format("YYYY-MM-DD");
+  let todayStr = todayIso();
   let hasChanges = false;
   [...savedEventsSet].forEach((key) => {
     let [eventDate] = key.split("|");
@@ -365,7 +373,7 @@ function downloadSavedEventsICS() {
     return;
   }
 
-  let nowStamp = dayjs.utc().format("YYYYMMDDTHHmmss[Z]");
+  let nowStamp = utcIcsTimestamp();
   let lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -375,8 +383,8 @@ function downloadSavedEventsICS() {
   ];
 
   savedEvents.forEach((td) => {
-    let startDate = td.date.format("YYYYMMDD");
-    let endDate = td.date.add(1, "day").format("YYYYMMDD");
+    let startDate = compactIso(td.dateKey);
+    let endDate = compactIso(addDays(td.dateKey, 1));
     let track = tracks[td.track];
     let summary = `${track.nickname} - ${td.org}`;
     let eventType = [...td.eventType].map(eventShortLabel).join("/");
@@ -408,7 +416,7 @@ function downloadSavedEventsICS() {
   lines.push("END:VCALENDAR");
 
   let icsBlob = new Blob([lines.map(foldICSLine).join("\r\n")], {type: "text/calendar;charset=utf-8"});
-  let fileName = `trackdaysFYI-saved-events-${dayjs().format("YYYYMMDD")}.ics`;
+  let fileName = `trackdaysFYI-saved-events-${compactIso(todayIso())}.ics`;
   downloadBlob(icsBlob, fileName);
 }
 
@@ -554,7 +562,7 @@ function updateTrackPopup() {
     lastDate = dateKey;
     let meta = detailText(td);
     let price = money(td);
-    let mark = `<span class="tl-mark"><span class="tl-date">${showDate ? escapeHtml(td.date.format("MMM D")) : ""}</span><span class="tl-dot"></span></span>`;
+    let mark = `<span class="tl-mark"><span class="tl-date">${showDate ? escapeHtml(formatMonthDay(td.dateKey)) : ""}</span><span class="tl-dot"></span></span>`;
     return `<div class="event-item tl-item${saved}">${rowMain(td, meta, price, mark)}${saveStarHtml(eventKey, isSaved, {popupAction: true})}</div>`;
   }).join("");
   let emptyMsg = trackdaysAtTrack.length === 0 ? "No upcoming events" : "No matching events";
@@ -656,7 +664,7 @@ function toggleSyncInfo() {
       <tr>
         <td>${nameCell}</td>
         <td>${org.numEvents}</td>
-        <td>${dayjs().to(org.syncTimeUTC)}</td>
+        <td>${formatRelativeTime(org.syncTimeUTC)}</td>
       </tr>
     `}).join("");
     let tbl = `
@@ -799,23 +807,24 @@ async function fetchAndNormalizeTrackdays() {
     numEvents: org.events.length,
     events: org.events.map(e => ({...e, org: org.orgNickname, url: e.url || org.url}))}));  // add org key and default url
   trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
-  let todayKey = dayjs().format("YYYY-MM-DD");
+  let todayKey = todayIso();
   trackdays = trackdays.map(td => {
-    let date = dayjs(td.date, "YYYY-MM-DD");
-    return {...td, date, dateKey: date.format("YYYY-MM-DD"), weekday: date.format("ddd")};
+    let parsed = parseIsoDate(td.date);
+    let dateKey = parsed ? formatIsoUtcDate(parsed) : String(td.date || "");
+    return {...td, dateKey, weekday: weekdayShort(dateKey)};
   }).filter((td) => td.dateKey >= todayKey);  // drop events before today
   trackdays.sort((a, b) => a.dateKey.localeCompare(b.dateKey));  // sort by date
 
   orgs = orgs.map(({events, ...item}) => item);  // drop events key
   orgs = orgs.map(org => ({...org,
-    syncTimeUTC: dayjs.utc(org.syncTimeUTC),
+    syncTimeUTC: parseUtcTimestamp(org.syncTimeUTC),
     dropdownOption: new Option(org.org, org.orgNickname),
     dropdownSelected: (org.numEvents > 0),
   }));
   orgs.sort((a, b) => a.org.localeCompare(b.org));  // sort by name
 
-  let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
-  document.getElementById("lastSyncMessage").innerText = dayjs().to(lastSync);
+  let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC > curr.syncTimeUTC ? prev : curr).syncTimeUTC;
+  document.getElementById("lastSyncMessage").innerText = formatRelativeTime(lastSync);
   document.getElementById("numTrackdays").innerText = trackdays.reduce((sum, td) => sum + [...td.eventType].filter(t => EVENT_TYPES[t]).length, 0);  // an event tagged with 2 types counts twice
   document.getElementById("numOrgs").innerText = new Set(trackdays.map(a => a.org)).size;  // num unique orgs
 

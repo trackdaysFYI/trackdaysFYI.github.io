@@ -1,4 +1,5 @@
 import {SUGGESTION_URL} from "./config.js";
+import {addDays, addMonths, parseIsoDate, todayUtcIso} from "./dates.js";
 import {
   safeHttpUrl,
   setFormMessage,
@@ -25,16 +26,14 @@ function assignOptional(payload, key, value) {
 }
 
 function suggestEventDateBounds() {
-  let today = dayjs.utc().startOf("day");
-  return {min: today.subtract(1, "day"), max: today.add(18, "month")};
+  let today = todayUtcIso();
+  return {min: addDays(today, -1), max: addMonths(today, 18)};
 }
 
 function missingEventDateError(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "Enter the event date";
-  let parsed = dayjs.utc(value, "YYYY-MM-DD", true);
-  if (!parsed.isValid() || parsed.format("YYYY-MM-DD") !== value) return "Enter the event date";
+  if (!parseIsoDate(value)) return "Enter the event date";
   let bounds = suggestEventDateBounds();
-  if (parsed.isBefore(bounds.min) || parsed.isAfter(bounds.max)) return "Enter the event date";
+  if (value < bounds.min || value > bounds.max) return "Enter the event date";
   return "";
 }
 
@@ -106,8 +105,8 @@ function setSuggestKind(kind) {
     let date = dialog.querySelector("input[name=eventDate]");
     if (date) {
       let bounds = suggestEventDateBounds();
-      date.min = bounds.min.format("YYYY-MM-DD");
-      date.max = bounds.max.format("YYYY-MM-DD");
+      date.min = bounds.min;
+      date.max = bounds.max;
     }
   }
 }

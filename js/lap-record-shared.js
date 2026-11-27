@@ -1,4 +1,5 @@
 import {LAP_RECORD_SUBMIT_URL} from "./config.js";
+import {todayIso} from "./dates.js";
 
 const LAP_TIME_RE = /^(?:\d{1,3}:[0-5]\d|[0-5]?\d)\.\d{1,3}$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -129,14 +130,6 @@ function showRecordCustomClass(form, show) {
 
 function suggestedClasses(code) {
   return SUGGESTED_CLASSES[code] || [];
-}
-
-function todayIso() {
-  let now = new Date();
-  let y = now.getFullYear();
-  let m = String(now.getMonth() + 1).padStart(2, "0");
-  let d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
 }
 
 function parseOptionalYear(text) {
