@@ -291,7 +291,7 @@ function recordsListHtml(trackKey) {
           rank += 1;
         }
         let evidenceUrl = safeHttpUrl(r.evidence);
-        let evidence = evidenceUrl ? `<a class="rec-evidence" href="${escapeHtml(evidenceUrl)}" target="_blank" title="Evidence">▶</a>` : `<span class="rec-evidence"></span>`;
+        let evidence = evidenceUrl ? `<a class="rec-evidence" href="${escapeHtml(evidenceUrl)}" target="_blank" rel="noopener" title="Evidence">▶</a>` : `<span class="rec-evidence"></span>`;
         let holder = r.holder ? `<span class="rec-holder">${escapeHtml(r.holder)}</span>` : `<span class="rec-holder"></span>`;
         let number = raceTag(r) ? `<span class="rec-number">${escapeHtml(raceTag(r))}</span>` : "";
         let vehicle = vehicleModel ? `<span class="rec-vehicle">${escapeHtml(vehicleModel)}</span>` : `<span class="rec-vehicle"></span>`;

@@ -332,7 +332,7 @@ function downloadSavedEventsICS() {
   if (typeof trackdays === "undefined") return;
   let savedEvents = trackdays
     .filter(td => savedEventsSet.has(getEventKey(td)))
-    .sort((a, b) => (a.date > b.date ? 1 : -1));
+    .sort((a, b) => a.date.valueOf() - b.date.valueOf());
   if (savedEvents.length === 0) {
     alert("No saved events to export.\nStar events to save them.");
     return;
@@ -806,7 +806,7 @@ async function fetchAndNormalizeTrackdays() {
     events: org.events.map(e => ({...e, org: org.orgNickname, url: e.url || org.url}))}));  // add org key and default url
   trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
   trackdays = trackdays.map(td => ({...td, date: dayjs(td.date, "YYYY-MM-DD")}));  // convert date string to dayjs
-  trackdays.sort((a, b) => (a.date > b.date ? 1 : -1));  // sort by date
+  trackdays.sort((a, b) => a.date.valueOf() - b.date.valueOf());  // sort by date
   let today = dayjs().startOf("day");
   trackdays = trackdays.filter((td) => !td.date.isBefore(today, "day"));  // drop events before today
 
@@ -816,7 +816,7 @@ async function fetchAndNormalizeTrackdays() {
     dropdownOption: new Option(org.org, org.orgNickname),
     dropdownSelected: (org.numEvents > 0),
   }));
-  orgs.sort((a, b) => (a.org > b.org ? 1 : -1));  // sort by name
+  orgs.sort((a, b) => a.org.localeCompare(b.org));  // sort by name
 
   let lastSync = orgs.reduce((prev, curr) => prev.syncTimeUTC.isAfter(curr.syncTimeUTC) ? prev : curr).syncTimeUTC;
   document.getElementById("lastSyncMessage").innerText = dayjs().to(lastSync);
