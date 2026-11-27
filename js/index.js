@@ -1,3 +1,25 @@
+import {MultiselectDropdown} from "./multiselect-dropdown.js";
+import {escapeHtml, safeHttpUrl} from "./lap-record-shared.js";
+import {
+  initIndexLapRecords,
+  recordsUi,
+  loadAllLapRecords,
+  finishLapRecordsPreload,
+  loadTrackRecords,
+  setRecordsOpen,
+  resetRecordForm,
+  openRecordForm,
+  recordsListHtml,
+} from "./index-lap-records.js";
+import {initIndexSuggest, reportMissingEvent} from "./index-suggest.js";
+import {initCalendar, dateRangeButtonLabel} from "./calendar.js";
+import {
+  initCalendarMonth,
+  renderCalendarView,
+  calendarClearDatesHtml,
+  resetCalendarMonth,
+} from "./calendar-month.js";
+
 dayjs.extend(window.dayjs_plugin_relativeTime);
 dayjs.extend(window.dayjs_plugin_utc);
 dayjs.extend(window.dayjs_plugin_customParseFormat);
@@ -116,7 +138,7 @@ let locationDefault = [39.50, -98.35];  // Central US or GPS location
 let isGPSLocation = false;
 let homeLocked = false;  // user moved the home pin or the travel radius
 let searchRadius;
-let lastOpenedTrack, selectedMonth, selectedCalendarStart = null, selectedCalendarEnd = null;
+let lastOpenedTrack, selectedCalendarStart = null, selectedCalendarEnd = null;
 let tracks;
 const infiniteRadius = 0;
 const radiusValues = [];
@@ -552,11 +574,6 @@ function updateTrackPopup() {
 }
 
 function updateCalendar() {
-  if (selectedMonth === undefined) {
-    selectedMonth = dayjs().startOf("month").toDate();
-    calendarActiveMonth = dayjs(selectedMonth).startOf("month");
-    calendarScrollTop = 0;
-  }
   // trackdays should be sorted by distance before this
   renderCalendarView();
   updatePillCounts();
@@ -987,7 +1004,7 @@ function wireFilterControls() {
     Object.keys(tracks).forEach((track) => {mapMarkers[track].addTo(map);});
 
     setCalendarRange(null, null);
-    selectedMonth = undefined;  // updateCalendar returns to the current month
+    resetCalendarMonth();  // updateCalendar returns to the current month
     Array.from(daySelectElement.options).forEach((opt) => {
       opt.selected = true;
     });
@@ -1018,5 +1035,41 @@ async function visualizeData() {
     alert("Error: unable to retrieve data");
   }
 }
+initIndexLapRecords({
+  getTracks: () => tracks,
+  getLastOpenedTrack: () => lastOpenedTrack,
+  getSelectedVehicleTypes: () => selectedVehicleTypes,
+  updateTrackPopup,
+  popupList,
+});
+initIndexSuggest({
+  getTracks: () => tracks,
+  getOrgs: () => orgs,
+  getLastOpenedTrack: () => lastOpenedTrack,
+});
+initCalendar({
+  getTrackdays: () => trackdays,
+  getTracks: () => tracks,
+  getOrgs: () => orgs,
+  getSavedEventsSet: () => savedEventsSet,
+  getSelectedVehicleTypes: () => selectedVehicleTypes,
+  getSelectedEventTypes: () => selectedEventTypes,
+  getSelectedCalendarRange: () => ({start: selectedCalendarStart, end: selectedCalendarEnd}),
+  selectedWeekdays,
+  getEventKey,
+  passesFilters,
+  vehicleTypeMap,
+});
+initCalendarMonth({
+  getTrackdays: () => trackdays,
+  getSavedEventsSet: () => savedEventsSet,
+  getSelectedCalendarRange: () => ({start: selectedCalendarStart, end: selectedCalendarEnd}),
+  getEventKey,
+  hiddenEventNote,
+  setCalendarRange,
+  updateCalendar,
+  refresh,
+});
+
 getGPSLocation();
 visualizeData();

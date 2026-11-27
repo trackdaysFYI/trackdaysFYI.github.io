@@ -1,3 +1,13 @@
+import {escapeHtml} from "./lap-record-shared.js";
+import {
+  calendarHeatByDay,
+  activeCalendarRange,
+  selectableDateBounds,
+  dateRangeButtonLabel,
+  eventRowHtml,
+  fitCalendarTitles,
+} from "./calendar.js";
+
 // Scrollable multi-month calendar with hidden scrollbar.
 // ≤700px (stacked layout): transform month carousel. Wider: vertical list scroller.
 let calendarScrollTop = 0;
@@ -5,6 +15,16 @@ let calendarActiveMonth = null;
 let calendarDragSelecting = false;
 // Day tap/range-select finishes on pointerup before touchend; block that touchend from swiping months.
 let calendarSuppressMonthSwipe = false;
+let monthCtx = null;
+
+export function initCalendarMonth(context) {
+  monthCtx = context;
+}
+
+export function resetCalendarMonth() {
+  calendarActiveMonth = null;
+  calendarScrollTop = 0;
+}
 
 function suppressNextMonthSwipe() {
   calendarSuppressMonthSwipe = true;
@@ -25,12 +45,10 @@ function calendarMonthsHorizontal() {
 // arbitrary active month across axes was flaky — reset to the current month instead.
 function onCalendarMonthsLayoutChange() {
   let root = document.getElementById("calendar");
-  if (!root?.querySelector(".cal-month")) return;
-  selectedMonth = undefined;
-  calendarActiveMonth = null;
-  calendarScrollTop = 0;
+  if (!root?.querySelector(".cal-month") || !monthCtx) return;
+  resetCalendarMonth();
   // Let the max-width layout CSS apply before measuring / binding scroll.
-  requestAnimationFrame(() => updateCalendar());
+  requestAnimationFrame(() => monthCtx.updateCalendar());
 }
 
 if (typeof calendarMonthsMq.addEventListener === "function") {
@@ -60,16 +78,15 @@ function stepMonthCarousel(root, byDay, scroll, dir) {
   let nextKey = sections[index].dataset.calMonth;
   if (nextKey === calendarActiveMonth.format("YYYY-MM")) return;
   calendarActiveMonth = dayjs(`${nextKey}-01`).startOf("month");
-  selectedMonth = calendarActiveMonth.toDate();
   syncMonthCarousel(scroll);
   paintMonthFocus(root, byDay, activeCalendarRange());
 }
 
-function renderCalendarView() {
+export function renderCalendarView() {
   let root = document.getElementById("calendar");
   let bounds = selectableDateBounds();
   let range = activeCalendarRange();
-  if (!calendarActiveMonth) calendarActiveMonth = dayjs(selectedMonth || undefined).startOf("month");
+  if (!calendarActiveMonth) calendarActiveMonth = dayjs().startOf("month");
   let byDay = calendarHeatByDay(bounds);
   let maxCount = 1;
   byDay.forEach((items) => {
@@ -94,10 +111,7 @@ function renderCalendarView() {
     }
     if (!range) {
       let active = monthNearestScroll(scroll);
-      if (active) {
-        calendarActiveMonth = active;
-        selectedMonth = active.toDate();
-      }
+      if (active) calendarActiveMonth = active;
     }
   }
   bindMonthGrid(root, byDay, range);
@@ -141,7 +155,7 @@ function monthNearestScroll(scroll) {
   return dayjs(`${sections[index].dataset.calMonth}-01`, "YYYY-MM-DD", true).startOf("month");
 }
 
-function calendarClearDatesHtml() {
+export function calendarClearDatesHtml() {
   return `<button type="button" class="cal-clear-dates" data-cal-clear-range aria-label="Clear dates" title="Clear dates"><span aria-hidden="true">×</span></button>`;
 }
 
@@ -163,6 +177,7 @@ function monthDayButtons(month, byDay, maxCount, bounds, range) {
   let last = monthEnd.isAfter(bounds.max, "day") ? bounds.max : monthEnd;
   if (first.isAfter(last, "day")) return `<div class="cal-grid"></div>`;
   let today = dayjs().startOf("day");
+  let savedEventsSet = monthCtx.getSavedEventsSet();
   let cells = [];
   for (let i = 0; i < first.day(); i++) cells.push(`<span class="cal-day is-outside" aria-hidden="true"></span>`);
   for (let cursor = first; !cursor.isAfter(last, "day"); cursor = cursor.add(1, "day")) {
@@ -176,7 +191,7 @@ function monthDayButtons(month, byDay, maxCount, bounds, range) {
     if (selected && key === range.end) classes.push("is-range-end");
     if (range && !selected) classes.push("is-outside-range");
     if (items.length) classes.push("has-events");
-    if (items.some((td) => savedEventsSet.has(getEventKey(td)))) classes.push("is-saved");
+    if (items.some((td) => savedEventsSet.has(monthCtx.getEventKey(td)))) classes.push("is-saved");
     let heat = items.length ? ` style="--heat:${(items.length / maxCount).toFixed(3)}"` : "";
     let countLabel = items.length ? `, ${items.length} ${items.length === 1 ? "event" : "events"}` : ", no events";
     cells.push(`<button type="button" class="${classes.join(" ")}" data-cal-day="${key}" aria-pressed="${selected ? "true" : "false"}" aria-label="${escapeHtml(cursor.format("MMMM D, YYYY"))}${countLabel}"${heat}><span class="cal-day-num">${cursor.date()}</span></button>`);
@@ -203,7 +218,8 @@ function emptyMonthMessage(month) {
 }
 
 function rangeEmptyHtml() {
-  let copy = selectedCalendarStart === selectedCalendarEnd
+  let {start, end} = monthCtx.getSelectedCalendarRange();
+  let copy = start === end
     ? "No matching events on selected date"
     : "No matching events in selected date range";
   return `<div class="cal-list"><p class="cal-month-empty">${copy}</p></div>`;
@@ -215,11 +231,12 @@ function rangeHeaderHtml(keys) {
 }
 
 function filteredNoteHtml(start, end) {
+  let trackdays = monthCtx.getTrackdays();
   let startKey = start.format("YYYY-MM-DD");
   let endKey = end.format("YYYY-MM-DD");
   let hidden = trackdays.filter((td) => !td.visibilityMap && td.dateKey >= startKey && td.dateKey <= endKey);
   if (!hidden.length) return "";
-  return `<p class="cal-month-note">${escapeHtml(hiddenEventNote(hidden))}</p>`;
+  return `<p class="cal-month-note">${escapeHtml(monthCtx.hiddenEventNote(hidden))}</p>`;
 }
 
 function eventsPanelHtml(byDay, month, keys) {
@@ -265,17 +282,18 @@ function monthDayAt(grid, event) {
 }
 
 function commitCalendarSelection(range) {
-  if (range) setCalendarRange(range.start, range.end);
-  else setCalendarRange(null, null);
-  if (typeof trackdays === "undefined") {
-    updateCalendar();
+  if (range) monthCtx.setCalendarRange(range.start, range.end);
+  else monthCtx.setCalendarRange(null, null);
+  if (!monthCtx.getTrackdays()) {
+    monthCtx.updateCalendar();
     return;
   }
-  refresh({trackVisibility: true, popup: true, calendar: true});
+  monthCtx.refresh({trackVisibility: true, popup: true, calendar: true});
 }
 
 function toggleDaySelection(key) {
-  let same = selectedCalendarStart === key && selectedCalendarEnd === key;
+  let {start, end} = monthCtx.getSelectedCalendarRange();
+  let same = start === key && end === key;
   commitCalendarSelection(same ? null : {start: key, end: key});
 }
 
@@ -313,7 +331,6 @@ function bindActiveMonth(root, byDay, scroll) {
     let next = monthNearestScroll(scroll);
     if (!next || calendarActiveMonth.format("YYYY-MM") === next.format("YYYY-MM")) return;
     calendarActiveMonth = next;
-    selectedMonth = next.toDate();
     paintMonthFocus(root, byDay, null);
   }, {passive: true});
 }

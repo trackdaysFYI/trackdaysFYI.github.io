@@ -1,3 +1,35 @@
+import {
+  CUSTOM_CLASS_VALUE,
+  TIMING_DEVICES,
+  escapeHtml,
+  safeHttpUrl,
+  timeToMs,
+  formatLapTime,
+  fillSelectOptions,
+  rankFormClasses,
+  showRecordCustomClass,
+  suggestedClasses,
+  todayIso,
+  parseOptionalYear,
+  validateNote,
+  validateSharedEditFields,
+  readCreateDraft,
+  raceTag,
+  formatHolder,
+  createLapRecordPayload,
+  validateCreateDraft,
+  refillRecordClasses,
+  fillRecordSubtracks,
+  prepareRecordForm,
+  setFormMessage,
+  setFormSubmitting,
+  closeReviewDialog,
+  wireReviewDialog,
+  focusReviewField,
+  submitReview,
+} from "./lap-record-shared.js";
+import {clearRecordCharts, renderRecordCharts} from "./records-charts.js";
+
 const RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
 const TRACKS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays?include=tracks";
 const VEHICLE_LABELS = {C: "Car", M: "Bike"};
@@ -396,7 +428,13 @@ function renderRows() {
   statusEl.textContent = `${shown.length} record${shown.length === 1 ? "" : "s"}`;
   exportCsvButton.disabled = !shown.length;
   printButton.disabled = !shown.length;
-  if (typeof renderRecordCharts === "function") renderRecordCharts(shown, refRecord || null);
+  renderRecordCharts(shown, refRecord || null, {
+    isSingleTrack: Boolean(trackKey()),
+    subtrackGroups,
+    recordKey,
+    trackLabel,
+    vehicleLabels: VEHICLE_LABELS,
+  });
   if (!shown.length) {
     rowsEl.innerHTML = `<tr><td class="empty" colspan="${colspan}">No records match</td></tr>`;
     return;
@@ -838,7 +876,7 @@ function showRecordsLoading() {
   statusEl.hidden = true;
   exportCsvButton.disabled = true;
   printButton.disabled = true;
-  if (typeof clearRecordCharts === "function") clearRecordCharts();
+  clearRecordCharts();
   rowsEl.innerHTML = `<tr><td class="loading-cell" colspan="9"><div class="loading" role="status" aria-live="polite"><span class="loading-bar"></span><p>Loading lap records...</p></div></td></tr>`;
 }
 
@@ -861,7 +899,7 @@ function showRefetchError(message) {
 
 function showFirstLoadError(message) {
   recordsLoading = false;
-  if (typeof clearRecordCharts === "function") clearRecordCharts();
+  clearRecordCharts();
   rowsEl.innerHTML = "";
   statusEl.hidden = false;
   statusEl.className = "status err";

@@ -1,4 +1,4 @@
-var style = document.createElement("style");
+const style = document.createElement("style");
 style.setAttribute("id", "multiselect_dropdown_styles");
 style.textContent = `
 .multiselect-dropdown{
@@ -88,7 +88,7 @@ style.textContent = `
 document.head.appendChild(style);
 
 // The select stays the source of truth. loadOptions() rebuilds the rows from each option's selected flag.
-function MultiselectDropdown(options) {
+export function MultiselectDropdown(options) {
   let config = {
     height: "16rem",
     txtNothingSelected: "None Selected",

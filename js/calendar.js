@@ -1,14 +1,24 @@
+import {escapeHtml, safeHttpUrl} from "./lap-record-shared.js";
+
+let calCtx = null;
+
+export function initCalendar(context) {
+  calCtx = context;
+}
+
 // Heat tint ignores the selected date range so other days keep their event color.
-function calendarHeatByDay(bounds) {
+export function calendarHeatByDay(bounds) {
   let byDay = new Map();
-  if (typeof trackdays === "undefined") return byDay;
-  let selectedDays = selectedWeekdays();
+  let trackdays = calCtx?.getTrackdays();
+  if (!trackdays) return byDay;
+  let savedEventsSet = calCtx.getSavedEventsSet();
+  let selectedDays = calCtx.selectedWeekdays();
   let minKey = bounds.min.format("YYYY-MM-DD");
   let maxKey = bounds.max.format("YYYY-MM-DD");
   trackdays.forEach((td) => {
     if (td.dateKey < minKey || td.dateKey > maxKey) return;
-    let saved = savedEventsSet.has(getEventKey(td));
-    let passes = passesFilters(td, {radius: true, day: true, org: true, vehicle: true, event: true, selectedDays});
+    let saved = savedEventsSet.has(calCtx.getEventKey(td));
+    let passes = calCtx.passesFilters(td, {radius: true, day: true, org: true, vehicle: true, event: true, selectedDays});
     if (!saved && !passes) return;
     if (!byDay.has(td.dateKey)) byDay.set(td.dateKey, []);
     byDay.get(td.dateKey).push(td);
@@ -16,31 +26,39 @@ function calendarHeatByDay(bounds) {
   return byDay;
 }
 
-function activeCalendarRange() {
-  if (!selectedCalendarStart || !selectedCalendarEnd) return null;
-  return {start: selectedCalendarStart, end: selectedCalendarEnd};
+export function activeCalendarRange() {
+  let {start, end} = calCtx.getSelectedCalendarRange();
+  if (!start || !end) return null;
+  return {start, end};
 }
 
-function selectableDateBounds() {
+export function selectableDateBounds() {
   return {
     min: dayjs().startOf("day"),
     max: dayjs().startOf("day").add(1, "year"),
   };
 }
 
-function dateRangeButtonLabel(monthFmt = "MMM") {
-  if (!selectedCalendarStart || !selectedCalendarEnd) return "";
-  let start = dayjs(selectedCalendarStart, "YYYY-MM-DD", true);
-  let end = dayjs(selectedCalendarEnd, "YYYY-MM-DD", true);
-  if (selectedCalendarStart === selectedCalendarEnd) return start.format(`${monthFmt} D`);
+export function dateRangeButtonLabel(monthFmt = "MMM") {
+  let {start: startKey, end: endKey} = calCtx.getSelectedCalendarRange();
+  if (!startKey || !endKey) return "";
+  let start = dayjs(startKey, "YYYY-MM-DD", true);
+  let end = dayjs(endKey, "YYYY-MM-DD", true);
+  if (startKey === endKey) return start.format(`${monthFmt} D`);
   if (!start.isSame(end, "year")) return `${start.format(`${monthFmt} D, YYYY`)} - ${end.format(`${monthFmt} D, YYYY`)}`;
   if (start.isSame(end, "month")) return `${start.format(`${monthFmt} D`)} - ${end.format("D")}`;
   return `${start.format(`${monthFmt} D`)} - ${end.format(`${monthFmt} D`)}`;
 }
 
-function eventRowHtml(td) {
+export function eventRowHtml(td) {
+  let tracks = calCtx.getTracks();
+  let orgs = calCtx.getOrgs();
+  let savedEventsSet = calCtx.getSavedEventsSet();
+  let selectedVehicleTypes = calCtx.getSelectedVehicleTypes();
+  let selectedEventTypes = calCtx.getSelectedEventTypes();
+  let vehicleTypeMap = calCtx.vehicleTypeMap;
   let track = tracks[td.track];
-  let saved = savedEventsSet.has(getEventKey(td));
+  let saved = savedEventsSet.has(calCtx.getEventKey(td));
   let org = orgs[td.org];
   let showOrg = track.nickname !== td.org;
   let price = td.price >= 0 ? "$" + td.price : "";
@@ -68,14 +86,14 @@ function eventRowHtml(td) {
   return `<div class="cal-event event-item${saved ? " is-saved" : ""}">${main}${saveStarHtml(td)}</div>`;
 }
 
-function saveStarHtml(td) {
-  let key = getEventKey(td);
-  let saved = savedEventsSet.has(key);
+export function saveStarHtml(td) {
+  let key = calCtx.getEventKey(td);
+  let saved = calCtx.getSavedEventsSet().has(key);
   let label = saved ? "Unsave Event" : "Save Event";
   return `<button type="button" class="event-save-star" title="${label}" aria-label="${label}" aria-pressed="${saved ? "true" : "false"}" data-event-key="${encodeURIComponent(key)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.8 7 19l.9-5.6-4-3.9 5.6-.8z"/></svg></button>`;
 }
 
-function fitCalendarTitles() {
+export function fitCalendarTitles() {
   // Full names stay when they fit. Otherwise use nicknames, then drop price and distance if the name still does not fit.
   document.querySelectorAll("#calendar .cal-month-detail .cal-event-title").forEach((title) => {
     let full = title.querySelector(".cal-event-full");
@@ -110,7 +128,7 @@ function fitCalendarTitles() {
 }
 
 let calendarFitFrame = 0;
-function scheduleFitCalendarTitles() {
+export function scheduleFitCalendarTitles() {
   if (calendarFitFrame) return;
   calendarFitFrame = requestAnimationFrame(() => {
     calendarFitFrame = 0;
@@ -124,7 +142,7 @@ if (calendarRoot && typeof ResizeObserver !== "undefined") {
 }
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleFitCalendarTitles);
 
-function formatMiles(dist) {
+export function formatMiles(dist) {
   if (typeof dist !== "number" || !isFinite(dist)) return "";
   if (dist < 1) return "<1 mi";
   return Math.round(dist) + " mi";

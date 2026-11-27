@@ -1,5 +1,18 @@
+import {
+  safeHttpUrl,
+  setFormMessage,
+  setFormSubmitting,
+  closeReviewDialog,
+  wireReviewDialog,
+  focusReviewField,
+  postJson,
+  submitReview,
+} from "./lap-record-shared.js";
+import {fillTrackSelect} from "./index-lap-records.js";
+
 const SUGGESTION_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/submitSuggestion";
 let suggestUi = {kind: "track", submitting: false, submitId: 0, eventType: "T"};
+let ctx = null;
 
 function optionalField(value, maxLen, tooLongMsg) {
   let text = String(value || "").trim();
@@ -32,7 +45,7 @@ function suggestVehicleTypes() {
 }
 
 function suggestHosts(input) {
-  suggestField(input, typeof orgs === "undefined" ? null : orgs, "org");
+  suggestField(input, ctx?.getOrgs() || null, "org");
 }
 
 function suggestField(input, items, key) {
@@ -111,7 +124,8 @@ function toggleSuggestVehicle(button) {
 
 function suggestTrackLabel(trackKey) {
   if (!trackKey) return "";
-  if (typeof tracks === "undefined" || !tracks || !tracks[trackKey]) return trackKey;
+  let tracks = ctx?.getTracks();
+  if (!tracks || !tracks[trackKey]) return trackKey;
   return tracks[trackKey].name || tracks[trackKey].nickname || trackKey;
 }
 
@@ -156,8 +170,10 @@ function openSuggestDialog(kind, trackKey) {
   focusReviewField(dialog);
 }
 
-function reportMissingEvent() {
-  if (typeof tracks === "undefined" || !tracks || !tracks[lastOpenedTrack]) return;
+export function reportMissingEvent() {
+  let tracks = ctx?.getTracks();
+  let lastOpenedTrack = ctx?.getLastOpenedTrack();
+  if (!tracks || !tracks[lastOpenedTrack]) return;
   openSuggestDialog("missing_event", lastOpenedTrack);
 }
 
@@ -241,28 +257,25 @@ async function submitSuggestForm(event) {
   });
 }
 
-wireReviewDialog(document.getElementById("suggestDialog"), {
-  state: suggestUi,
-  form: document.getElementById("suggestDialog").querySelector("form"),
-  messageEl: document.querySelector("#suggestDialog .rec-form-msg"),
-  close: closeSuggestDialog,
-});
-
-document.getElementById("suggestDialog").addEventListener("close", () => {
-  let dialog = document.getElementById("suggestDialog");
-  unpinSuggestDialog(dialog);
-  dialog.querySelectorAll(".suggest-matches").forEach(box => { box.hidden = true; });
-});
-window.addEventListener("resize", () => {
-  let dialog = document.getElementById("suggestDialog");
-  if (!dialog.open) return;
-  unpinSuggestDialog(dialog);
-  pinSuggestDialog(dialog);
-});
-
-function wireSuggestControls() {
+export function initIndexSuggest(context) {
+  ctx = context;
   let dialog = document.getElementById("suggestDialog");
   let form = dialog.querySelector("form");
+  wireReviewDialog(dialog, {
+    state: suggestUi,
+    form,
+    messageEl: dialog.querySelector(".rec-form-msg"),
+    close: closeSuggestDialog,
+  });
+  dialog.addEventListener("close", () => {
+    unpinSuggestDialog(dialog);
+    dialog.querySelectorAll(".suggest-matches").forEach(box => { box.hidden = true; });
+  });
+  window.addEventListener("resize", () => {
+    if (!dialog.open) return;
+    unpinSuggestDialog(dialog);
+    pinSuggestDialog(dialog);
+  });
   form.addEventListener("submit", submitSuggestForm);
   dialog.querySelectorAll("[data-kind]").forEach((btn) => {
     btn.addEventListener("click", () => setSuggestKind(btn.dataset.kind));
@@ -288,5 +301,3 @@ function wireSuggestControls() {
     });
   });
 }
-
-wireSuggestControls();
