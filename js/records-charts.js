@@ -1,4 +1,5 @@
-import {escapeHtml, raceTag, timeToMs} from "./lap-record-shared.js";
+import {vehicleShortLabel} from "./config.js";
+import {escapeHtml, formatMs, raceTag, timeToMs} from "./lap-record-shared.js";
 
 let chartInstances = [];
 let chartDrawId = 0;
@@ -682,10 +683,7 @@ function presentTypes(items) {
 }
 
 function typeName(type) {
-  let labels = chartCtx && chartCtx.vehicleLabels;
-  if (type === "C") return (labels && labels.C) || "Car";
-  if (type === "M") return (labels && labels.M) || "Bike";
-  return "Other";
+  return type ? vehicleShortLabel(type) : "Other";
 }
 
 function typeColor(colors, type) {
@@ -711,18 +709,7 @@ function tickDigits(span) {
 }
 
 function formatChartMs(ms, digits) {
-  ms = Math.round(Number(ms) || 0);
-  let minutes = Math.floor(ms / 60000);
-  let seconds = (ms % 60000) / 1000;
-  let sec = seconds.toFixed(digits);
-  if (Number(sec) >= 60) {
-    minutes += 1;
-    sec = (0).toFixed(digits);
-  }
-  if (!minutes) return sec;
-  let parts = sec.split(".");
-  let whole = parts[0].padStart(2, "0");
-  return parts.length > 1 ? `${minutes}:${whole}.${parts[1]}` : `${minutes}:${whole}`;
+  return formatMs(ms, {digits});
 }
 
 function chartColors() {

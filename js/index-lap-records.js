@@ -1,3 +1,4 @@
+import {LAP_RECORDS_URL, fetchJson, vehicleFullLabel} from "./config.js";
 import {
   CUSTOM_CLASS_VALUE,
   escapeHtml,
@@ -22,16 +23,9 @@ import {
   submitReview,
 } from "./lap-record-shared.js";
 
-let lapRecords = {
-  vehicleTypes: {
-    C: {label: "Car"},
-    M: {label: "Motorcycle"},
-  },
-  tracks: {},
-};
+let lapRecords = {tracks: {}};
 let recordLoads = {};
 export let recordsUi = {open: false, submitting: false, submitId: 0};
-const LAP_RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
 // Toggle: true = fetch all tracks' lap records with getTrackdays (current).
 // false = per-track fetch in loadTrackRecords on popup/form open (use when volume grows).
 // Also stop awaiting loadAllLapRecords() from visualizeData when flipping to false.
@@ -52,13 +46,7 @@ export async function loadAllLapRecords() {
   lapRecordsPreloadOk = false;
   if (!PRELOAD_ALL_LAP_RECORDS) return;
   try {
-    let res = await fetch(LAP_RECORDS_URL + "?maxPerClass=3");
-    if (!res.ok) {
-      let failure = new Error("HTTP " + res.status);
-      failure.status = res.status;
-      throw failure;
-    }
-    let records = await res.json();
+    let records = await fetchJson(LAP_RECORDS_URL + "?maxPerClass=3");
     if (!Array.isArray(records)) throw new Error("Unable to load lap records.");
     let byTrack = {};
     records.forEach((record) => {
@@ -101,14 +89,8 @@ export async function loadTrackRecords(trackKey) {
   lapRecords.tracks[trackKey] = {records: [], loading: true, loaded: false, error: ""};
   if (ctx.getLastOpenedTrack() === trackKey) ctx.updateTrackPopup();
   try {
-    let res = await fetch(LAP_RECORDS_URL + "?track=" + encodeURIComponent(trackKey) + "&maxPerClass=3");
+    let records = await fetchJson(LAP_RECORDS_URL + "?track=" + encodeURIComponent(trackKey) + "&maxPerClass=3");
     if (recordLoads[trackKey] !== token) return;
-    if (!res.ok) {
-      let failure = new Error("HTTP " + res.status);
-      failure.status = res.status;
-      throw failure;
-    }
-    let records = await res.json();
     if (!Array.isArray(records)) throw new Error("Unable to load lap records.");
     lapRecords.tracks[trackKey] = {records, loading: false, loaded: true, error: ""};
   } catch (err) {
@@ -123,13 +105,6 @@ export async function loadTrackRecords(trackKey) {
   if (ctx.getLastOpenedTrack() === trackKey && recordsUi.open) ctx.updateTrackPopup();
   let recordFormEl = recordForm();
   if (recordFormEl && recordTrackKey(recordFormEl) === trackKey) syncRecordDialog();
-}
-
-function recordTypeLabel(code) {
-  let info = lapRecords.vehicleTypes && lapRecords.vehicleTypes[code];
-  if (info) return info.label;
-  if (code === "S") return "Supermoto";
-  return code;
 }
 
 function preferredRecordType(types) {
@@ -334,7 +309,7 @@ export function recordsListHtml(trackKey) {
   }
   let typeSections = ["C", "M", "S"].filter(code => shown.some(r => r.vehicleType === code));
   let groups = typeSections.map((code, index) => {
-    let heading = typeSections.length > 1 ? `<div class="rec-typehead${index ? "" : " first"}">${escapeHtml(recordTypeLabel(code))}</div>` : "";
+    let heading = typeSections.length > 1 ? `<div class="rec-typehead${index ? "" : " first"}">${escapeHtml(vehicleFullLabel(code))}</div>` : "";
     return heading + groupsHtml(shown.filter(r => r.vehicleType === code));
   }).join("");
   return body(groups);

@@ -1,3 +1,4 @@
+import {eventFullLabel, vehicleShortLabel} from "./config.js";
 import {escapeHtml, safeHttpUrl} from "./lap-record-shared.js";
 
 let calCtx = null;
@@ -56,14 +57,14 @@ export function eventRowHtml(td) {
   let savedEventsSet = calCtx.getSavedEventsSet();
   let selectedVehicleTypes = calCtx.getSelectedVehicleTypes();
   let selectedEventTypes = calCtx.getSelectedEventTypes();
-  let vehicleTypeMap = calCtx.vehicleTypeMap;
   let track = tracks[td.track];
-  let saved = savedEventsSet.has(calCtx.getEventKey(td));
+  let eventKey = calCtx.getEventKey(td);
+  let saved = savedEventsSet.has(eventKey);
   let org = orgs[td.org];
   let showOrg = track.nickname !== td.org;
   let price = td.price >= 0 ? "$" + td.price : "";
-  let vehicle = selectedVehicleTypes.size > 1 ? [...td.vehicleType].map(t => vehicleTypeMap[t]).filter(Boolean).join("/") : "";
-  let event = selectedEventTypes.size > 1 ? [...td.eventType].map(t => ({T: "Trackday", S: "School", R: "Race"}[t] || t)).filter(Boolean).join("/") : "";
+  let vehicle = selectedVehicleTypes.size > 1 ? [...td.vehicleType].map(vehicleShortLabel).filter(Boolean).join("/") : "";
+  let event = selectedEventTypes.size > 1 ? [...td.eventType].map(eventFullLabel).filter(Boolean).join("/") : "";
   let meta = [vehicle, event, td.subtrack, td.note].filter(Boolean).join(" · ");
   let dist = formatMiles(track.dist);
   let fullTrack = track.showNickname && track.nickname ? `${track.name} (${track.nickname})` : track.name;
@@ -83,14 +84,13 @@ export function eventRowHtml(td) {
   let main = url
     ? `<a class="cal-event-main" href="${escapeHtml(url)}" target="_blank" rel="noopener">${inner}</a>`
     : `<div class="cal-event-main">${inner}</div>`;
-  return `<div class="cal-event event-item${saved ? " is-saved" : ""}">${main}${saveStarHtml(td)}</div>`;
+  return `<div class="cal-event event-item${saved ? " is-saved" : ""}">${main}${saveStarHtml(eventKey, saved)}</div>`;
 }
 
-export function saveStarHtml(td) {
-  let key = calCtx.getEventKey(td);
-  let saved = calCtx.getSavedEventsSet().has(key);
+export function saveStarHtml(key, saved, {popupAction = false} = {}) {
   let label = saved ? "Unsave Event" : "Save Event";
-  return `<button type="button" class="event-save-star" title="${label}" aria-label="${label}" aria-pressed="${saved ? "true" : "false"}" data-event-key="${encodeURIComponent(key)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.8 7 19l.9-5.6-4-3.9 5.6-.8z"/></svg></button>`;
+  let action = popupAction ? ` data-popup-action="save-event"` : "";
+  return `<button type="button" class="event-save-star" title="${label}" aria-label="${label}" aria-pressed="${saved ? "true" : "false"}" data-event-key="${encodeURIComponent(key)}"${action}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.8 7 19l.9-5.6-4-3.9 5.6-.8z"/></svg></button>`;
 }
 
 export function fitCalendarTitles() {

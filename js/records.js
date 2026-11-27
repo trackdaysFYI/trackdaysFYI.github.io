@@ -1,3 +1,4 @@
+import {LAP_RECORDS_URL, TRACKS_URL, downloadBlob, fetchJson, vehicleShortLabel} from "./config.js";
 import {
   CUSTOM_CLASS_VALUE,
   TIMING_DEVICES,
@@ -5,6 +6,7 @@ import {
   safeHttpUrl,
   timeToMs,
   formatLapTime,
+  formatMs,
   fillSelectOptions,
   rankFormClasses,
   showRecordCustomClass,
@@ -29,10 +31,6 @@ import {
   submitReview,
 } from "./lap-record-shared.js";
 import {clearRecordCharts, renderRecordCharts} from "./records-charts.js";
-
-const RECORDS_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/getLapRecords";
-const TRACKS_URL = "https://atqtpmna66.execute-api.us-east-1.amazonaws.com/getTrackdays?include=tracks";
-const VEHICLE_LABELS = {C: "Car", M: "Bike"};
 
 let records = [];
 let allRecordsCache = null;
@@ -208,17 +206,6 @@ function compareRecords(a, b) {
   return trackLabel(a.track).localeCompare(trackLabel(b.track)) || String(a.vehicleClass).localeCompare(String(b.vehicleClass));
 }
 
-function formatGap(ms) {
-  ms = Math.round(ms);
-  let sign = ms > 0 ? "+" : ms < 0 ? "\u2212" : "";
-  ms = Math.abs(ms);
-  let minutes = Math.floor(ms / 60000);
-  let seconds = ((ms % 60000) / 1000).toFixed(3);
-  if (!minutes) return `${sign}${seconds}`;
-  let [whole, frac] = seconds.split(".");
-  return `${sign}${minutes}:${whole.padStart(2, "0")}.${frac}`;
-}
-
 function recordKey(record) {
   if (record.recordId) return "id:" + record.recordId;
   return [
@@ -270,7 +257,7 @@ function exportCsv() {
       record.holder || "",
       record.raceNumber || "",
       vehicleLabel(record),
-      VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "",
+      vehicleShortLabel(record.vehicleType),
       record.vehicleClass || "",
       record.date || "",
       record.evidence || "",
@@ -280,23 +267,12 @@ function exportCsv() {
   downloadBlob(blob, "lap-records.csv");
 }
 
-function downloadBlob(blob, fileName) {
-  let url = URL.createObjectURL(blob);
-  let link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 function activeFilterSummary() {
   let parts = [];
   let track = trackKey();
   if (track) parts.push(`Track: ${trackLabel(track)}`);
   if (vehicleSelect.value) {
-    parts.push(`Vehicle: ${VEHICLE_LABELS[vehicleSelect.value] || vehicleSelect.value}`);
+    parts.push(`Vehicle: ${vehicleShortLabel(vehicleSelect.value)}`);
   }
   if (classSelect.value) parts.push(`Class: ${classSelect.value}`);
   if (subtrackSelect.value && !subtrackFilter.hidden) parts.push(`Subtrack: ${subtrackSelect.value}`);
@@ -314,7 +290,7 @@ function printRecords() {
 function recordRow(record, includeClass, includeTrack, includeSubtrack, includeType, gapMs) {
   let key = recordKey(record);
   let isRef = key === referenceKey;
-  let type = includeType ? (VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "") : "";
+  let type = includeType ? vehicleShortLabel(record.vehicleType) : "";
   let classLabel = [type, record.vehicleClass || ""].filter(Boolean).join(" · ");
   let evidence = safeHttpUrl(record.evidence);
   let evidenceCell = evidence ? `<a href="${escapeHtml(evidence)}" target="_blank" rel="noopener">View</a>` : "";
@@ -325,7 +301,7 @@ function recordRow(record, includeClass, includeTrack, includeSubtrack, includeT
     ? ` <span class="gap ref-mark" title="Reference">ref</span>`
     : gapMs == null
       ? ""
-      : ` <span class="gap ${gapMs < 0 ? "faster" : gapMs > 0 ? "slower" : ""}">${formatGap(gapMs)}</span>`;
+      : ` <span class="gap ${gapMs < 0 ? "faster" : gapMs > 0 ? "slower" : ""}">${formatMs(gapMs, {signed: true})}</span>`;
   let canChange = !!record.recordId;
   let actionIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
   let actionCell = canChange
@@ -377,7 +353,7 @@ function subtrackGroups(shown) {
 
 function groupLabel(key, flags) {
   let [track, subtrack, typeCode, className] = key.split("\0");
-  let type = VEHICLE_LABELS[typeCode] || typeCode || "";
+  let type = vehicleShortLabel(typeCode);
   let parts = [];
   if (flags.subtrack && subtrack) parts.push(subtrack);
   if (flags.track) parts.push(trackLabel(track));
@@ -433,7 +409,6 @@ function renderRows() {
     subtrackGroups,
     recordKey,
     trackLabel,
-    vehicleLabels: VEHICLE_LABELS,
   });
   if (!shown.length) {
     rowsEl.innerHTML = `<tr><td class="empty" colspan="${colspan}">No records match</td></tr>`;
@@ -503,11 +478,9 @@ function onFilterChange({ refillDependents } = {}) {
 
 async function fetchLapRecords(track, signal) {
   let url = track
-    ? RECORDS_URL + "?track=" + encodeURIComponent(track)
-    : RECORDS_URL;
-  let res = await fetch(url, signal ? {signal} : undefined);
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  let data = await res.json();
+    ? LAP_RECORDS_URL + "?track=" + encodeURIComponent(track)
+    : LAP_RECORDS_URL;
+  let data = await fetchJson(url, signal ? {signal} : undefined);
   if (!Array.isArray(data)) throw new Error("Unable to load lap records.");
   return data;
 }
@@ -625,7 +598,7 @@ function setChangeAction(action) {
 function fillChangeForm(record) {
   changeUi.record = record;
   changeForm.reset();
-  let type = VEHICLE_LABELS[record.vehicleType] || record.vehicleType || "";
+  let type = vehicleShortLabel(record.vehicleType);
   let parts = [
     `<strong>${escapeHtml(trackLabel(record.track))}</strong>`,
     record.subtrack ? escapeHtml(record.subtrack) : "",
@@ -913,18 +886,15 @@ async function loadPage() {
   showRecordsLoading();
   try {
     try {
-      let tracksResult = await fetch(TRACKS_URL);
-      if (tracksResult.ok) {
-        let data = await tracksResult.json();
-        (data.tracks || []).forEach(track => {
-          if (!track.nickname) return;
-          let key = String(track.nickname).toUpperCase();
-          trackNames[key] = track.name || track.nickname;
-          trackSubtracks[key] = Array.isArray(track.subtracks)
-            ? track.subtracks.map(name => String(name || "").trim()).filter(Boolean)
-            : [];
-        });
-      }
+      let data = await fetchJson(TRACKS_URL);
+      (data.tracks || []).forEach(track => {
+        if (!track.nickname) return;
+        let key = String(track.nickname).toUpperCase();
+        trackNames[key] = track.name || track.nickname;
+        trackSubtracks[key] = Array.isArray(track.subtracks)
+          ? track.subtracks.map(name => String(name || "").trim()).filter(Boolean)
+          : [];
+      });
     } catch (err) {
       // Keep any track list already loaded. A failed refresh must not empty the form.
     }

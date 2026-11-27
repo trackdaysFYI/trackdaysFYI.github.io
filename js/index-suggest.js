@@ -1,3 +1,4 @@
+import {SUGGESTION_URL} from "./config.js";
 import {
   safeHttpUrl,
   setFormMessage,
@@ -10,7 +11,6 @@ import {
 } from "./lap-record-shared.js";
 import {fillTrackSelect} from "./index-lap-records.js";
 
-const SUGGESTION_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/submitSuggestion";
 let suggestUi = {kind: "track", submitting: false, submitId: 0, eventType: "T"};
 let ctx = null;
 

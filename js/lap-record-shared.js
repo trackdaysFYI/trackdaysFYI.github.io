@@ -1,4 +1,5 @@
-const LAP_RECORD_SUBMIT_URL = "https://8fu4ilcse5.execute-api.us-east-1.amazonaws.com/submitLapRecord";
+import {LAP_RECORD_SUBMIT_URL} from "./config.js";
+
 const LAP_TIME_RE = /^(?:\d{1,3}:[0-5]\d|[0-5]?\d)\.\d{1,3}$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const CUSTOM_CLASS_VALUE = "__custom__";
@@ -49,6 +50,23 @@ function formatLapTime(time) {
   let dot = text.lastIndexOf(".");
   if (dot === -1) return text;
   return text.slice(0, dot + 1) + text.slice(dot + 1).padEnd(3, "0");
+}
+
+function formatMs(ms, {digits = 3, signed = false} = {}) {
+  let rounded = Math.round(Number(ms) || 0);
+  let sign = signed ? (rounded > 0 ? "+" : rounded < 0 ? "\u2212" : "") : (rounded < 0 ? "\u2212" : "");
+  let abs = Math.abs(rounded);
+  let minutes = Math.floor(abs / 60000);
+  let seconds = (abs % 60000) / 1000;
+  let sec = seconds.toFixed(digits);
+  if (Number(sec) >= 60) {
+    minutes += 1;
+    sec = (0).toFixed(digits);
+  }
+  if (!minutes) return `${sign}${sec}`;
+  let parts = sec.split(".");
+  let whole = parts[0].padStart(2, "0");
+  return parts.length > 1 ? `${sign}${minutes}:${whole}.${parts[1]}` : `${sign}${minutes}:${whole}`;
 }
 
 function fillSelectOptions(select, options, selectedValue, {defaultFirst = true} = {}) {
@@ -467,6 +485,7 @@ export {
   safeHttpUrl,
   timeToMs,
   formatLapTime,
+  formatMs,
   fillSelectOptions,
   fillSelectWithOther,
   rankFormClasses,
