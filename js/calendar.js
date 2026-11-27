@@ -1,14 +1,3 @@
-function eventsByDay(include) {
-  let byDay = new Map();
-  trackdays.forEach((td) => {
-    if (!td.visibilityCalendar || (include && !include(td))) return;
-    let key = td.date.format("YYYY-MM-DD");
-    if (!byDay.has(key)) byDay.set(key, []);
-    byDay.get(key).push(td);
-  });
-  return byDay;
-}
-
 // Heat tint ignores the selected date range so other days keep their event color.
 function calendarHeatByDay(bounds) {
   let byDay = new Map();
@@ -19,7 +8,6 @@ function calendarHeatByDay(bounds) {
     let saved = savedEventsSet.has(getEventKey(td));
     let passes = passesFilters(td, {radius: true, day: true, org: true, vehicle: true, event: true, selectedDays});
     if (!saved && !passes) return;
-    if (!saved && !trackWithinRadius(td.track)) return;
     let key = td.date.format("YYYY-MM-DD");
     if (!byDay.has(key)) byDay.set(key, []);
     byDay.get(key).push(td);

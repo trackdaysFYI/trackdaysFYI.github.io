@@ -584,17 +584,6 @@ function setChangeAction(action) {
   setFormMessage(changeMessage, null);
 }
 
-function fillTimingDeviceSelect(select, selected) {
-  select.replaceChildren();
-  TIMING_DEVICES.forEach(name => {
-    let option = document.createElement("option");
-    option.value = name;
-    option.textContent = name;
-    select.appendChild(option);
-  });
-  select.value = selected;
-}
-
 function fillChangeForm(record) {
   changeUi.record = record;
   changeForm.reset();
@@ -612,7 +601,7 @@ function fillChangeForm(record) {
   changeForm.elements.time.value = record.time || "";
   changeForm.elements.date.value = record.date || "";
   changeForm.elements.date.max = todayIso();
-  fillTimingDeviceSelect(changeForm.elements.timingDevice, record.timingDevice || "");
+  fillSelectOptions(changeForm.elements.timingDevice, TIMING_DEVICES, record.timingDevice || "", {defaultFirst: false});
   changeForm.elements.evidence.value = record.evidence || "";
   changeForm.elements.note.value = "";
   setChangeAction("edit");

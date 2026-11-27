@@ -51,7 +51,7 @@ function formatLapTime(time) {
   return text.slice(0, dot + 1) + text.slice(dot + 1).padEnd(3, "0");
 }
 
-function fillSelectOptions(select, options, selectedValue) {
+function fillSelectOptions(select, options, selectedValue, {defaultFirst = true} = {}) {
   if (!select) return "";
   select.replaceChildren();
   options.forEach(name => {
@@ -64,7 +64,7 @@ function fillSelectOptions(select, options, selectedValue) {
     select.value = selectedValue;
     return selectedValue;
   }
-  if (options.length) {
+  if (defaultFirst && options.length) {
     select.value = options[0];
     return options[0];
   }
