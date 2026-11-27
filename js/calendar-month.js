@@ -215,7 +215,9 @@ function rangeHeaderHtml(keys) {
 }
 
 function filteredNoteHtml(start, end) {
-  let hidden = trackdays.filter((td) => !td.visibilityMap && !td.date.isBefore(start, "day") && !td.date.isAfter(end, "day"));
+  let startKey = start.format("YYYY-MM-DD");
+  let endKey = end.format("YYYY-MM-DD");
+  let hidden = trackdays.filter((td) => !td.visibilityMap && td.dateKey >= startKey && td.dateKey <= endKey);
   if (!hidden.length) return "";
   return `<p class="cal-month-note">${escapeHtml(hiddenEventNote(hidden))}</p>`;
 }

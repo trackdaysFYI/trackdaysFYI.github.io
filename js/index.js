@@ -115,7 +115,7 @@ removePastSavedEvents();
 let locationDefault = [39.50, -98.35];  // Central US or GPS location
 let isGPSLocation = false;
 let homeLocked = false;  // user moved the home pin or the travel radius
-let searchRadius, minDate, maxDate;
+let searchRadius;
 let lastOpenedTrack, selectedMonth, selectedCalendarStart = null, selectedCalendarEnd = null;
 let tracks;
 const infiniteRadius = 0;
@@ -217,12 +217,9 @@ function updateSearchRadius(radiusMiles) {
   document.getElementById("displayedRadius").innerText = (searchRadius === infiniteRadius ? `∞` : `${searchRadius}`);
 }
 
-// minDate and maxDate are padded, so these exclusive comparisons include the chosen days
-// an invalid bound means that side is open
-function dateInRange(date) {
-  let afterMin = !minDate.isValid() || date.isAfter(minDate);
-  let beforeMax = !maxDate.isValid() || date.isBefore(maxDate);
-  return afterMin && beforeMax;
+function dateInRange(dateKey) {
+  if (!selectedCalendarStart || !selectedCalendarEnd) return true;
+  return dateKey >= selectedCalendarStart && dateKey <= selectedCalendarEnd;
 }
 
 function selectedWeekdays() {
@@ -236,10 +233,10 @@ function trackWithinRadius(trackKey) {
 // opts toggles which checks apply: radius, date, day, org, vehicle, event
 function passesFilters(td, opts = {}) {
   if (opts.radius && !trackWithinRadius(td.track)) return false;
-  if (opts.date && !dateInRange(td.date)) return false;
+  if (opts.date && !dateInRange(td.dateKey)) return false;
   if (opts.day) {
     let days = opts.selectedDays || selectedWeekdays();
-    if (!days.has(dayjs(td.date).format("ddd"))) return false;
+    if (!days.has(td.weekday)) return false;
   }
   if (opts.org && !orgs[td.org].dropdownSelected) return false;
   if (opts.vehicle && ![...td.vehicleType].some(t => selectedVehicleTypes.has(t))) return false;
@@ -254,7 +251,7 @@ function updateTrackdaysVisibilityProperty() {
     let core = passesFilters(td, {date: true, day: true, org: true, vehicle: true, event: true, selectedDays});
     let isSaved = savedEventsSet.has(getEventKey(td));
     // Saved events skip most filters, but still respect the selected date range.
-    let savedVisible = isSaved && dateInRange(td.date);
+    let savedVisible = isSaved && dateInRange(td.dateKey);
     td.visibilityDropdown = passesFilters(td, {radius: true, vehicle: true, event: true});
     td.visibilityMap = savedVisible || core;
     td.visibilityCalendar = savedVisible || (core && withinRadius);
@@ -262,7 +259,7 @@ function updateTrackdaysVisibilityProperty() {
 }
 
 function getEventKey(td) {  // string identifying a specific event
-  return [td.date.format("YYYY-MM-DD"), td.org, td.track, td.subtrack, td.eventType, td.vehicleType].join("|");
+  return [td.dateKey, td.org, td.track, td.subtrack, td.eventType, td.vehicleType].join("|");
 }
 
 function onEventSaveToggle(btn) {
@@ -332,7 +329,7 @@ function downloadSavedEventsICS() {
   if (typeof trackdays === "undefined") return;
   let savedEvents = trackdays
     .filter(td => savedEventsSet.has(getEventKey(td)))
-    .sort((a, b) => a.date.valueOf() - b.date.valueOf());
+    .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
   if (savedEvents.length === 0) {
     alert("No saved events to export.\nStar events to save them.");
     return;
@@ -416,8 +413,8 @@ function hiddenEventNote(hidden) {
     addEvent(td, "T", "trackday");
     addEvent(td, "S", "school");
     addEvent(td, "R", "race");
-    if (!dateInRange(td.date)) reasons.add("date");
-    if (!days.has(td.date.format("ddd"))) reasons.add("weekday");
+    if (!dateInRange(td.dateKey)) reasons.add("date");
+    if (!days.has(td.weekday)) reasons.add("weekday");
     if (orgs[td.org] && !orgs[td.org].dropdownSelected) reasons.add("host");
   });
   let n = hidden.length;
@@ -499,7 +496,7 @@ function updateTrackPopup() {
   let multipleEventTypes = trackdaysFiltered.some(td => td.eventType != "T") && (selectedEventTypes.size > 1);
   const eventLabel = {"T": "Trackday", "S": "School", "R": "Race"};
   function rowMain(td, meta, price, mark) {
-    let copy = `<span class="tl-copy"><span class="tl-dow">${td.date.format("ddd")}</span><span class="tl-host allowSelect">${escapeHtml(td.org)}</span>${meta ? `<span class="tl-meta">${meta}</span>` : ""}${price ? `<span class="tl-price">${price}</span>` : ""}</span>`;
+    let copy = `<span class="tl-copy"><span class="tl-dow">${td.weekday}</span><span class="tl-host allowSelect">${escapeHtml(td.org)}</span>${meta ? `<span class="tl-meta">${meta}</span>` : ""}${price ? `<span class="tl-price">${price}</span>` : ""}</span>`;
     let eventUrl = safeHttpUrl(td.url);
     if (eventUrl) return `<a class="tl-row-link" href="${escapeHtml(eventUrl)}" target="_blank" rel="noopener">${mark}${copy}</a>`;
     return `<div class="tl-row-link">${mark}${copy}</div>`;
@@ -522,8 +519,8 @@ function updateTrackPopup() {
   let directionsUrl = "https://www.google.com/maps?q=" + encodeURIComponent("directions " + track.name);
   let weatherUrl = "https://www.google.com/search?q=" + encodeURIComponent("weather " + track.name);
   let nickname = track.showNickname ? ` (${escapeHtml(track.nickname)})` : "";
-  let dateHidden = hiddenTrackdays.filter(td => !dateInRange(td.date));
-  let otherHidden = hiddenTrackdays.filter(td => dateInRange(td.date));
+  let dateHidden = hiddenTrackdays.filter(td => !dateInRange(td.dateKey));
+  let otherHidden = hiddenTrackdays.filter(td => dateInRange(td.dateKey));
   let dateNote = dateHidden.length
     ? `<span class="hidden-note date-hidden-note">${dateHidden.length} ${dateHidden.length === 1 ? "event" : "events"} outside selected dates <button type="button" class="popup-clear-dates" data-popup-action="clear-date-range">Clear</button></span>`
     : "";
@@ -533,7 +530,7 @@ function updateTrackPopup() {
   let rows = trackdaysFiltered.map((td) => {
     let eventKey = getEventKey(td);
     let saved = savedEventsSet.has(eventKey) ? " is-saved" : "";
-    let dateKey = td.date.format("YYYY-MM-DD");
+    let dateKey = td.dateKey;
     let showDate = dateKey !== lastDate;
     lastDate = dateKey;
     let meta = detailText(td);
@@ -629,18 +626,6 @@ function updateDateFilterBar() {
   bar.removeAttribute("tabindex");
   bar.removeAttribute("aria-label");
   bar.innerHTML = `<span class="date-filter-bar-text">${escapeHtml(label)}</span>${calendarClearDatesHtml()}`;
-}
-
-function applyCalendarBounds() {
-  // exclusive comparisons: pad the start back 1s and the end forward 1 minute so those midnights are included
-  // an invalid bound means that side is open (no selection = all events)
-  if (selectedCalendarStart && selectedCalendarEnd) {
-    minDate = dayjs(selectedCalendarStart, "YYYY-MM-DD", true).subtract(1, "s");
-    maxDate = dayjs(selectedCalendarEnd, "YYYY-MM-DD", true).add(1, "minute");
-  } else {
-    minDate = dayjs("", "YYYY-MM-DD", true);
-    maxDate = dayjs("", "YYYY-MM-DD", true);
-  }
 }
 
 let showSyncInfo = false;
@@ -739,7 +724,6 @@ function setCalendarRange(start, end) {
     selectedCalendarStart = end;
     selectedCalendarEnd = start;
   }
-  applyCalendarBounds();
 }
 
 const headerAd = document.getElementById("fotosort-ad");
@@ -776,8 +760,6 @@ let resetElement = document.getElementById("resetFilters");
 orgSelectElement.style.display = "block";
 MultiselectDropdown();
 
-applyCalendarBounds();
-
 const checkeredFlagImg = `<svg xmlns="http://www.w3.org/2000/svg" fill="#000000" viewBox="0 0 24 24"><path d="M4 2v18H3v2h4v-2H6v-5h13a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H6V2H4zm4 3v2h2V5h2v2h2V5h2v2h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H8v-2H6V9h2V7H6V5h2z"/><path d="M8 9h2v2H8zm4 0h2v2h-2zm-2-2h2v2h-2zm4 0h2v2h-2z"/></svg>`;
 const directionImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="m2.3 12.7 9 9c.4.4 1 .4 1.4 0l9-9a1 1 0 0 0 0-1.4l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4zM9 10h5V8l3 3-3 3v-2h-3v4H9v-6z"/></svg>`;
 const weatherImg = `<svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24"><path d="M7 12a5 5 0 1 0 10 0 5 5 0 0 0-10 0zm4 7h2v3h-2zm0-17h2v3h-2zm-9 9h3v2H2zm17 0h3v2h-3zM5.6 19.8l-1.4-1.4 2.1-2.2 1.5 1.5zM16.2 6.3l2.2-2 1.4 1.3-2.1 2.2zM6.3 7.8l-2-2.2 1.3-1.4 2.2 2.1zm13.5 10.6-1.4 1.4-2.2-2.1 1.5-1.5z"/></svg>`;
@@ -805,10 +787,12 @@ async function fetchAndNormalizeTrackdays() {
     numEvents: org.events.length,
     events: org.events.map(e => ({...e, org: org.orgNickname, url: e.url || org.url}))}));  // add org key and default url
   trackdays = orgs.flatMap(({events}) => events);  // aggregate events as single list
-  trackdays = trackdays.map(td => ({...td, date: dayjs(td.date, "YYYY-MM-DD")}));  // convert date string to dayjs
-  trackdays.sort((a, b) => a.date.valueOf() - b.date.valueOf());  // sort by date
-  let today = dayjs().startOf("day");
-  trackdays = trackdays.filter((td) => !td.date.isBefore(today, "day"));  // drop events before today
+  let todayKey = dayjs().format("YYYY-MM-DD");
+  trackdays = trackdays.map(td => {
+    let date = dayjs(td.date, "YYYY-MM-DD");
+    return {...td, date, dateKey: date.format("YYYY-MM-DD"), weekday: date.format("ddd")};
+  }).filter((td) => td.dateKey >= todayKey);  // drop events before today
+  trackdays.sort((a, b) => a.dateKey.localeCompare(b.dateKey));  // sort by date
 
   orgs = orgs.map(({events, ...item}) => item);  // drop events key
   orgs = orgs.map(org => ({...org,

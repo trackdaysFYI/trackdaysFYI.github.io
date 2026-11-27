@@ -3,14 +3,15 @@ function calendarHeatByDay(bounds) {
   let byDay = new Map();
   if (typeof trackdays === "undefined") return byDay;
   let selectedDays = selectedWeekdays();
+  let minKey = bounds.min.format("YYYY-MM-DD");
+  let maxKey = bounds.max.format("YYYY-MM-DD");
   trackdays.forEach((td) => {
-    if (td.date.isBefore(bounds.min, "day") || td.date.isAfter(bounds.max, "day")) return;
+    if (td.dateKey < minKey || td.dateKey > maxKey) return;
     let saved = savedEventsSet.has(getEventKey(td));
     let passes = passesFilters(td, {radius: true, day: true, org: true, vehicle: true, event: true, selectedDays});
     if (!saved && !passes) return;
-    let key = td.date.format("YYYY-MM-DD");
-    if (!byDay.has(key)) byDay.set(key, []);
-    byDay.get(key).push(td);
+    if (!byDay.has(td.dateKey)) byDay.set(td.dateKey, []);
+    byDay.get(td.dateKey).push(td);
   });
   return byDay;
 }
