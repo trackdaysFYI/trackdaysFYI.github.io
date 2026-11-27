@@ -177,12 +177,11 @@ button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(
 .btn-action {background: transparent; color: var(--soft); border: 1px solid var(--line); padding: 0.4rem 0.75rem; font: inherit; cursor: pointer;}
 .btn-action:hover {border-color: var(--accent); color: white;}
 .multiselect-dropdown {min-width: 0; width: 100%; box-sizing: border-box;}
-.filter-bar {display: flex; flex-direction: column; align-items: stretch; gap: 12px; text-align: left; margin: 0 0 0.85rem; padding: 0.55rem 0 0.7rem; position: relative; z-index: 1100;}
-.filter-bar .multiselect-dropdown {border-radius: 999px; padding: 0.35rem 0.8rem; line-height: 1.35; cursor: pointer;}
-.filter-bar .multiselect-dropdown span.optext {background: transparent; color: white;}
-.filter-bar .multiselect-dropdown:has(span.optext) {background-color: var(--accent-soft);}
-.filter-bar .multiselect-dropdown.is-open {box-shadow: 0 0 0 1px var(--accent);}
-.filter-bar .multiselect-dropdown-list-wrapper {border-radius: 12px; top: calc(100% + 6px);}
+.filter-bar {display: flex; flex-direction: column; align-items: stretch; gap: 12px; text-align: left; margin: 0 0 0.85rem; padding: 0.55rem 0 0.7rem;}
+.filter-bar .multiselect-trigger {border-radius: 999px; padding: 0.35rem 0.8rem; line-height: 1.35;}
+.filter-bar .multiselect-trigger span.optext {background: transparent; color: white;}
+.filter-bar .multiselect-trigger:has(span.optext) {background-color: var(--accent-soft);}
+.filter-bar .multiselect-dropdown.is-open .multiselect-trigger {box-shadow: 0 0 0 1px var(--accent);}
 .filter-bar .btn-action {border-radius: 999px; padding: 0.35rem 0.8rem; line-height: 1.35;}
 .toggle-row, .secondary-row {display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; max-width: 100%;}
 .toggle-row {gap: 14px 2.75rem;}
@@ -195,8 +194,7 @@ button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(
 .date-row > .multiselect-dropdown {width: max-content; flex: 0 0 auto;}
 .date-row > .multiselect-dropdown span.maxselected {width: auto;}
 /* List grows with longest row (checkbox + Wednesday), not a fixed min-width. */
-.date-row > .multiselect-dropdown .multiselect-dropdown-list-wrapper {width: max-content; min-width: 100%; right: auto;}
-.day-group .multiselect-dropdown-list label {min-width: max-content;}
+.day-group .multiselect-dropdown-list label span {min-width: max-content;}
 .slider-stack {display: flex; flex-direction: column; gap: 4px; width: auto;}
 .slider-row {display: grid; grid-template-columns: auto minmax(0, 5.25rem) auto; align-items: center; gap: 0.5rem; box-sizing: border-box; max-width: 100%; min-height: 34px; border: 1px solid var(--line); border-radius: 999px; padding: 0 0.75rem; color: var(--soft);}
 .slider-row input[type=range] {width: 100%; margin: 0; opacity: 1;}
@@ -215,7 +213,6 @@ button.colored:focus-visible, .btn-action:focus-visible {outline: 2px solid var(
   .host-group .multiselect-dropdown {width: min(100%, 14.5rem);}
   .date-row {display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.35rem; width: min(100%, 20rem); margin-inline: auto;}
   .date-row > .multiselect-dropdown {flex: 0 0 auto; width: max-content; max-width: max-content; margin-inline: auto;}
-  .date-row > .multiselect-dropdown .multiselect-dropdown-list-wrapper {width: max-content; min-width: 100%; right: 0;}
   .slider-stack, .slider-row {width: auto; max-width: 100%;}
   .slider-row {grid-template-columns: auto minmax(4rem, 7rem) auto;}
 }

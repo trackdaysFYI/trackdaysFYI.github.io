@@ -7,7 +7,7 @@ import {
   todayIso,
   weekdayShort,
 } from "./dates.js";
-import {MultiselectDropdown} from "./multiselect-dropdown.js";
+import {createMultiselect} from "./multiselect-dropdown.js";
 import {escapeHtml, safeHttpUrl} from "./lap-record-shared.js";
 import {
   STORAGE_KEYS,
@@ -74,8 +74,8 @@ const showRacesToggleElement = document.getElementById("showRaces");
 const exportSavedEventsElement = document.getElementById("exportSavedEvents");
 const resetElement = document.getElementById("resetFilters");
 
-orgSelectElement.style.display = "block";
-MultiselectDropdown();
+const daySelectControl = createMultiselect(daySelectElement);
+const orgSelectControl = createMultiselect(orgSelectElement);
 
 function persistWeekdays() {
   writeStoredList(STORAGE_KEYS.weekdays, selectedWeekdays());
@@ -93,7 +93,7 @@ function applyStoredWeekdays() {
   Array.from(daySelectElement.options).forEach((opt) => {
     opt.selected = selected.has(opt.value);
   });
-  daySelectElement.loadOptions();
+  daySelectControl.refresh();
 }
 
 function applyStoredHosts() {
@@ -121,7 +121,7 @@ function updateDropdown() {
       orgSelectElement.add(org.dropdownOption);
     }
   });
-  orgSelectElement.loadOptions();
+  orgSelectControl.refresh();
 }
 
 function updateDateFilterBar() {
@@ -385,7 +385,7 @@ function wireFilterControls() {
     Array.from(daySelectElement.options).forEach((opt) => {
       opt.selected = true;
     });
-    daySelectElement.loadOptions();
+    daySelectControl.refresh();
     unlockHome();
     resetHome(refresh);
   });
