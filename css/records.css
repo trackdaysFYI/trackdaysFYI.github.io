@@ -1,18 +1,13 @@
   :root {
 
-    --accent: rgb(57, 115, 172);
     --moto: rgb(224, 164, 90);
-    --muted: rgb(176, 176, 176);
-    --line: rgb(100, 100, 100);
-    --soft: rgb(220, 220, 220);
-    --bg: rgb(34, 38, 42);
     --text: rgb(255, 255, 255);
     --title: var(--soft);
     --time: var(--soft);
     --link: var(--accent);
     --eyebrow: var(--accent);
     --group: var(--accent);
-    --glow: rgba(57,115,172,0.28);
+    --glow: var(--accent-glow);
     --panel-border: rgb(54, 58, 64);
     --panel-bg: rgba(0,0,0,0.2);
     --input-border: var(--line);
