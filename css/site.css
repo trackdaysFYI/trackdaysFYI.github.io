@@ -59,7 +59,7 @@ svg, header img {vertical-align: middle;}
 .leaflet-popup:has(.popup-timeline) .leaflet-popup-tip {background: var(--panel-bg); border-radius: 14px;}
 .leaflet-popup:has(.popup-timeline) .leaflet-popup-content {text-align: left; margin: 8px 10px; width: max-content; max-width: 100%;}
 .leaflet-popup:has(.popup-timeline) .leaflet-popup-content.leaflet-popup-scrolled {display: flex; flex-direction: column; overflow: hidden;}
-.popup-timeline {display: flex; flex-direction: column; width: max-content; min-width: min(240px, 100%); max-width: 100%; max-height: 100%; color: var(--panel-ink); text-align: left;}
+.popup-timeline {display: flex; flex-direction: column; width: max-content; min-width: min(420px, 100%); max-width: 100%; max-height: 100%; color: var(--panel-ink); text-align: left;}
 .leaflet-popup-scrolled > .popup-timeline {height: 100%; min-height: 0;}
 .popup-timeline .popup-head {display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin: 0 0 6px;}
 .popup-timeline .popup-head b {flex: 1 1 auto; min-width: 0; font-size: 15px; line-height: 1.2; text-align: left;}
@@ -74,7 +74,7 @@ svg, header img {vertical-align: middle;}
 .popup-timeline .tl {position: relative; display: flex; flex-direction: column;}
 .popup-timeline .tl::before {content: ""; position: absolute; left: 60px; top: 8px; bottom: 8px; width: 2px; background: var(--panel-rail); border-radius: 1px;}
 .popup-timeline .tl-item {box-sizing: border-box; height: 24px; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 6px; align-items: center; padding: 1px 2px 1px 0;}
-.popup-timeline .tl-row-link {display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 6px; align-items: center; min-width: 14rem; border-radius: 4px; text-decoration: none; color: inherit;}
+.popup-timeline .tl-row-link {display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 6px; align-items: center; min-width: 0; width: 100%; border-radius: 4px; text-decoration: none; color: inherit;}
 .popup-timeline .tl-copy {display: flex; align-items: center; gap: 5px; min-width: 0; container-type: inline-size; container-name: tl-copy; padding: 1px 6px; border-radius: 4px; background: var(--panel-surface); line-height: 1.3;}
 .popup-timeline a.tl-row-link:hover {background: var(--panel-hover);}
 .popup-timeline a.tl-row-link:hover .tl-copy {background: transparent;}
@@ -96,7 +96,7 @@ svg, header img {vertical-align: middle;}
 @container tl-copy (max-width: 7.5rem) {
   .popup-timeline .tl-dow {display: none;}
 }
-.popup-timeline .event-save-star {appearance: none; box-sizing: border-box; width: 22px; height: 22px; margin: 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--panel-scroll); cursor: pointer; display: grid; place-items: center; line-height: 0;}
+.popup-timeline .event-save-star {appearance: none; box-sizing: border-box; flex: 0 0 auto; width: 22px; height: 22px; margin: 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--panel-scroll); cursor: pointer; display: grid; place-items: center; line-height: 0;}
 .popup-timeline .event-save-star:hover {color: var(--panel-saved-hover); background: var(--panel-saved-soft);}
 .popup-timeline .event-save-star[aria-pressed="true"] {color: var(--panel-saved);}
 .popup-timeline .event-save-star svg {width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round;}

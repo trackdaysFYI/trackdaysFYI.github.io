@@ -129,7 +129,7 @@ export function createTrackMarkers({onTrackOpen, onPopupOpen}) {
   Object.keys(state.tracks).forEach((trackName) => {
     let track = state.tracks[trackName];
     mapMarkers[trackName] = new L.Marker([track.lat, track.lon], {title: track.nickname, icon: trackIconCheckered, opacity: 0.8});
-    mapMarkers[trackName].bindPopup("", {maxHeight: 300, minWidth: 240, maxWidth: 420, closeButton: false});  // popup content updated on click
+    mapMarkers[trackName].bindPopup("", {maxHeight: 300, minWidth: 240, maxWidth: 550, closeButton: false});  // popup content updated on click
     mapMarkers[trackName].on("pointerdown", (e) => {
       let trackKey = e.target.options.title.toUpperCase();
       onTrackOpen(trackKey);

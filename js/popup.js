@@ -29,9 +29,10 @@ function bindPopupFade(popup) {
 
 function fitPopupToMap(popup) {
   // Keep the panel inside the map, with room for the tip and margins.
+  // Prefer ~420px when the map allows so price/meta usually stay visible.
   let width = Math.max(160, map.getSize().x - 32);
-  popup.options.maxWidth = Math.min(420, width);
-  popup.options.minWidth = Math.min(240, popup.options.maxWidth);
+  popup.options.maxWidth = Math.min(550, width);
+  popup.options.minWidth = Math.min(popup.options.maxWidth, width >= 420 ? 420 : 240);
 }
 
 export function syncOpenPopup(popup) {
