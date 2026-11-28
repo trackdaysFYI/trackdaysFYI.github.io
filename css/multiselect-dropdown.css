@@ -1,3 +1,9 @@
+/* Hide the native <select> immediately so it never flashes before createMultiselect builds the UI. */
+select[data-multiselect-search],
+select[data-multiselect-select-all] {
+  display: none;
+}
+
 .multiselect-dropdown {
   position: relative;
 }
