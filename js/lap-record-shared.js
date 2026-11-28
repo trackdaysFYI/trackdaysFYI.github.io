@@ -439,7 +439,7 @@ const LAP_RECORD_FORM_HTML = `
     <label class="rec-field"><span>Model</span><input name="vehicleModel" maxlength="60"></label>
   </div>
   <div class="rec-form-grid">
-    <label class="rec-field"><span>Time</span><input name="time" placeholder="1:23.456" inputmode="decimal"></label>
+    <label class="rec-field"><span>Time</span><input name="time" placeholder="1:23.456" inputmode="text"></label>
     <label class="rec-field"><span>Lap date</span><input name="date" type="date"></label>
   </div>
   <label class="rec-field"><span>Timing device</span><select name="timingDevice"><option value="">Choose</option>${TIMING_DEVICES.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")}</select></label>
